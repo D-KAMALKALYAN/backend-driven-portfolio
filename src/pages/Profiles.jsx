@@ -78,7 +78,7 @@ const PLATFORM_COLORS = {
   leetcode: '#ffa116',
   hackerrank: '#00ea64',
   geeksforgeeks: '#2f8d46',
-  medium: '#ffffff',
+  medium: '#000000',
   portfolio: '#6366f1',
 };
 
