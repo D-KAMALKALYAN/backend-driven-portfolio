@@ -1,4 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+
+/** True when the primary pointer is coarse (touch/mobile). */
+function useIsTouchDevice() {
+  return useMemo(
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches,
+    []
+  );
+}
 import { motion, AnimatePresence } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -44,6 +52,7 @@ function ExperienceDrawer({ exp, onClose }) {
   const techs    = parseTechs(exp?.technologies);
   const isCurrent = !exp?.end_date;
   const achievements = parseAchievements(exp);
+  const isTouch  = useIsTouchDevice();
 
   // Close on ESC
   useEffect(() => {
@@ -237,12 +246,24 @@ function ExperienceDrawer({ exp, onClose }) {
             </div>
           </div>
 
-          {/* Footer hint */}
+          {/* Footer hint — device-aware */}
           <div
             className="px-6 py-4 text-center text-xs"
             style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}
           >
-            Press <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>ESC</kbd> to close
+            {isTouch ? (
+              <>
+                Tap{' '}
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>✕</kbd>
+                {' '}to close
+              </>
+            ) : (
+              <>
+                Press{' '}
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>ESC</kbd>
+                {' '}to close
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>

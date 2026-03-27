@@ -327,19 +327,7 @@ export default function Landing() {
             {' '}for command palette
           </motion.p>
 
-          {/* ── Scroll hint arrow ── */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, 6, 0] }}
-            transition={{ opacity: { delay: 1.2 }, y: { delay: 1.2, duration: 1.8, repeat: Infinity, ease: 'easeInOut' } }}
-            className="mt-12 flex flex-col items-center gap-1"
-            aria-hidden
-          >
-            <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Scroll</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </motion.div>
+
 
         </Container>
       </Section>

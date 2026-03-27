@@ -177,16 +177,19 @@ export default function Resume() {
                       </svg>
                       Download
                     </Button>
-                    <Button
-                      variant="secondary" size="md"
-                      onClick={() => setShowPdf((v) => !v)}
-                      id="resume-preview"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                      </svg>
-                      {showPdf ? 'Hide' : 'Preview'}
-                    </Button>
+                    {/* Preview button — desktop only (mobile iframe only shows 1 page) */}
+                    <div className="hidden sm:block">
+                      <Button
+                        variant="secondary" size="md"
+                        onClick={() => setShowPdf((v) => !v)}
+                        id="resume-preview"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                        </svg>
+                        {showPdf ? 'Hide' : 'Preview'}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>No resume uploaded yet.</p>
@@ -209,20 +212,22 @@ export default function Resume() {
                 )}
               </Card>
 
-              {/* Inline PDF preview — expands below card */}
+              {/* Inline PDF preview — desktop only (sm+). Mobile browsers show only 1 page of iframed PDFs. */}
               {showPdf && resumeUrl && (
-                <motion.div
-                  initial={{ opacity: 0, scaleY: 0.9 }}
-                  animate={{ opacity: 1, scaleY: 1 }}
-                  style={{ transformOrigin: 'top', overflow: 'hidden', borderRadius: '1rem', marginTop: '1rem' }}
-                >
-                  <iframe
-                    src={`${resumeUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                    title="Resume Preview"
-                    className="w-full"
-                    style={{ height: 520, border: 'none', borderRadius: '1rem', backgroundColor: 'var(--bg-subtle)', boxShadow: 'var(--shadow-card)' }}
-                  />
-                </motion.div>
+                <div className="hidden sm:block">
+                  <motion.div
+                    initial={{ opacity: 0, scaleY: 0.9 }}
+                    animate={{ opacity: 1, scaleY: 1 }}
+                    style={{ transformOrigin: 'top', overflow: 'hidden', borderRadius: '1rem', marginTop: '1rem' }}
+                  >
+                    <iframe
+                      src={`${resumeUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                      title="Resume Preview"
+                      className="w-full"
+                      style={{ height: 520, border: 'none', borderRadius: '1rem', backgroundColor: 'var(--bg-subtle)', boxShadow: 'var(--shadow-card)' }}
+                    />
+                  </motion.div>
+                </div>
               )}
 
               {/* Storage badge */}

@@ -3,14 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
-import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchSkills } from '../services/api';
 
-/* Category → accent colour */
+/* ── Category colour map ───────────────────────────────────────── */
 const COLORS = {
   frontend:  '#3b82f6',
   backend:   '#22c55e',
@@ -55,110 +54,124 @@ function catIcon(cat) {
   return CATEGORY_ICONS[k] ?? Object.entries(CATEGORY_ICONS).find(([key]) => k.includes(key))?.[1] ?? '◈';
 }
 
-function CategoryCard({ category, skills, color, icon, index }) {
-  const [hovered, setHovered] = useState(false);
+/* ── Skill tag visual ──────────────────────────────────────────── */
+/**
+ * Each skill is shown as a styled pill/tag with:
+ * - A tinted coloured dot indicator
+ * - Name text
+ * - Optional level label (derived from proficiency if present, otherwise hidden)
+ * No raw percentages are shown anywhere.
+ */
+const LEVEL_LABELS = [
+  { min: 90, label: 'Expert',        dot: 3 },
+  { min: 75, label: 'Advanced',      dot: 2 },
+  { min: 50, label: 'Intermediate',  dot: 2 },
+  { min: 0,  label: 'Familiar',      dot: 1 },
+];
 
+function getLevel(proficiency) {
+  if (proficiency == null) return null;
+  return LEVEL_LABELS.find((l) => proficiency >= l.min) ?? LEVEL_LABELS[LEVEL_LABELS.length - 1];
+}
+
+function SkillTag({ skill, color }) {
+  const level = getLevel(skill?.proficiency);
+  return (
+    <motion.div
+      variants={{ hidden: { opacity: 0, scale: 0.88 }, show: { opacity: 1, scale: 1 } }}
+      className="group flex items-center gap-2 px-3 py-2 rounded-xl cursor-default select-none transition-all"
+      style={{
+        backgroundColor: `${color}10`,
+        border: `1px solid ${color}28`,
+      }}
+      whileHover={{
+        backgroundColor: `${color}1e`,
+        borderColor: `${color}55`,
+        scale: 1.03,
+      }}
+      transition={{ duration: 0.15 }}
+    >
+      {/* Animated dot — size reflects level */}
+      <span
+        className="shrink-0 rounded-full transition-all duration-300 group-hover:scale-125"
+        style={{
+          width: level?.dot === 3 ? '7px' : level?.dot === 2 ? '6px' : '5px',
+          height: level?.dot === 3 ? '7px' : level?.dot === 2 ? '6px' : '5px',
+          backgroundColor: color,
+          boxShadow: `0 0 ${level?.dot === 3 ? '6px' : '4px'} ${color}80`,
+        }}
+      />
+      <span
+        className="text-xs font-medium leading-none"
+        style={{ color: 'var(--text-primary)' }}
+      >
+        {skill?.name || 'Skill'}
+      </span>
+      {/* Level label shown only if proficiency data is available */}
+      {level && (
+        <span
+          className="ml-auto pl-2 text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          style={{ color }}
+        >
+          {level.label}
+        </span>
+      )}
+    </motion.div>
+  );
+}
+
+/* ── Category Card ─────────────────────────────────────────────── */
+function CategoryCard({ category, skills, color, icon, index }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="rounded-2xl p-5 flex flex-col gap-4 h-full transition-all duration-200"
       style={{
-        borderRadius: '1rem',
         backgroundColor: 'var(--bg-card)',
-        boxShadow: hovered ? 'var(--shadow-hover)' : 'var(--shadow-card)',
-        transition: 'box-shadow 0.2s ease, transform 0.2s ease',
-        transform: hovered ? 'translateY(-2px)' : 'none',
-        padding: '1.25rem 1.5rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
+        boxShadow: 'var(--shadow-card)',
       }}
+      whileHover={{ y: -2, boxShadow: 'var(--shadow-hover)' }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-        {/* Icon bubble */}
+      <div className="flex items-center gap-2.5">
         <span
-          style={{
-            width: '2rem',
-            height: '2rem',
-            borderRadius: '0.5rem',
-            backgroundColor: `${color}18`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1rem',
-            flexShrink: 0,
-          }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
+          style={{ backgroundColor: `${color}18`, color }}
         >
           {icon}
         </span>
-
-        <h3 style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600 }} className="capitalize">
+        <h3
+          className="text-sm font-semibold capitalize flex-1"
+          style={{ color: 'var(--text-primary)' }}
+        >
           {category}
         </h3>
-
-        {/* Count */}
         <span
-          style={{
-            marginLeft: 'auto',
-            fontSize: '0.7rem',
-            fontFamily: 'monospace',
-            color: 'var(--text-muted)',
-            backgroundColor: 'var(--bg-subtle)',
-            padding: '0.125rem 0.5rem',
-            borderRadius: '999px',
-          }}
+          className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+          style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
         >
           {skills.length}
         </span>
       </div>
 
-      {/* Skill progress bars */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {skills.map((skill, i) => {
-          const proficiency = skill?.proficiency ?? 75; // default if not set
-          return (
-            <div key={skill?.id ?? i}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{skill?.name || 'Skill'}</span>
-                {skill?.proficiency != null && (
-                  <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                    {skill.proficiency}%
-                  </span>
-                )}
-              </div>
-              {skill?.proficiency != null && (
-                <div style={{ height: '3px', backgroundColor: 'var(--bg-subtle)', borderRadius: '999px', overflow: 'hidden' }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(Math.max(proficiency, 0), 100)}%` }}
-                    transition={{ delay: index * 0.06 + i * 0.04 + 0.3, duration: 0.6, ease: 'easeOut' }}
-                    style={{ height: '100%', backgroundColor: color, borderRadius: '999px' }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Tags row */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '-0.25rem' }}>
+      {/* Skill tags — staggered animation */}
+      <motion.div
+        className="flex flex-col gap-2"
+        initial="hidden"
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.05, delayChildren: index * 0.06 + 0.15 } } }}
+      >
         {skills.map((skill, i) => (
-          skill?.proficiency == null && (
-            <Badge key={skill?.id ?? i} color={color}>
-              {skill?.name || 'Skill'}
-            </Badge>
-          )
+          <SkillTag key={skill?.id ?? i} skill={skill} color={color} />
         ))}
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
 
+/* ── Page ──────────────────────────────────────────────────────── */
 export default function Skills() {
   const { data: skills, loading, error, refetch } = useSupabaseQuery(fetchSkills);
   const [activeFilter, setActiveFilter] = useState('All');
@@ -231,7 +244,6 @@ export default function Skills() {
                       backgroundColor: isActive ? color : 'var(--bg-card)',
                       color:           isActive ? '#fff' : 'var(--text-secondary)',
                       boxShadow:       'var(--shadow-card)',
-                      transform:       isActive ? 'none' : 'none',
                     }}
                   >
                     {cat}
