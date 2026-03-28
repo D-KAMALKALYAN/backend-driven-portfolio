@@ -10,8 +10,85 @@ import EmptyState from '../components/EmptyState';
 import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchProjectBySlug, fetchProjectSections, fetchProjectMetrics } from '../services/api';
+import { fetchProjectBySlug, fetchProjectSections, fetchProjectMetrics, fetchProjectStorytelling } from '../services/api';
 import { trackEvent } from '../services/analytics';
+
+/* ─── Storytelling section meta ─── */
+const STORY_META = {
+  why_this_project: { icon: '💡', label: 'Why This Was Built',       color: '#f59e0b' },
+  problem_statement: { icon: '⚠️', label: 'The Problem',              color: '#ef4444' },
+  solution_approach: { icon: '🏗',  label: 'Solution & Architecture', color: '#6366f1' },
+  tradeoffs:         { icon: '⚖️', label: 'Deliberate Tradeoffs',    color: '#8b5cf6' },
+  impact:            { icon: '📈', label: 'Measurable Impact',        color: '#22c55e' },
+};
+
+/* Order storytelling sections by the canonical order above */
+const STORY_ORDER = Object.keys(STORY_META);
+
+function StorytellingSection({ rows }) {
+  if (!rows || rows.length === 0) return null;
+
+  // Sort by canonical order, then by sort_order within same type
+  const sorted = [...rows].sort((a, b) => {
+    const ai = STORY_ORDER.indexOf(a.section_type);
+    const bi = STORY_ORDER.indexOf(b.section_type);
+    if (ai !== bi) return ai - bi;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+
+  return (
+    <div className="mt-10">
+      {/* Section divider */}
+      <div className="flex items-center gap-3 mb-6">
+        <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }} />
+        <span className="text-xs font-semibold uppercase tracking-widest px-3"
+          style={{ color: 'var(--text-muted)' }}>Case Study</span>
+        <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }} />
+      </div>
+
+      <div className="space-y-4">
+        {sorted.map((row, i) => {
+          const meta = STORY_META[row.section_type] ?? { icon: '◈', label: row.section_type, color: 'var(--accent)' };
+          const displayTitle = row.title || meta.label;
+          return (
+            <motion.div
+              key={row.id ?? i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+            >
+              <div
+                className="rounded-2xl p-5 sm:p-6"
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  boxShadow: 'var(--shadow-card)',
+                  borderLeft: `3px solid ${meta.color}`,
+                }}
+              >
+                {/* Header */}
+                <div className="flex items-center gap-2.5 mb-3">
+                  <span
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
+                    style={{ backgroundColor: `${meta.color}15`, color: meta.color }}
+                  >
+                    {meta.icon}
+                  </span>
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {displayTitle}
+                  </h3>
+                </div>
+                {/* Body */}
+                <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
+                  {row.body}
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /* ─── Typed section content renderers ─── */
 function renderContent(section) {
@@ -115,6 +192,10 @@ export default function ProjectDetail() {
   );
   const { data: metrics } = useSupabaseQuery(
     () => project?.id ? fetchProjectMetrics(project.id).catch(() => []) : Promise.resolve([]),
+    [project?.id]
+  );
+  const { data: storytelling } = useSupabaseQuery(
+    () => project?.id ? fetchProjectStorytelling(project.id).catch(() => []) : Promise.resolve([]),
     [project?.id]
   );
 
@@ -357,6 +438,9 @@ export default function ProjectDetail() {
           ) : (
             <EmptyState title="No sections" description="Add project sections via Supabase." />
           )}
+
+          {/* ── Storytelling / Case Study sections ── */}
+          <StorytellingSection rows={storytelling} />
 
           {/* ── Footer actions ── */}
           <div className="flex flex-wrap items-center gap-3 mt-10">

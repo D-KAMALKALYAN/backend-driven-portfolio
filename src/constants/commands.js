@@ -57,4 +57,11 @@ export const COMMANDS = [
     path: ROUTES.RESUME,
     group: 'Navigation',
   },
+  {
+    id: 'tools-analytics',
+    label: 'System Analytics',
+    shortcut: '/analytics',
+    path: ROUTES.ANALYTICS,
+    group: 'Tools',
+  },
 ];

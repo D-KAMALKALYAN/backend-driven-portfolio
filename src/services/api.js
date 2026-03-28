@@ -141,3 +141,73 @@ export async function fetchAchievements() {
   return data;
 }
 
+// ─── Analytics API ────────────────────────────────────────────────────────────
+
+/**
+ * Aggregate summary stats via RPC (computed server-side).
+ * Requires: CREATE FUNCTION get_analytics_summary() in Supabase.
+ */
+export async function fetchAnalyticsSummary() {
+  const { data, error } = await supabase.rpc('get_analytics_summary');
+  if (error) throw error;
+  // RPC returns a single JSON object
+  return typeof data === 'string' ? JSON.parse(data) : data;
+}
+
+/**
+ * Daily visit counts for the last 30 days.
+ * Requires: CREATE VIEW analytics_daily_visits in Supabase.
+ */
+export async function fetchDailyVisits() {
+  const { data, error } = await supabase
+    .from('analytics_daily_visits')
+    .select('date, visits, unique_visitors')
+    .order('date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Top N projects by view_count — only published.
+ */
+export async function fetchTopProjects(limit = 8) {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, title, slug, view_count, cover_image_url, tagline')
+    .eq('status', 'published')
+    .eq('is_deleted', false)
+    .order('view_count', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Recent analytics events (for live feed display).
+ */
+export async function fetchRecentEvents(limit = 20) {
+  const { data, error } = await supabase
+    .from('analytics')
+    .select('id, event, path, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data;
+}
+
+// ─── Storytelling API ─────────────────────────────────────────────────────────
+
+/**
+ * Fetch storytelling sections for a project.
+ * Requires: CREATE TABLE project_storytelling in Supabase.
+ */
+export async function fetchProjectStorytelling(projectId) {
+  const { data, error } = await supabase
+    .from('project_storytelling')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+

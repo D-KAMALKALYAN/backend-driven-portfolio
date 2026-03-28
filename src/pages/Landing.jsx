@@ -6,8 +6,95 @@ import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSystemStatus } from '../hooks/useSystemStatus';
-import { fetchSiteContent } from '../services/api';
+import { fetchSiteContent, fetchAnalyticsSummary } from '../services/api';
 import { NAV_LINKS } from '../constants/routes';
+
+// ─── Analytics teaser widget ──────────────────────────────────────────────────
+function AnalyticsTeaser() {
+  const { data: stats, loading } = useSupabaseQuery(fetchAnalyticsSummary);
+
+  const fmt = (v) => {
+    if (loading || v == null) return '—';
+    const n = Number(v);
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toLocaleString();
+  };
+
+  const PILLS = [
+    { label: 'Page Views',      value: fmt(stats?.total_visits),        color: '#6366f1' },
+    { label: 'Unique Visitors', value: fmt(stats?.unique_visitors),      color: '#22c55e' },
+    { label: 'Project Views',   value: fmt(stats?.total_project_views),  color: '#f59e0b' },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.65 }}
+      className="mt-8 w-full max-w-lg mx-auto"
+    >
+      <Link
+        to="/analytics"
+        className="group no-underline block"
+        aria-label="View system analytics"
+      >
+        <motion.div
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200"
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            boxShadow: 'var(--shadow-card), 0 0 0 1px rgba(99,102,241,0.12)',
+          }}
+          whileHover={{
+            boxShadow: 'var(--shadow-hover), 0 0 0 1px rgba(99,102,241,0.35)',
+            y: -2,
+          }}
+        >
+          {/* Live dot */}
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: '#22c55e', boxShadow: '0 0 6px #22c55e' }}
+            />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#22c55e' }}>
+              Live
+            </span>
+          </span>
+
+          {/* Divider */}
+          <span className="w-px self-stretch shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+
+          {/* Stat pills */}
+          <div className="flex items-center gap-3 flex-1 flex-wrap">
+            {PILLS.map((p) => (
+              <span key={p.label} className="flex items-center gap-1.5 text-xs">
+                <span
+                  className="font-mono font-bold"
+                  style={{ color: p.color }}
+                >
+                  {p.value}
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>{p.label}</span>
+              </span>
+            ))}
+          </div>
+
+          {/* CTA arrow */}
+          <motion.span
+            className="shrink-0 flex items-center gap-1 text-xs font-semibold"
+            style={{ color: 'var(--accent)' }}
+            animate={{ x: [0, 3, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            Analytics
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </motion.span>
+        </motion.div>
+      </Link>
+    </motion.div>
+  );
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getVal(content, key, fallback = '') {
@@ -308,6 +395,9 @@ export default function Landing() {
               </motion.div>
             ))}
           </motion.div>
+
+          {/* ── Analytics live teaser ── */}
+          <AnalyticsTeaser />
 
           {/* ── Keyboard hint ── */}
           <motion.p

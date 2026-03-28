@@ -8,6 +8,7 @@ export const ROUTES = {
   EXPERIENCE: '/experience',
   CONTACT: '/contact',
   RESUME: '/resume',
+  ANALYTICS: '/analytics',
 };
 
 export const NAV_LINKS = [
