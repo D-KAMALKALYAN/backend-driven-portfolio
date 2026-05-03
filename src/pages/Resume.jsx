@@ -23,10 +23,10 @@ function getJson(content, key, fallback = null) {
 
 // Fallback highlights if DB key is missing
 const DEFAULT_HIGHLIGHTS = [
-  { icon: '🔒', label: 'Security',     text: 'SAST/DAST, enterprise-grade application security' },
-  { icon: '🏗',  label: 'Architecture', text: 'Scalable backend systems, microservices design'    },
-  { icon: '🛠',  label: 'Full-Stack',   text: 'Java, Spring Boot, React, Node.js, PostgreSQL'     },
-  { icon: '☁️', label: 'Cloud',        text: 'Supabase, Docker, CI/CD pipelines'                 },
+  { icon: '🔒', label: 'Security', text: 'SAST/DAST, enterprise-grade application security' },
+  { icon: '🏗', label: 'Architecture', text: 'Scalable backend systems, microservices design' },
+  { icon: '🛠', label: 'Full-Stack', text: 'Java, Spring Boot, React, Node.js, PostgreSQL' },
+  { icon: '☁️', label: 'Cloud', text: 'Supabase, Docker, CI/CD pipelines' },
 ];
 
 // ─── Animated counter ─────────────────────────────────────────────────────────
@@ -72,12 +72,12 @@ function PdfPreview({ url }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Resume() {
-  const [url, setUrl]         = useState(null);
-  const [loading, setL]       = useState(true);
-  const [error, setErr]       = useState(null);
+  const [url, setUrl] = useState(null);
+  const [loading, setL] = useState(true);
+  const [error, setErr] = useState(null);
   const [profile, setProfile] = useState(null);
   const [skillCount, setSkills] = useState(null);
-  const [expCount, setExp]    = useState(null);
+  const [expCount, setExp] = useState(null);
   const [content, setContent] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
 
@@ -91,11 +91,11 @@ export default function Resume() {
       fetchSiteContent(),
     ]).then(([urlRes, profRes, skillsRes, expRes, contentRes]) => {
       if (done) return;
-      if (urlRes.status    === 'fulfilled') setUrl(urlRes.value);
+      if (urlRes.status === 'fulfilled') setUrl(urlRes.value);
       else setErr('Resume not available');
-      if (profRes.status   === 'fulfilled') setProfile(profRes.value);
+      if (profRes.status === 'fulfilled') setProfile(profRes.value);
       if (skillsRes.status === 'fulfilled') setSkills(Array.isArray(skillsRes.value) ? skillsRes.value.length : 0);
-      if (expRes.status    === 'fulfilled') setExp(Array.isArray(expRes.value) ? expRes.value.length : 0);
+      if (expRes.status === 'fulfilled') setExp(Array.isArray(expRes.value) ? expRes.value.length : 0);
       if (contentRes.status === 'fulfilled') setContent(contentRes.value);
       setL(false);
     });
@@ -112,12 +112,12 @@ export default function Resume() {
     : DEFAULT_HIGHLIGHTS;
 
   const resumeUrl = url || getVal(content, 'resume.url', null);
-  const yearsExp  = profile?.years_experience ?? null;
+  const yearsExp = profile?.years_experience ?? null;
 
   const STATS = [
-    yearsExp   != null ? { value: yearsExp,   suffix: '+', label: 'Years'  } : null,
-    skillCount != null ? { value: skillCount, suffix: '',  label: 'Skills' } : null,
-    expCount   != null ? { value: expCount,   suffix: '',  label: 'Roles'  } : null,
+    yearsExp != null ? { value: yearsExp, suffix: '+', label: 'Years' } : null,
+    skillCount != null ? { value: skillCount, suffix: '', label: 'Skills' } : null,
+    expCount != null ? { value: expCount, suffix: '', label: 'Roles' } : null,
   ].filter(Boolean);
 
   return (

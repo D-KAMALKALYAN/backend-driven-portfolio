@@ -122,10 +122,15 @@ export async function submitContactMessage(message) {
  * Fetch resume URL from Supabase storage
  */
 export async function fetchResumeUrl() {
-  const { data } = supabase.storage
-    .from('resumes')
-    .getPublicUrl('resume.pdf');
-  return data?.publicUrl || null;
+  const { data, error } = await supabase
+    .from('resume_versions')
+    .select('file_url')
+    .eq('is_active', true)
+    .single();
+
+  if (error || !data) return null;
+
+  return `${data.file_url}?v=${Date.now()}`;
 }
 
 /**

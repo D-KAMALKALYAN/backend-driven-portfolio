@@ -25,7 +25,7 @@ function parseTechs(t) {
  */
 function formatViews(count) {
   if (!count || count < 10) return null;
-  if (count < 50)  return '10+ views';
+  if (count < 20) return '10+ views';
   const rounded = Math.floor(count / 50) * 50;
   return `${rounded}+ views`;
 }
@@ -60,12 +60,12 @@ export default function Projects() {
           {list.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
               {list.map((p, i) => {
-                const techs      = parseTechs(p?.tech_stack);
-                const tags       = Array.isArray(p?.tags) ? p.tags : [];
-                const isPopular  = p?.meta?.is_popular === true || p?.meta?.is_popular === 'true';
+                const techs = parseTechs(p?.tech_stack);
+                const tags = Array.isArray(p?.tags) ? p.tags : [];
+                const isPopular = p?.meta?.is_popular === true || p?.meta?.is_popular === 'true';
                 const isFeatured = p?.featured === true;
-                const viewLabel  = formatViews(p?.view_count);
-                const metrics    = Array.isArray(p?.metrics_preview) ? p.metrics_preview : [];
+                const viewLabel = formatViews(p?.view_count);
+                const metrics = Array.isArray(p?.metrics_preview) ? p.metrics_preview : [];
 
                 return (
                   <motion.div

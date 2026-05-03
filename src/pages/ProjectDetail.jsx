@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
@@ -200,8 +200,10 @@ export default function ProjectDetail() {
   );
 
   /* ── Fire project_view event once per project load ── */
+  const trackedProjectRef = useRef(null);
   useEffect(() => {
-    if (project?.id) {
+    if (project?.id && trackedProjectRef.current !== project.id) {
+      trackedProjectRef.current = project.id;
       trackEvent('project_view', { project_id: project.id });
     }
   }, [project?.id]); // fires once per project per session load

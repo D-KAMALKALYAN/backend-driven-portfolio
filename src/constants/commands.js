@@ -1,6 +1,14 @@
 import { ROUTES } from './routes';
 
 export const COMMANDS = [
+
+  {
+    id: 'tools-analytics',
+    label: 'System Analytics',
+    shortcut: '/analytics',
+    path: ROUTES.ANALYTICS,
+    group: 'Tools',
+  },
   {
     id: 'nav-home',
     label: 'Go to Home',
@@ -57,11 +65,5 @@ export const COMMANDS = [
     path: ROUTES.RESUME,
     group: 'Navigation',
   },
-  {
-    id: 'tools-analytics',
-    label: 'System Analytics',
-    shortcut: '/analytics',
-    path: ROUTES.ANALYTICS,
-    group: 'Tools',
-  },
+
 ];
