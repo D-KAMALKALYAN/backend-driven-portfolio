@@ -16,7 +16,10 @@
 
   --text-primary:   #e4e4ef;
   --text-secondary: #9898b0;
-  --text-muted:     #6b6b85;
+  /* WCAG AA: 5.29:1 on --bg-base, 4.94:1 on --bg-card.
+     Was #6b6b85 (3.83 / 3.57) - below the 4.5:1 minimum for body text,
+     and this token carries most secondary copy on the site. */
+  --text-muted:     #82829c;
 
   --accent:       #6366f1;
   --accent-hover: #818cf8;
@@ -56,7 +59,9 @@
 
   --text-primary:   #111827;
   --text-secondary: #4b5563;
-  --text-muted:     #9ca3af;
+  /* WCAG AA: 4.52:1 on --bg-base, 4.83:1 on --bg-card.
+     Was #9ca3af (2.37 / 2.54). */
+  --text-muted:     #6b7280;
 
   --accent:       #4f46e5;
   --accent-hover: #6366f1;
@@ -183,4 +188,26 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
   border-radius: var(--r-md);
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   Honours the OS setting. framer-motion animates almost every
+   element on entrance; this covers CSS animation/transition and
+   MotionConfig reducedMotion="user" in App.jsx covers the rest.
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
 }

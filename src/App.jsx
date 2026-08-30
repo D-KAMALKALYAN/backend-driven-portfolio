@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CommandPalette from './components/CommandPalette';
@@ -99,9 +100,13 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
+      {/* reducedMotion="user" makes every motion component respect the OS
+          setting, which nothing previously did. */}
+      <MotionConfig reducedMotion="user">
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </MotionConfig>
     </BrowserRouter>
   );
 }
