@@ -28,3 +28,7 @@ Thumbs.db
 .vercel
 .turbo
 *.log
+
+# Supabase CLI local artifacts
+supabase/.temp
+supabase/.branches

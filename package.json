@@ -8,7 +8,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff --linked",
+    "db:pull": "supabase db pull --linked",
+    "db:push": "supabase db push --linked",
+    "db:lint": "supabase db lint --linked",
+    "db:types": "supabase gen types typescript --linked > src/types/database.d.ts"
   },
   "type": "module",
   "dependencies": {
@@ -24,6 +32,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
     "jsdom": "^29.1.1",
+    "supabase": "^2.116.0",
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.1",
     "vitest": "^3.2.7"
