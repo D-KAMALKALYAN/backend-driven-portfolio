@@ -7,7 +7,10 @@ import Button from '../components/Button';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSystemStatus } from '../hooks/useSystemStatus';
 import { fetchSiteContent, fetchAnalyticsSummary } from '../services/api';
+import { useActiveResume } from '../hooks/useActiveResume';
+import { trackEvent } from '../services/analytics';
 import { NAV_LINKS } from '../constants/routes';
+import { getVal, getJson } from '../utils/siteContent';
 
 // ─── Analytics teaser widget ──────────────────────────────────────────────────
 function AnalyticsTeaser() {
@@ -22,7 +25,7 @@ function AnalyticsTeaser() {
 
   const PILLS = [
     { label: 'Page Views',      value: fmt(stats?.total_visits),        color: '#6366f1' },
-    { label: 'Unique Visitors', value: fmt(stats?.unique_visitors),      color: '#22c55e' },
+    { label: 'Sessions',       value: fmt(stats?.unique_visitors),      color: '#22c55e' },
     { label: 'Project Views',   value: fmt(stats?.total_project_views),  color: '#f59e0b' },
   ];
 
@@ -97,15 +100,6 @@ function AnalyticsTeaser() {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function getVal(content, key, fallback = '') {
-  if (!Array.isArray(content)) return fallback;
-  return content.find((c) => c?.key === key)?.value ?? fallback;
-}
-function getJson(content, key, fallback = null) {
-  if (!Array.isArray(content)) return fallback;
-  const row = content.find((c) => c?.key === key);
-  return row?.value_json ?? fallback;
-}
 
 const NAV_ICON_MAP = { '/about': '👤', '/projects': '📂', '/skills': '⚡', '/experience': '💼' };
 const QUICK_NAV_PATHS = ['/about', '/projects', '/skills', '/experience'];
@@ -186,6 +180,7 @@ function GradientOrbs() {
 export default function Landing() {
   const { data: content, loading } = useSupabaseQuery(fetchSiteContent);
   const { system, latency, systemColor, latencyColor } = useSystemStatus();
+  const { resume } = useActiveResume();
 
   const name         = getVal(content, 'profile.name',       'Kamal Kalyan');
   const headline     = getVal(content, 'hero.headline',      'Backend Engineer building scalable & secure systems');
@@ -195,11 +190,12 @@ export default function Landing() {
   const availability = getVal(content, 'hero.availability',  '');
   const location     = getVal(content, 'hero.location',      '');
 
+  // Only genuinely measured values belong here. 'Uptime: 99.9%' and
+  // 'Security: Active' were hardcoded string literals sitting beside two
+  // real readings, which undermines the credibility of the real ones.
   const STATUS_ITEMS = [
-    { label: 'System',   value: loading ? 'Checking' : system,  color: loading ? 'var(--text-muted)' : systemColor  },
-    { label: 'Uptime',   value: '99.9%',                         color: 'var(--success)'                            },
-    { label: 'Security', value: 'Active',                        color: 'var(--accent)'                             },
-    { label: 'Latency',  value: loading ? '...' : latency,       color: loading ? 'var(--text-muted)' : latencyColor },
+    { label: 'System',  value: loading ? 'Checking' : system, color: loading ? 'var(--text-muted)' : systemColor  },
+    { label: 'Latency', value: loading ? '...' : latency,     color: loading ? 'var(--text-muted)' : latencyColor },
   ];
 
   const tagsJson     = getJson(content, 'hero.tags', null);
@@ -333,7 +329,16 @@ export default function Landing() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </motion.svg>
               </Button>
-              <Button as="a" href={getVal(content, 'resume.url', '/resume')} target="_blank" rel="noopener noreferrer" variant="secondary" size="lg">
+              {/* Resolves through the same hook as /resume - one source of truth.
+                  Falls back to the resume page while loading or if none is active. */}
+              <Button
+                as={resume?.url ? 'a' : Link}
+                {...(resume?.url
+                  ? { href: resume.url, target: '_blank', rel: 'noopener noreferrer',
+                      onClick: () => trackEvent('resume_download', { from: 'landing', version: resume.version ?? null }) }
+                  : { to: '/resume' })}
+                variant="secondary" size="lg"
+              >
                 {ctaSecond}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

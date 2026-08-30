@@ -119,18 +119,56 @@ export async function submitContactMessage(message) {
 }
 
 /**
- * Fetch resume URL from Supabase storage
+ * Fetch the currently active resume.
+ *
+ * Reads the `resume` table, which is populated automatically by the
+ * `handle_resume_upload` trigger on storage.objects. The public URL is
+ * resolved from the stored object name via the Storage SDK rather than
+ * read from `file_url`: the trigger builds that column by string
+ * concatenation, so filenames containing spaces produce a URL that does
+ * not resolve. getPublicUrl() percent-encodes correctly.
+ *
+ * Errors are surfaced, not swallowed. A silent null here previously hid a
+ * missing table for months and silently downgraded the whole workflow to a
+ * manual copy-paste step.
+ *
+ * @returns {Promise<{url: string, fileName: string, version: string} | null>}
+ *          null only when no resume has been marked active.
  */
-export async function fetchResumeUrl() {
+export async function fetchActiveResume() {
   const { data, error } = await supabase
-    .from('resume_versions')
-    .select('file_url')
+    .from('resume')
+    .select('file_name, file_url, version, updated_at')
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) throw error;
+  if (!data) return null;
 
-  return `${data.file_url}?v=${Date.now()}`;
+  const objectName = data.file_name || deriveObjectName(data.file_url);
+  if (!objectName) return null;
+
+  const { data: pub } = supabase.storage.from('resumes').getPublicUrl(objectName);
+
+  return {
+    url: pub?.publicUrl ?? null,
+    fileName: objectName,
+    version: data.version ?? null,
+    updatedAt: data.updated_at ?? null,
+  };
+}
+
+/**
+ * Last-resort recovery of the storage object name from a legacy absolute
+ * URL, for rows written before file_name was populated.
+ */
+function deriveObjectName(fileUrl) {
+  if (typeof fileUrl !== 'string' || !fileUrl) return null;
+  const marker = '/resumes/';
+  const i = fileUrl.indexOf(marker);
+  if (i === -1) return null;
+  const raw = fileUrl.slice(i + marker.length).split('?')[0];
+  try { return decodeURIComponent(raw); } catch { return raw; }
 }
 
 /**

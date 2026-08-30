@@ -8,18 +8,12 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { fetchResumeUrl, fetchProfile, fetchSkills, fetchExperience, fetchSiteContent } from '../services/api';
+import { fetchProfile, fetchSkills, fetchExperience, fetchSiteContent } from '../services/api';
+import { useActiveResume } from '../hooks/useActiveResume';
+import { trackEvent } from '../services/analytics';
+import { getVal, getJson } from '../utils/siteContent';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function getVal(content, key, fallback = '') {
-  if (!Array.isArray(content)) return fallback;
-  return content.find((c) => c?.key === key)?.value ?? fallback;
-}
-function getJson(content, key, fallback = null) {
-  if (!Array.isArray(content)) return fallback;
-  const row = content.find((c) => c?.key === key);
-  return row?.value_json ?? fallback;
-}
 
 // Fallback highlights if DB key is missing
 const DEFAULT_HIGHLIGHTS = [
@@ -46,33 +40,9 @@ function CountUp({ value, suffix = '' }) {
   return <>{display}{suffix}</>;
 }
 
-// ─── PDF inline preview ───────────────────────────────────────────────────────
-function PdfPreview({ url }) {
-  const [show, setShow] = useState(false);
-  if (!url) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: show ? 1 : 0, height: show ? 500 : 0 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="overflow-hidden rounded-2xl mt-6"
-      style={{ boxShadow: show ? 'var(--shadow-card)' : 'none' }}
-    >
-      {show && (
-        <iframe
-          src={`${url}#toolbar=0&navpanes=0&scrollbar=0`}
-          title="Resume Preview"
-          className="w-full"
-          style={{ height: 500, border: 'none', backgroundColor: 'var(--bg-subtle)' }}
-        />
-      )}
-    </motion.div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Resume() {
-  const [url, setUrl] = useState(null);
+  const { resume, loading: resumeLoading, error: resumeError } = useActiveResume();
   const [loading, setL] = useState(true);
   const [error, setErr] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -84,15 +54,12 @@ export default function Resume() {
   useEffect(() => {
     let done = false;
     Promise.allSettled([
-      fetchResumeUrl(),
       fetchProfile(),
       fetchSkills(),
       fetchExperience(),
       fetchSiteContent(),
-    ]).then(([urlRes, profRes, skillsRes, expRes, contentRes]) => {
+    ]).then(([profRes, skillsRes, expRes, contentRes]) => {
       if (done) return;
-      if (urlRes.status === 'fulfilled') setUrl(urlRes.value);
-      else setErr('Resume not available');
       if (profRes.status === 'fulfilled') setProfile(profRes.value);
       if (skillsRes.status === 'fulfilled') setSkills(Array.isArray(skillsRes.value) ? skillsRes.value.length : 0);
       if (expRes.status === 'fulfilled') setExp(Array.isArray(expRes.value) ? expRes.value.length : 0);
@@ -102,8 +69,8 @@ export default function Resume() {
     return () => { done = true; };
   }, []);
 
-  if (loading) return <PageWrapper><Section><Container><SkeletonSection lines={4} /></Container></Section></PageWrapper>;
-  if (error && !url) return <PageWrapper><Section><Container><ErrorState message={error} /></Container></Section></PageWrapper>;
+  if (loading || resumeLoading) return <PageWrapper><Section><Container><SkeletonSection lines={4} /></Container></Section></PageWrapper>;
+  if (error || resumeError) return <PageWrapper><Section><Container><ErrorState message={error || resumeError} /></Container></Section></PageWrapper>;
 
   // ── DB-driven content ─────────────────────────────────────────────────────
   const highlightsJson = getJson(content, 'resume.highlights', null);
@@ -111,8 +78,10 @@ export default function Resume() {
     ? highlightsJson.items
     : DEFAULT_HIGHLIGHTS;
 
-  const resumeUrl = url || getVal(content, 'resume.url', null);
-  const yearsExp = profile?.years_experience ?? null;
+  const resumeUrl = resume?.url ?? null;
+  // profiles has `title`, not `headline`/`years_experience` - those columns
+  // never existed, so the stat silently never rendered.
+  const yearsExp = profile?.meta?.years_experience ?? null;
 
   const STATS = [
     yearsExp != null ? { value: yearsExp, suffix: '+', label: 'Years' } : null,
@@ -156,7 +125,7 @@ export default function Resume() {
                   {profile?.full_name || getVal(content, 'profile.name', 'Kamal Kalyan')}
                 </h3>
                 <p className="text-sm mb-1" style={{ color: 'var(--accent)' }}>
-                  {profile?.headline || getVal(content, 'profile.role', 'Backend Engineer')}
+                  {profile?.title || getVal(content, 'profile.role', 'Backend Engineer')}
                 </p>
                 <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
                   PDF · Supabase Storage · Always up-to-date
@@ -171,7 +140,10 @@ export default function Resume() {
                       </svg>
                       View Online
                     </Button>
-                    <Button as="a" href={resumeUrl} download variant="secondary" size="md" id="resume-download">
+                    <Button
+                      as="a" href={resumeUrl} download variant="secondary" size="md" id="resume-download"
+                      onClick={() => trackEvent('resume_download', { version: resume?.version ?? null })}
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
