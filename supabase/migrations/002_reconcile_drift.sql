@@ -21,11 +21,25 @@
 -- verbatim to a fresh project, EVERY admin policy evaluates false.
 -- Drive it from a setting instead of a literal so it is environment-safe.
 
+-- MUST FAIL CLOSED. An earlier version of this used
+--   COALESCE(auth.jwt() ->> 'email', '') = COALESCE(current_setting(...), '')
+-- which returned TRUE for anonymous callers whenever app.admin_email was
+-- unset ('' = ''), granting anon full ALL access through every admin
+-- policy. NULLIF keeps an absent value absent; see 005.
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
+DECLARE
+  jwt_email   TEXT;
+  admin_email TEXT;
 BEGIN
-  RETURN COALESCE(auth.jwt() ->> 'email', '')
-         = COALESCE(current_setting('app.admin_email', TRUE), '');
+  jwt_email   := NULLIF(auth.jwt() ->> 'email', '');
+  admin_email := NULLIF(current_setting('app.admin_email', TRUE), '');
+
+  IF jwt_email IS NULL OR admin_email IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN lower(jwt_email) = lower(admin_email);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
