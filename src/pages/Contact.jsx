@@ -9,17 +9,9 @@ import { fetchSiteContent } from '../services/api';
 import { submitContactMessage } from '../services/api';
 import { sanitizeFormData } from '../utils/sanitize';
 import { validateContactForm } from '../utils/validators';
+import { getVal, getJson } from '../utils/siteContent';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function getVal(content, key, fallback = '') {
-  if (!Array.isArray(content)) return fallback;
-  return content.find((c) => c?.key === key)?.value ?? fallback;
-}
-function getJson(content, key, fallback = null) {
-  if (!Array.isArray(content)) return fallback;
-  const row = content.find((c) => c?.key === key);
-  return row?.value_json ?? fallback;
-}
 
 const INIT = { name: '', email: '', subject: '', message: '' };
 
