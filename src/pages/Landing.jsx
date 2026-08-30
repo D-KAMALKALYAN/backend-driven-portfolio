@@ -6,7 +6,8 @@ import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSystemStatus } from '../hooks/useSystemStatus';
-import { fetchSiteContent, fetchAnalyticsSummary } from '../services/api';
+import { fetchSiteContent, fetchAnalyticsSummary, fetchExperience } from '../services/api';
+import { buildCareerLine } from '../utils/career';
 import { useActiveResume } from '../hooks/useActiveResume';
 import { trackEvent } from '../services/analytics';
 import { NAV_LINKS } from '../constants/routes';
@@ -181,6 +182,12 @@ export default function Landing() {
   const { data: content, loading } = useSupabaseQuery(fetchSiteContent);
   const { system, latency, systemColor, latencyColor } = useSystemStatus();
   const { resume } = useActiveResume();
+  const { data: experience } = useSupabaseQuery(fetchExperience);
+
+  // Current role + years, derived from the experience table. These are the
+  // signals a recruiter looks for first and they were absent from the hero
+  // despite already living in the database.
+  const careerLine = buildCareerLine(experience);
 
   const name         = getVal(content, 'profile.name',       'Kamal Kalyan');
   const headline     = getVal(content, 'hero.headline',      'Backend Engineer building scalable & secure systems');
@@ -274,6 +281,19 @@ export default function Landing() {
             >
               {subheadline}
             </p>
+
+            {/* Current role + years - the first thing a recruiter scans for */}
+            {careerLine && (
+              <motion.p
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="text-sm sm:text-base font-medium mb-5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {careerLine}
+              </motion.p>
+            )}
 
             {/* Badges row */}
             {(availability || location) && (
