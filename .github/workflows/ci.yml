@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+# A newer push to the same branch cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # The audit found four production bugs caused by the frontend querying
+      # tables and columns that do not exist. Until generated Supabase types
+      # land, this is a cheap guard against the same class of mistake.
+      - name: Check for references to tables removed during the audit
+        run: |
+          if grep -rn "resume_versions\|fetchResumeUrl" src/ --include=*.js --include=*.jsx \
+               | grep -v "__tests__"; then
+            echo "::error::Reference to a table or function that no longer exists"
+            exit 1
+          fi
+          echo "OK - no stale table references"
+
+      - name: Fail if a fabricated metric reappears
+        run: |
+          if grep -rn "99\.9%" src/ --include=*.jsx | grep -v "^\s*//" | grep -v "'Uptime: 99.9%'"; then
+            echo "::error::Hardcoded uptime figure found - see ADR-011"
+            exit 1
+          fi
+          echo "OK - no fabricated uptime metric"

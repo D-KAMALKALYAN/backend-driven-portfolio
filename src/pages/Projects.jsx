@@ -51,7 +51,6 @@ export default function Projects() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
               {list.map((p, i) => {
                 const techs = parseTechs(p?.tech_stack);
-                const tags = Array.isArray(p?.tags) ? p.tags : [];
                 const isPopular = p?.meta?.is_popular === true || p?.meta?.is_popular === 'true';
                 const isFeatured = p?.featured === true;
                 const viewLabel = formatViews(p?.view_count);

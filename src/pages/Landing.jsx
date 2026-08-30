@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
@@ -107,7 +107,6 @@ const QUICK_NAV_PATHS = ['/about', '/projects', '/skills', '/experience'];
 
 // ─── Animated gradient orbs that loosely track the cursor ────────────────────
 function GradientOrbs() {
-  const ref = useRef(null);
   const mx = useMotionValue(0.5);
   const my = useMotionValue(0.5);
   const sx = useSpring(mx, { stiffness: 30, damping: 20 });

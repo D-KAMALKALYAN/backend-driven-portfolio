@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CommandPalette({ isOpen, query, setQuery, filteredCommands, executeCommand, close }) {
@@ -6,9 +6,10 @@ export default function CommandPalette({ isOpen, query, setQuery, filteredComman
   const listRef   = useRef(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
-  const allCommands = filteredCommands || [];
+  const allCommands = useMemo(() => filteredCommands || [], [filteredCommands]);
 
-  // Reset index on open or list change
+  // Reset the highlighted row whenever the result set or open state changes.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setActiveIdx(0); }, [filteredCommands, isOpen]);
 
   // Auto-focus input when opening

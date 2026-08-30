@@ -10,6 +10,9 @@ export default function Navbar({ onCommandPaletteOpen }) {
   const location                    = useLocation();
   const { theme, toggleTheme }      = useTheme();
 
+  // Close the mobile menu on navigation. This is a genuine
+  // synchronise-to-external-change, not a cascading render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   useEffect(() => {

@@ -44,7 +44,6 @@ function CountUp({ value, suffix = '' }) {
 export default function Resume() {
   const { resume, loading: resumeLoading, error: resumeError } = useActiveResume();
   const [loading, setL] = useState(true);
-  const [error, setErr] = useState(null);
   const [profile, setProfile] = useState(null);
   const [skillCount, setSkills] = useState(null);
   const [expCount, setExp] = useState(null);
@@ -70,7 +69,7 @@ export default function Resume() {
   }, []);
 
   if (loading || resumeLoading) return <PageWrapper><Section><Container><SkeletonSection lines={4} /></Container></Section></PageWrapper>;
-  if (error || resumeError) return <PageWrapper><Section><Container><ErrorState message={error || resumeError} /></Container></Section></PageWrapper>;
+  if (resumeError) return <PageWrapper><Section><Container><ErrorState message={resumeError} /></Container></Section></PageWrapper>;
 
   // ── DB-driven content ─────────────────────────────────────────────────────
   const highlightsJson = getJson(content, 'resume.highlights', null);
