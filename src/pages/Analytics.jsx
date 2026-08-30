@@ -13,6 +13,7 @@ import {
   fetchTopProjects,
   fetchRecentEvents,
 } from '../services/api';
+import { useRealtimeEvents } from '../hooks/useRealtimeEvents';
 
 // ─── Animated counter ────────────────────────────────────────────────────────
 function CountUp({ value, suffix = '' }) {
@@ -293,6 +294,8 @@ export default function Analytics() {
   const [visits,    setVisits]    = useState(null);
   const [projects,  setProjects]  = useState(null);
   const [events,    setEvents]    = useState(null);
+  // Realtime takes over the feed once the initial fetch lands.
+  const { events: liveEvents, status: liveStatus, liveCount } = useRealtimeEvents(events, 20);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
 
@@ -396,15 +399,38 @@ export default function Analytics() {
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
                 Recent Events
               </p>
+              {/* Reflects the actual socket state. Previously this was a
+                  hardcoded pulsing "Live" over data fetched once on mount. */}
               <span
                 className="flex items-center gap-1.5 text-[10px] font-semibold"
-                style={{ color: 'var(--success)' }}
+                style={{
+                  color: liveStatus === 'live' ? 'var(--success)'
+                       : liveStatus === 'offline' ? 'var(--text-muted)'
+                       : 'var(--warning)',
+                }}
+                title={
+                  liveStatus === 'live' ? 'Subscribed to Postgres changes via Supabase Realtime'
+                  : liveStatus === 'offline' ? 'Realtime unavailable — showing the snapshot from page load'
+                  : 'Connecting to the realtime channel'
+                }
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${liveStatus === 'live' ? 'animate-pulse' : ''}`}
+                  style={{
+                    backgroundColor: liveStatus === 'live' ? 'var(--success)'
+                                   : liveStatus === 'offline' ? 'var(--text-muted)'
+                                   : 'var(--warning)',
+                  }}
+                />
+                {liveStatus === 'live' ? 'Live' : liveStatus === 'offline' ? 'Snapshot' : 'Connecting'}
+                {liveCount > 0 && (
+                  <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+                    +{liveCount}
+                  </span>
+                )}
               </span>
             </div>
-            {loading ? <SkeletonSection lines={4} /> : <EventFeed events={events} />}
+            {loading ? <SkeletonSection lines={4} /> : <EventFeed events={liveEvents} />}
           </Card>
 
           {/* ─ Architecture note */}
@@ -423,8 +449,12 @@ export default function Analytics() {
               <code style={{ color: 'var(--accent)' }}>get_analytics_summary()</code>).
               The frontend is a pure renderer — zero aggregation logic.
               Events are written fire-and-forget via{' '}
-              <code style={{ color: 'var(--accent)' }}>trackEvent()</code> in{' '}
-              <code style={{ color: 'var(--accent)' }}>analytics.js</code>.
+              <code style={{ color: 'var(--accent)' }}>trackEvent()</code>, carrying a
+              deterministic <code style={{ color: 'var(--accent)' }}>event_key</code> that a
+              unique index in Postgres uses to reject duplicate writes. The feed below
+              streams new rows over{' '}
+              <code style={{ color: 'var(--accent)' }}>postgres_changes</code> — the badge
+              shows the real socket state, not a decoration.
             </p>
           </motion.div>
 
