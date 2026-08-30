@@ -11,23 +11,13 @@ import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchProjects } from '../services/api';
+import { formatViews } from '../utils/format';
 
 function parseTechs(t) {
   if (!t) return [];
   if (Array.isArray(t)) return t;
   if (typeof t === 'string') return t.split(',').map((s) => s.trim()).filter(Boolean);
   return [];
-}
-
-/**
- * Formats view count with social-proof rounding.
- * Returns null if count is too low to show.
- */
-function formatViews(count) {
-  if (!count || count < 10) return null;
-  if (count < 20) return '10+ views';
-  const rounded = Math.floor(count / 50) * 50;
-  return `${rounded}+ views`;
 }
 
 export default function Projects() {
