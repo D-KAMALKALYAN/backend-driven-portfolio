@@ -67,15 +67,49 @@ $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
 
 -- ------------------------------------------------------------
--- 3. SET THE ADMIN EMAIL
+-- 3. THE ADMIN IDENTITY - AND WHY NOTHING MORE IS NEEDED
 -- ------------------------------------------------------------
--- Required, or is_admin() is FALSE for everyone and admin writes must go
--- through the Supabase dashboard (which bypasses RLS as service_role).
--- That is a safe default: closed until explicitly configured.
+-- `ALTER DATABASE postgres SET app.admin_email = '...'` DOES NOT WORK on
+-- hosted Supabase: the dashboard role is not a superuser, so it fails with
+--   ERROR: 42501: permission denied to set parameter "app.admin_email"
+-- Do not try to run it.
 --
--- Run once, then reconnect for it to take effect:
+-- The consequence is that current_setting('app.admin_email', TRUE) is
+-- always NULL, so is_admin() always returns FALSE.
 --
---   ALTER DATABASE postgres SET app.admin_email = 'kamalkalyan1260@gmail.com';
+-- That is CORRECT for this application, and requires no further change:
+--
+--   * There is no login flow. Nothing in the frontend authenticates, so
+--     auth.jwt() is NULL for every request the app makes.
+--   * Admin edits happen in the Supabase dashboard, which connects as
+--     service_role and BYPASSES RLS entirely. It never calls is_admin().
+--
+-- So the "Admin can manage ..." policies are currently inert, and inert is
+-- exactly what a fail-closed predicate should produce when there is no
+-- authenticated admin to recognise. They are left in place, ready for the
+-- day a login exists.
+--
+-- WHEN a login is added, replace the GUC lookup with a table (no superuser
+-- privilege required):
+--
+--   CREATE TABLE IF NOT EXISTS admins (
+--     email TEXT PRIMARY KEY,
+--     created_at TIMESTAMPTZ DEFAULT NOW()
+--   );
+--   ALTER TABLE admins ENABLE ROW LEVEL SECURITY;   -- no policies = deny all
+--                                                   -- (service_role still bypasses)
+--   INSERT INTO admins (email) VALUES ('you@example.com')
+--     ON CONFLICT DO NOTHING;
+--
+--   CREATE OR REPLACE FUNCTION is_admin()
+--   RETURNS BOOLEAN AS $$
+--     SELECT EXISTS (
+--       SELECT 1 FROM admins
+--       WHERE lower(email) = lower(NULLIF(auth.jwt() ->> 'email', ''))
+--     );
+--   $$ LANGUAGE sql SECURITY DEFINER STABLE;
+--
+-- That also fails closed: an empty table means nobody is an admin.
 
 
 -- ------------------------------------------------------------
