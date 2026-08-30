@@ -1,7 +1,30 @@
+# ── Dependencies ──────────────────────────────────────────────
 node_modules
+
+# ── Build output ──────────────────────────────────────────────
 dist
+build
+
+# ── Environment / secrets ─────────────────────────────────────
 .env
 .env.local
-.env.production 
+.env.production
+.env.*.local
 *.local
-build
+
+# ── Local engineering notebook (NEVER commit) ─────────────────
+# Interview-prep notes, audits and internal analysis.
+# Intentionally local-only: contains candid assessments and
+# infrastructure details that do not belong in a public repo.
+developer-notes/
+
+# ── Editor / OS noise ─────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Tooling caches ────────────────────────────────────────────
+.vercel
+.turbo
+*.log
