@@ -57,6 +57,14 @@ WHERE storage_path IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_resume
   ON resume (is_active) WHERE is_active;
 
+-- Retire the trigger the index replaces. Leaving both in place would keep
+-- the silent-mutation behaviour the index exists to remove: activating one
+-- resume would still quietly deactivate another with no record of it.
+-- With the index alone, a second activation fails loudly (23505) and the
+-- caller must deactivate the current one explicitly.
+DROP TRIGGER IF EXISTS trg_single_active_resume ON resume;
+DROP FUNCTION IF EXISTS enforce_single_active_resume();
+
 -- Rebuild the upload trigger: record the object name, and do NOT
 -- auto-publish. Uploading a draft should not change what visitors see.
 CREATE OR REPLACE FUNCTION handle_resume_upload()
@@ -139,9 +147,15 @@ ALTER TABLE site_content DROP CONSTRAINT IF EXISTS json_type_has_json;
 ALTER TABLE site_content ADD  CONSTRAINT json_type_has_json
   CHECK (type <> 'json' OR value_json IS NOT NULL);
 
--- profiles is a singleton but nothing enforced it; fetchProfile() uses
--- .single(), which throws on 0 or 2 rows.
-CREATE UNIQUE INDEX IF NOT EXISTS one_profile_row ON profiles ((TRUE));
+-- profiles is effectively a singleton but nothing enforced it; fetchProfile()
+-- uses .single(), which throws on 0 or 2 rows.
+--
+-- Indexing a bare constant expression is not reliably portable, so this
+-- guards the property that actually matters and mirrors the resume pattern:
+-- at most one ACTIVE profile. The public read policy already filters on
+-- is_active, so this is what .single() actually depends on.
+CREATE UNIQUE INDEX IF NOT EXISTS one_active_profile
+  ON profiles (is_active) WHERE is_active;
 
 -- project_sections.sort_order existed but ordering was non-deterministic.
 CREATE INDEX IF NOT EXISTS idx_project_sections_order
