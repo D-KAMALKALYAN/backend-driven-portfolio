@@ -252,6 +252,8 @@ const EVENT_COLORS = {
   contact_open:   { color: '#3b82f6', icon: '✉️' },
   profile_click:  { color: '#ec4899', icon: '🔗' },
   github_click:   { color: '#9898b0', icon: '⭐' },
+  demo_click:     { color: '#14b8a6', icon: '🚀' },
+  venture_click:  { color: '#a78bfa', icon: '🏢' },
 };
 
 function EventFeed({ events }) {
@@ -318,7 +320,9 @@ export default function Analytics() {
 
   const STATS = [
     { label: 'Total Visits',     value: summary?.total_visits,        icon: '👁',  color: '#6366f1' },
-    { label: 'Unique Visitors',  value: summary?.unique_visitors,      icon: '👤',  color: '#22c55e' },
+    // Server-side this is COUNT(DISTINCT session_id), and session_id lives in
+    // sessionStorage (per tab). It measures sessions, not people - labelled honestly.
+    { label: 'Sessions',         value: summary?.unique_visitors,      icon: '👤',  color: '#22c55e' },
     { label: 'Project Views',    value: summary?.total_project_views,  icon: '📂',  color: '#f59e0b' },
     { label: 'Today',            value: summary?.visits_today,         icon: '📅',  color: '#3b82f6' },
   ];
