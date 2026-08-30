@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTitle } from '../hooks/useDocumentMeta';
+import { buildTitle } from '../utils/seo';
 
 describe('buildTitle', () => {
   const site = 'Kamal Kalyan — Portfolio';

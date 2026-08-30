@@ -33,9 +33,19 @@ jobs:
 
       - name: Test
         run: npm test
+        env:
+          # No .env in CI. These are syntactically valid placeholders, not
+          # secrets - no test makes a network call. Their presence also keeps
+          # the run honest: it exercises the same code path as production
+          # rather than a special test-only branch.
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
 
       - name: Build
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
 
       # The audit found four production bugs caused by the frontend querying
       # tables and columns that do not exist. Until generated Supabase types
