@@ -4,12 +4,11 @@ import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
 import Button from '../components/Button';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchSiteContent } from '../services/api';
 import { submitContactMessage } from '../services/api';
 import { sanitizeFormData } from '../utils/sanitize';
 import { validateContactForm } from '../utils/validators';
 import { getVal, getJson } from '../utils/siteContent';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -157,7 +156,7 @@ function InfoItem({ icon, label, value, href }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Contact() {
-  const { data: content } = useSupabaseQuery(fetchSiteContent);
+  const { content } = useSiteContent();
 
   const [form, setForm]       = useState(INIT);
   const [errors, setErrors]   = useState({});

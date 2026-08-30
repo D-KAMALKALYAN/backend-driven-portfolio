@@ -2,9 +2,8 @@ import { Link } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchSiteContent } from '../services/api';
 import { getVal } from '../utils/siteContent';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 /**
  * Catch-all route. The app previously had no `*` route, so an unknown path
@@ -14,7 +13,7 @@ import { getVal } from '../utils/siteContent';
  * site_content and were read by nothing.
  */
 export default function NotFound() {
-  const { data: content } = useSupabaseQuery(fetchSiteContent);
+  const { content } = useSiteContent();
 
   const title = getVal(content, 'error.404_title', 'Page not found');
   const description = getVal(

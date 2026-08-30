@@ -8,7 +8,8 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { fetchProfile, fetchSkills, fetchExperience, fetchSiteContent } from '../services/api';
+import { fetchProfile, fetchSkills, fetchExperience } from '../services/api';
+import { useSiteContent } from '../hooks/useSiteContent';
 import { useActiveResume } from '../hooks/useActiveResume';
 import { trackEvent } from '../services/analytics';
 import { getVal, getJson } from '../utils/siteContent';
@@ -43,11 +44,11 @@ function CountUp({ value, suffix = '' }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Resume() {
   const { resume, loading: resumeLoading, error: resumeError } = useActiveResume();
+  const { content } = useSiteContent();
   const [loading, setL] = useState(true);
   const [profile, setProfile] = useState(null);
   const [skillCount, setSkills] = useState(null);
   const [expCount, setExp] = useState(null);
-  const [content, setContent] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
 
   useEffect(() => {
@@ -56,13 +57,11 @@ export default function Resume() {
       fetchProfile(),
       fetchSkills(),
       fetchExperience(),
-      fetchSiteContent(),
-    ]).then(([profRes, skillsRes, expRes, contentRes]) => {
+    ]).then(([profRes, skillsRes, expRes]) => {
       if (done) return;
       if (profRes.status === 'fulfilled') setProfile(profRes.value);
       if (skillsRes.status === 'fulfilled') setSkills(Array.isArray(skillsRes.value) ? skillsRes.value.length : 0);
       if (expRes.status === 'fulfilled') setExp(Array.isArray(expRes.value) ? expRes.value.length : 0);
-      if (contentRes.status === 'fulfilled') setContent(contentRes.value);
       setL(false);
     });
     return () => { done = true; };

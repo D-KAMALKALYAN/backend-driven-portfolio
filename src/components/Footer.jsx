@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchSiteContent } from '../services/api';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -18,7 +17,7 @@ function getJson(content, key, fallback = null) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function Footer() {
-  const { data: content } = useSupabaseQuery(fetchSiteContent);
+  const { content } = useSiteContent();
 
   // Brand
   const brandInitial = getVal(content, 'footer.brand_initial', 'K');

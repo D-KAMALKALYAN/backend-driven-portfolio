@@ -6,12 +6,13 @@ import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSystemStatus } from '../hooks/useSystemStatus';
-import { fetchSiteContent, fetchAnalyticsSummary, fetchExperience } from '../services/api';
+import { fetchAnalyticsSummary, fetchExperience } from '../services/api';
 import { buildCareerLine } from '../utils/career';
 import { useActiveResume } from '../hooks/useActiveResume';
 import { trackEvent } from '../services/analytics';
 import { NAV_LINKS } from '../constants/routes';
 import { getVal, getJson } from '../utils/siteContent';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 // ─── Analytics teaser widget ──────────────────────────────────────────────────
 function AnalyticsTeaser() {
@@ -178,7 +179,7 @@ function GradientOrbs() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Landing() {
-  const { data: content, loading } = useSupabaseQuery(fetchSiteContent);
+  const { content, loading } = useSiteContent();
   const { system, latency, systemColor, latencyColor } = useSystemStatus();
   const { resume } = useActiveResume();
   const { data: experience } = useSupabaseQuery(fetchExperience);

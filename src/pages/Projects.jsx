@@ -12,6 +12,7 @@ import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchProjects } from '../services/api';
 import { formatViews } from '../utils/format';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 function parseTechs(t) {
   if (!t) return [];
@@ -22,10 +23,15 @@ function parseTechs(t) {
 
 export default function Projects() {
   const { data: projects, loading, error, refetch } = useSupabaseQuery(fetchProjects);
+  const { val } = useSiteContent();
+
+  const title = val('projects.title', 'Engineering Portfolio');
+  const description = val('projects.description',
+    'Systems built with architecture-first thinking — depth in design, security, and scalability.');
 
   if (loading) return (
     <PageWrapper><Section><Container>
-      <SectionHeader label="Projects" title="Engineering Portfolio" />
+      <SectionHeader label="Projects" title={title} />
       <SkeletonGrid count={4} cols={2} />
     </Container></Section></PageWrapper>
   );
@@ -41,11 +47,7 @@ export default function Projects() {
     <PageWrapper>
       <Section>
         <Container>
-          <SectionHeader
-            label="Projects"
-            title="Engineering Portfolio"
-            description="Systems built with architecture-first thinking — depth in design, security, and scalability."
-          />
+          <SectionHeader label="Projects" title={title} description={description} />
 
           {list.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">

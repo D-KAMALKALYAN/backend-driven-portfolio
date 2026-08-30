@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { SkeletonSection } from './components/SkeletonLoader';
 import { useCommandPalette } from './hooks/useCommandPalette';
 import { ThemeProvider } from './hooks/useTheme';
+import { SiteContentProvider } from './hooks/useSiteContent';
 import { usePageTracking } from './hooks/usePageTracking';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 
@@ -104,7 +105,9 @@ export default function App() {
           setting, which nothing previously did. */}
       <MotionConfig reducedMotion="user">
         <ThemeProvider>
-          <AppContent />
+          <SiteContentProvider>
+            <AppContent />
+          </SiteContentProvider>
         </ThemeProvider>
       </MotionConfig>
     </BrowserRouter>

@@ -9,6 +9,7 @@ import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchProfile, fetchAchievements } from '../services/api';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 const SECTION_ICONS = {
   bio: '◎', philosophy: '◆', approach: '▣', interests: '◇', education: '▥', certifications: '▦',
@@ -113,6 +114,7 @@ function AchievementCard({ a, index }) {
 export default function About() {
   const { data: profile, loading: lp, error: ep, refetch } = useSupabaseQuery(fetchProfile);
   const { data: achievements, loading: la, error: ea } = useSupabaseQuery(fetchAchievements);
+  const { val } = useSiteContent();
 
   if (lp) return (
     <PageWrapper><Section><Container><SkeletonSection lines={6} /></Container></Section></PageWrapper>
@@ -128,13 +130,19 @@ export default function About() {
     </Container></Section></PageWrapper>
   );
 
+  const meta = (profile.meta && typeof profile.meta === 'object') ? profile.meta : {};
+
   const sections = [
     profile.bio            && { key: 'bio',            label: 'Bio',            content: profile.bio            },
-    profile.philosophy     && { key: 'philosophy',     label: 'Philosophy',     content: profile.philosophy     },
-    profile.approach       && { key: 'approach',       label: 'Approach',       content: profile.approach       },
-    profile.interests      && { key: 'interests',      label: 'Interests',      content: profile.interests      },
-    profile.education      && { key: 'education',      label: 'Education',      content: profile.education      },
-    profile.certifications && { key: 'certifications', label: 'Certifications', content: profile.certifications },
+    // These are not columns on `profiles` - they live in its JSONB `meta`
+    // escape hatch, so they can be filled from the dashboard without a
+    // migration. Previously read as top-level fields, so every one of these
+    // sections was permanently invisible.
+    meta.philosophy     && { key: 'philosophy',     label: 'Philosophy',     content: meta.philosophy     },
+    meta.approach       && { key: 'approach',       label: 'Approach',       content: meta.approach       },
+    meta.interests      && { key: 'interests',      label: 'Interests',      content: meta.interests      },
+    meta.education      && { key: 'education',      label: 'Education',      content: meta.education      },
+    meta.certifications && { key: 'certifications', label: 'Certifications', content: meta.certifications },
   ].filter(Boolean);
 
   const achievementList    = Array.isArray(achievements) ? achievements : [];
@@ -147,11 +155,11 @@ export default function About() {
           <SectionHeader
             label="About"
             title={profile.full_name || 'About Me'}
-            description={profile.headline || undefined}
+            description={profile.title || val('about.paragraph', undefined)}
           />
 
           {/* Metadata chips */}
-          {(profile.location || profile.years_experience != null || profile.focus_area) && (
+          {(profile.location || meta.years_experience != null || meta.focus_area) && (
             <div className="flex flex-wrap gap-2 mb-8">
               {profile.location && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono"
@@ -160,18 +168,18 @@ export default function About() {
                   📍 {profile.location}
                 </span>
               )}
-              {profile.years_experience != null && (
+              {meta.years_experience != null && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono"
                   style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)' }}
                 >
-                  ⏳ {profile.years_experience}+ yrs experience
+                  ⏳ {meta.years_experience}+ yrs experience
                 </span>
               )}
-              {profile.focus_area && (
+              {meta.focus_area && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono"
                   style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)' }}
                 >
-                  🎯 {profile.focus_area}
+                  🎯 {meta.focus_area}
                 </span>
               )}
             </div>

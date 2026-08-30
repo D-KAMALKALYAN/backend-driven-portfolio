@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useSupabaseQuery } from './useSupabaseQuery';
-import { fetchSiteContent } from '../services/api';
-import { getVal } from '../utils/siteContent';
+import { useSiteContent } from './useSiteContent';
 
 /**
  * Per-route document title and meta description.
@@ -71,13 +69,13 @@ export function buildTitle(pathname, siteTitle) {
 
 export function useDocumentMeta() {
   const { pathname } = useLocation();
-  const { data: content } = useSupabaseQuery(fetchSiteContent);
+  const { val } = useSiteContent();
 
   useEffect(() => {
-    const siteTitle = getVal(content, 'seo.title', document.title || 'Portfolio');
-    const description = getVal(content, 'seo.description', '');
-    const keywords = getVal(content, 'seo.keywords', '');
-    const ogImage = getVal(content, 'seo.og_image', '');
+    const siteTitle = val('seo.title', document.title || 'Portfolio');
+    const description = val('seo.description', '');
+    const keywords = val('seo.keywords', '');
+    const ogImage = val('seo.og_image', '');
 
     const title = buildTitle(pathname, siteTitle);
     document.title = title;
@@ -91,5 +89,5 @@ export function useDocumentMeta() {
     setProperty('og:image', ogImage);
     setProperty('og:url', typeof window !== 'undefined' ? window.location.href : '');
     setMeta('twitter:card', ogImage ? 'summary_large_image' : 'summary');
-  }, [pathname, content]);
+  }, [pathname, val]);
 }
