@@ -18,6 +18,7 @@ import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchExperience } from '../services/api';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function fmtDate(d) {
@@ -413,13 +414,18 @@ function TimelineItem({ exp, index, isLast, onSelect }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Experience() {
   const { data: experience, loading, error, refetch } = useSupabaseQuery(fetchExperience);
+  const { val } = useSiteContent();
+
+  const title = val('experience.title', 'Career Timeline');
+  const description = val('experience.description',
+    'Professional milestones and engineering journey. Click any role for full details.');
   const [selected, setSelected] = useState(null);
 
   const handleClose = useCallback(() => setSelected(null), []);
 
   if (loading) return (
     <PageWrapper><Section><Container>
-      <SectionHeader label="Experience" title="Career Timeline" />
+      <SectionHeader label="Experience" title={title} />
       <SkeletonSection lines={6} />
     </Container></Section></PageWrapper>
   );
@@ -435,11 +441,7 @@ export default function Experience() {
     <PageWrapper>
       <Section>
         <Container>
-          <SectionHeader
-            label="Experience"
-            title="Career Timeline"
-            description="Professional milestones and engineering journey. Click any role for full details."
-          />
+          <SectionHeader label="Experience" title={title} description={description} />
 
           {list.length > 0 ? (
             <div className="max-w-3xl">

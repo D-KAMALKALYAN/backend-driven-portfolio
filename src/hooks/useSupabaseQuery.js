@@ -21,7 +21,16 @@ export function useSupabaseQuery(queryFn, deps = []) {
     } finally {
       setLoading(false);
     }
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+    // A caller-supplied deps array cannot be statically verified, so neither
+    // exhaustive-deps nor use-memo can check this hook. That is a real
+    // limitation of the design: correctness depends entirely on every caller
+    // passing the right deps, with no lint to catch a mistake.
+    //
+    // Replacing this hook with TanStack Query removes the problem rather than
+    // suppressing it (roadmap 2.5) - it supplies caching, deduplication,
+    // cancellation and retry, none of which exist here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo
+  }, deps);
 
   useEffect(() => {
     execute();

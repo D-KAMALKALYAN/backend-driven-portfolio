@@ -11,6 +11,8 @@ import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchProjects } from '../services/api';
+import { formatViews } from '../utils/format';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 function parseTechs(t) {
   if (!t) return [];
@@ -19,23 +21,17 @@ function parseTechs(t) {
   return [];
 }
 
-/**
- * Formats view count with social-proof rounding.
- * Returns null if count is too low to show.
- */
-function formatViews(count) {
-  if (!count || count < 10) return null;
-  if (count < 20) return '10+ views';
-  const rounded = Math.floor(count / 50) * 50;
-  return `${rounded}+ views`;
-}
-
 export default function Projects() {
   const { data: projects, loading, error, refetch } = useSupabaseQuery(fetchProjects);
+  const { val } = useSiteContent();
+
+  const title = val('projects.title', 'Engineering Portfolio');
+  const description = val('projects.description',
+    'Systems built with architecture-first thinking — depth in design, security, and scalability.');
 
   if (loading) return (
     <PageWrapper><Section><Container>
-      <SectionHeader label="Projects" title="Engineering Portfolio" />
+      <SectionHeader label="Projects" title={title} />
       <SkeletonGrid count={4} cols={2} />
     </Container></Section></PageWrapper>
   );
@@ -51,17 +47,12 @@ export default function Projects() {
     <PageWrapper>
       <Section>
         <Container>
-          <SectionHeader
-            label="Projects"
-            title="Engineering Portfolio"
-            description="Systems built with architecture-first thinking — depth in design, security, and scalability."
-          />
+          <SectionHeader label="Projects" title={title} description={description} />
 
           {list.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
               {list.map((p, i) => {
                 const techs = parseTechs(p?.tech_stack);
-                const tags = Array.isArray(p?.tags) ? p.tags : [];
                 const isPopular = p?.meta?.is_popular === true || p?.meta?.is_popular === 'true';
                 const isFeatured = p?.featured === true;
                 const viewLabel = formatViews(p?.view_count);
@@ -76,10 +67,8 @@ export default function Projects() {
                     whileHover={{ y: -2 }}
                   >
                     <Card
-                      as={Link}
-                      to={`/projects/${p?.slug ?? i}`}
                       glow
-                      className="group flex flex-col p-5 sm:p-6 no-underline h-full"
+                      className="group relative flex flex-col p-5 sm:p-6 h-full"
                     >
                       {/* Cover image (if present) */}
                       {p?.cover_image_url && (
@@ -100,7 +89,16 @@ export default function Projects() {
                               className="text-base font-semibold transition-colors truncate group-hover:text-[var(--accent-hover)]"
                               style={{ color: 'var(--text-primary)' }}
                             >
-                              {p?.title || 'Untitled'}
+                              {/* Stretched link: the only card-level anchor. The
+                                  ::after overlay makes the whole card clickable
+                                  without nesting anchors inside it. */}
+                              <Link
+                                to={`/projects/${p?.slug ?? i}`}
+                                className="no-underline after:absolute after:inset-0 after:content-['']"
+                                style={{ color: 'inherit' }}
+                              >
+                                {p?.title || 'Untitled'}
+                              </Link>
                             </h3>
                             {/* 🔥 Most Popular badge */}
                             {isPopular && (
@@ -160,14 +158,13 @@ export default function Projects() {
                           </span>
                         ) : <span />}
 
-                        {/* Quick links (stop propagation so card Link doesn't fire) */}
-                        <div className="flex items-center gap-2">
+                        {/* Quick links sit above the stretched-link overlay. */}
+                        <div className="flex items-center gap-2 relative z-[1]">
                           {p?.demo_url && (
                             <a
                               href={p.demo_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
                               className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors"
                               style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--accent)' }}
                             >
@@ -179,7 +176,6 @@ export default function Projects() {
                               href={p.repo_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
                               className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors"
                               style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}
                             >

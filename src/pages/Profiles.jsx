@@ -131,7 +131,7 @@ export default function Profiles() {
                       href={href || undefined}
                       target={href ? '_blank' : undefined}
                       rel={href ? 'noopener noreferrer' : undefined}
-                      onClick={() => href && trackEvent('profile_click', window.location.pathname, { platform: p?.platform, url: href })}
+                      onClick={() => href && trackEvent('profile_click', { platform: p?.platform, url: href })}
                       className="group flex items-center gap-4 p-4 sm:p-5 rounded-2xl no-underline block transition-all duration-200"
                       style={{
                         backgroundColor: 'var(--bg-card)',

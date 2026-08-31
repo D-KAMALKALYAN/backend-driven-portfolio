@@ -8,6 +8,7 @@ import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchSkills } from '../services/api';
+import { useSiteContent } from '../hooks/useSiteContent';
 
 /* ── Category colour map ───────────────────────────────────────── */
 const COLORS = {
@@ -173,12 +174,16 @@ function CategoryCard({ category, skills, color, icon, index }) {
 
 /* ── Page ──────────────────────────────────────────────────────── */
 export default function Skills() {
+  const { val } = useSiteContent();
+  const title = val('skills.title', 'Technical Arsenal');
+  const description = val('skills.description',
+    'Technologies, frameworks, and tools across the full stack.');
   const { data: skills, loading, error, refetch } = useSupabaseQuery(fetchSkills);
   const [activeFilter, setActiveFilter] = useState('All');
 
   if (loading) return (
     <PageWrapper><Section><Container>
-      <SectionHeader label="Skills" title="Technical Arsenal" />
+      <SectionHeader label="Skills" title={title} />
       <SkeletonGrid count={6} cols={3} />
     </Container></Section></PageWrapper>
   );
@@ -205,11 +210,7 @@ export default function Skills() {
     <PageWrapper>
       <Section>
         <Container>
-          <SectionHeader
-            label="Skills"
-            title="Technical Arsenal"
-            description="Technologies, frameworks, and tools across the full stack."
-          />
+          <SectionHeader label="Skills" title={title} description={description} />
 
           {/* Stats row */}
           <div className="flex flex-wrap items-center gap-4 mb-8">

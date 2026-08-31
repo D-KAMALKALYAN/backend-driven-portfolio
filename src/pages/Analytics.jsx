@@ -13,6 +13,8 @@ import {
   fetchTopProjects,
   fetchRecentEvents,
 } from '../services/api';
+import { useRealtimeEvents } from '../hooks/useRealtimeEvents';
+import { groupEventsByVisit, formatEventTime } from '../utils/eventFeed';
 
 // ─── Animated counter ────────────────────────────────────────────────────────
 function CountUp({ value, suffix = '' }) {
@@ -252,36 +254,73 @@ const EVENT_COLORS = {
   contact_open:   { color: '#3b82f6', icon: '✉️' },
   profile_click:  { color: '#ec4899', icon: '🔗' },
   github_click:   { color: '#9898b0', icon: '⭐' },
+  demo_click:     { color: '#14b8a6', icon: '🚀' },
+  venture_click:  { color: '#a78bfa', icon: '🏢' },
 };
 
 function EventFeed({ events }) {
   if (!events || events.length === 0) {
     return <EmptyState icon="📡" title="No events yet" description="Events appear as users interact with the portfolio." />;
   }
+
+  // One visit, one row. A project page writes page_view and project_view
+  // about a second apart; shown as two lines with minute-precision times they
+  // were indistinguishable from duplicates, which is what made this feed look
+  // broken. The rows themselves are unchanged - this is display only.
+  const visits = groupEventsByVisit(events);
+
   return (
-    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-      {events.map((ev, i) => {
-        const meta = EVENT_COLORS[ev.event] ?? { color: '#9898b0', icon: '◎' };
-        const time = ev.created_at
-          ? new Date(ev.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-          : '—';
-        return (
-          <motion.div
-            key={ev.id ?? i}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.03 }}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs"
-            style={{ backgroundColor: 'var(--bg-subtle)' }}
+    <ul className="space-y-2 max-h-72 overflow-y-auto pr-1 list-none m-0 p-0">
+      {visits.map((v, i) => (
+        <motion.li
+          key={v.id}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: Math.min(i, 10) * 0.03 }}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
+          style={{ backgroundColor: 'var(--bg-subtle)' }}
+        >
+          <span className="flex items-center gap-1 shrink-0">
+            {v.events.map((e) => {
+              const m = EVENT_COLORS[e] ?? { color: '#9898b0', icon: '◎' };
+              return (
+                <span key={e} title={e} aria-label={e} style={{ color: m.color }}>
+                  {m.icon}
+                </span>
+              );
+            })}
+          </span>
+
+          <span className="truncate flex-1" style={{ color: 'var(--text-primary)' }}>
+            {v.path}
+          </span>
+
+          {/* Sub-events, so nothing is hidden by the grouping */}
+          <span className="hidden sm:flex items-center gap-1 shrink-0">
+            {v.events.map((e) => {
+              const m = EVENT_COLORS[e] ?? { color: '#9898b0', icon: '◎' };
+              return (
+                <span
+                  key={e}
+                  className="font-mono px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: `${m.color}18`, color: m.color, fontSize: '10px' }}
+                >
+                  {e}
+                </span>
+              );
+            })}
+          </span>
+
+          <time
+            className="shrink-0 font-mono"
+            style={{ color: 'var(--text-muted)' }}
+            dateTime={v.at ? new Date(v.at).toISOString() : undefined}
           >
-            <span className="shrink-0">{meta.icon}</span>
-            <span className="font-mono font-semibold" style={{ color: meta.color }}>{ev.event}</span>
-            <span className="truncate flex-1" style={{ color: 'var(--text-muted)' }}>{ev.path || '/'}</span>
-            <span className="shrink-0 font-mono" style={{ color: 'var(--text-muted)' }}>{time}</span>
-          </motion.div>
-        );
-      })}
-    </div>
+            {formatEventTime(v.at)}
+          </time>
+        </motion.li>
+      ))}
+    </ul>
   );
 }
 
@@ -291,6 +330,8 @@ export default function Analytics() {
   const [visits,    setVisits]    = useState(null);
   const [projects,  setProjects]  = useState(null);
   const [events,    setEvents]    = useState(null);
+  // Realtime takes over the feed once the initial fetch lands.
+  const { events: liveEvents, status: liveStatus, liveCount } = useRealtimeEvents(events, 20);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
 
@@ -318,7 +359,9 @@ export default function Analytics() {
 
   const STATS = [
     { label: 'Total Visits',     value: summary?.total_visits,        icon: '👁',  color: '#6366f1' },
-    { label: 'Unique Visitors',  value: summary?.unique_visitors,      icon: '👤',  color: '#22c55e' },
+    // Server-side this is COUNT(DISTINCT session_id), and session_id lives in
+    // sessionStorage (per tab). It measures sessions, not people - labelled honestly.
+    { label: 'Sessions',         value: summary?.unique_visitors,      icon: '👤',  color: '#22c55e' },
     { label: 'Project Views',    value: summary?.total_project_views,  icon: '📂',  color: '#f59e0b' },
     { label: 'Today',            value: summary?.visits_today,         icon: '📅',  color: '#3b82f6' },
   ];
@@ -392,15 +435,38 @@ export default function Analytics() {
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
                 Recent Events
               </p>
+              {/* Reflects the actual socket state. Previously this was a
+                  hardcoded pulsing "Live" over data fetched once on mount. */}
               <span
                 className="flex items-center gap-1.5 text-[10px] font-semibold"
-                style={{ color: 'var(--success)' }}
+                style={{
+                  color: liveStatus === 'live' ? 'var(--success)'
+                       : liveStatus === 'offline' ? 'var(--text-muted)'
+                       : 'var(--warning)',
+                }}
+                title={
+                  liveStatus === 'live' ? 'Subscribed to Postgres changes via Supabase Realtime'
+                  : liveStatus === 'offline' ? 'Realtime unavailable — showing the snapshot from page load'
+                  : 'Connecting to the realtime channel'
+                }
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${liveStatus === 'live' ? 'animate-pulse' : ''}`}
+                  style={{
+                    backgroundColor: liveStatus === 'live' ? 'var(--success)'
+                                   : liveStatus === 'offline' ? 'var(--text-muted)'
+                                   : 'var(--warning)',
+                  }}
+                />
+                {liveStatus === 'live' ? 'Live' : liveStatus === 'offline' ? 'Snapshot' : 'Connecting'}
+                {liveCount > 0 && (
+                  <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+                    +{liveCount}
+                  </span>
+                )}
               </span>
             </div>
-            {loading ? <SkeletonSection lines={4} /> : <EventFeed events={events} />}
+            {loading ? <SkeletonSection lines={4} /> : <EventFeed events={liveEvents} />}
           </Card>
 
           {/* ─ Architecture note */}
@@ -419,8 +485,12 @@ export default function Analytics() {
               <code style={{ color: 'var(--accent)' }}>get_analytics_summary()</code>).
               The frontend is a pure renderer — zero aggregation logic.
               Events are written fire-and-forget via{' '}
-              <code style={{ color: 'var(--accent)' }}>trackEvent()</code> in{' '}
-              <code style={{ color: 'var(--accent)' }}>analytics.js</code>.
+              <code style={{ color: 'var(--accent)' }}>trackEvent()</code>, carrying a
+              deterministic <code style={{ color: 'var(--accent)' }}>event_key</code> that a
+              unique index in Postgres uses to reject duplicate writes. The feed below
+              streams new rows over{' '}
+              <code style={{ color: 'var(--accent)' }}>postgres_changes</code> — the badge
+              shows the real socket state, not a decoration.
             </p>
           </motion.div>
 

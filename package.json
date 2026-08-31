@@ -6,7 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff --linked",
+    "db:pull": "supabase db pull --linked",
+    "db:push": "supabase db push --linked",
+    "db:lint": "supabase db lint --linked",
+    "db:types": "supabase gen types typescript --linked > src/types/database.d.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "type": "module",
   "dependencies": {
@@ -18,10 +30,18 @@
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
+    "eslint": "^10.9.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.5",
+    "globals": "^17.11.0",
+    "jsdom": "^29.1.1",
+    "supabase": "^2.116.0",
     "tailwindcss": "^4.2.2",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vitest": "^3.2.7"
   }
 }

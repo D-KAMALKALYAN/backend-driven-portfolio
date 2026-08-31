@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { NAV_LINKS } from '../constants/routes';
+import { useNavLinks } from '../hooks/useNavLinks';
 import { useTheme } from '../hooks/useTheme';
 
 export default function Navbar({ onCommandPaletteOpen }) {
@@ -9,7 +9,11 @@ export default function Navbar({ onCommandPaletteOpen }) {
   const [scrolled, setScrolled]     = useState(false);
   const location                    = useLocation();
   const { theme, toggleTheme }      = useTheme();
+  const navLinks                    = useNavLinks();
 
+  // Close the mobile menu on navigation. This is a genuine
+  // synchronise-to-external-change, not a cascading render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export default function Navbar({ onCommandPaletteOpen }) {
 
           {/* Desktop nav links ── centred */}
           <div className="hidden lg:flex items-center gap-1">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const active = link.path === '/'
                 ? location.pathname === '/'
                 : location.pathname.startsWith(link.path);
@@ -132,7 +136,7 @@ export default function Navbar({ onCommandPaletteOpen }) {
             className="lg:hidden border-t border-[var(--border)] overflow-hidden"
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 space-y-0.5 max-h-[75vh] overflow-y-auto">
-              {NAV_LINKS.map((link) => {
+              {navLinks.map((link) => {
                 const active = link.path === '/' ? location.pathname === '/' : location.pathname.startsWith(link.path);
                 return (
                   <Link

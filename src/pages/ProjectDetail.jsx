@@ -12,6 +12,7 @@ import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchProjectBySlug, fetchProjectSections, fetchProjectMetrics, fetchProjectStorytelling } from '../services/api';
 import { trackEvent } from '../services/analytics';
+import { formatViews } from '../utils/format';
 
 /* ─── Storytelling section meta ─── */
 const STORY_META = {
@@ -147,12 +148,6 @@ function parseTechs(t) {
 function fmtDate(d) {
   if (!d) return null;
   try { return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }); } catch { return d; }
-}
-
-function formatViews(count) {
-  if (!count || count < 10) return null;
-  if (count < 50)  return '10+ views';
-  return `${Math.floor(count / 50) * 50}+ people viewed this`;
 }
 
 /* Link button component for project CTAs */
