@@ -211,6 +211,7 @@ export default function About() {
                 <>
                   <div className="mb-8">
                     <SectionHeader
+                      as="h2"
                       label="Achievements"
                       title="Certifications & Awards"
                       description="Credentials, publications, and contributions."
