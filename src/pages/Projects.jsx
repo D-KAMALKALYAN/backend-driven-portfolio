@@ -12,6 +12,7 @@ import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchProjects } from '../services/api';
 import { formatViews } from '../utils/format';
+import { getPopularProjectIds } from '../utils/popularity';
 import { useSiteContent } from '../hooks/useSiteContent';
 
 function parseTechs(t) {
@@ -42,6 +43,8 @@ export default function Projects() {
   );
 
   const list = Array.isArray(projects) ? projects : [];
+  // Derived, not read from meta.is_popular - see utils/popularity.js.
+  const popularIds = getPopularProjectIds(list, 3);
 
   return (
     <PageWrapper>
@@ -53,7 +56,7 @@ export default function Projects() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
               {list.map((p, i) => {
                 const techs = parseTechs(p?.tech_stack);
-                const isPopular = p?.meta?.is_popular === true || p?.meta?.is_popular === 'true';
+                const isPopular = popularIds.has(p?.id);
                 const isFeatured = p?.featured === true;
                 const viewLabel = formatViews(p?.view_count);
                 const metrics = Array.isArray(p?.metrics_preview) ? p.metrics_preview : [];
