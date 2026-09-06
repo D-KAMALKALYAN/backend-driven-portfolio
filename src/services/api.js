@@ -30,6 +30,12 @@ export async function fetchProjects() {
   const { data, error } = await supabase
     .from('projects')
     .select('*')
+    // sort_order was set in the database (0,1,1,2,3) and ignored entirely -
+    // the list was ordered by popularity alone, so the authored order could
+    // not be controlled without changing view counts. Popularity is kept as
+    // the tie-break, which is what sort_order collisions need.
+    .order('featured', { ascending: false })
+    .order('sort_order', { ascending: true })
     .order('view_count', { ascending: false });
   if (error) throw error;
   return data;
@@ -55,19 +61,14 @@ export async function fetchProjectSections(projectId) {
   const { data, error } = await supabase
     .from('project_sections')
     .select('*')
-    .eq('project_id', projectId);
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Fetch project metrics
- */
-export async function fetchProjectMetrics(projectId) {
-  const { data, error } = await supabase
-    .from('project_metrics')
-    .select('*')
-    .eq('project_id', projectId);
+    .eq('project_id', projectId)
+    // No ordering at all previously, so block order came back in whatever
+    // physical order Postgres happened to return. It looked correct only
+    // because rows were inserted in order - any UPDATE rewrites a row's
+    // position and would have silently reshuffled the case study.
+    // created_at is the stable tie-break for equal sort_order.
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
   if (error) throw error;
   return data;
 }
@@ -90,7 +91,13 @@ export async function fetchSkills() {
   const { data, error } = await supabase
     .from('skills')
     .select('*')
-    .order('category', { ascending: true });
+    // Ordered by category alone, so order WITHIN a category was
+    // non-deterministic even though sort_order is populated (4,5,6,7 for
+    // frameworks). name is the final tie-break so the list never shuffles
+    // between requests.
+    .order('category', { ascending: true })
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true });
   if (error) throw error;
   return data;
 }
@@ -102,6 +109,9 @@ export async function fetchExperience() {
   const { data, error } = await supabase
     .from('experience')
     .select('*')
+    // sort_order lets the timeline be arranged explicitly; start_date is the
+    // tie-break. Matches the current output, but no longer by coincidence.
+    .order('sort_order', { ascending: true })
     .order('start_date', { ascending: false });
   if (error) throw error;
   return data;

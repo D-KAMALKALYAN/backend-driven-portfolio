@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 
 /** True when the primary pointer is coarse (touch/mobile). */
 function useIsTouchDevice() {
@@ -19,6 +19,7 @@ import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchExperience } from '../services/api';
 import { useSiteContent } from '../hooks/useSiteContent';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function fmtDate(d) {
@@ -35,9 +36,12 @@ function parseTechs(t) {
 }
 
 function parseAchievements(exp) {
-  // Try exp.achievements (jsonb array) first, then parse exp.description by newlines
-  if (exp?.achievements && Array.isArray(exp.achievements) && exp.achievements.length > 0) {
-    return exp.achievements;
+  // The column is `highlights` (text[]). This previously read
+  // `exp.achievements`, which is not a column, so the bullet list always fell
+  // through to splitting description by newlines and the authored highlights
+  // never rendered.
+  if (Array.isArray(exp?.highlights) && exp.highlights.length > 0) {
+    return exp.highlights;
   }
   if (exp?.description) {
     const lines = exp.description.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -50,23 +54,16 @@ function parseAchievements(exp) {
 function ExperienceDrawer({ exp, onClose }) {
   const start    = fmtDate(exp?.start_date);
   const end      = exp?.end_date ? fmtDate(exp.end_date) : 'Present';
-  const techs    = parseTechs(exp?.technologies);
+  const techs    = parseTechs(exp?.tech_used);
   const isCurrent = !exp?.end_date;
   const achievements = parseAchievements(exp);
   const isTouch  = useIsTouchDevice();
+  const panelRef = useRef(null);
 
-  // Close on ESC
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  // Lock body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+  // Escape handling, Tab containment, scroll lock and focus restore.
+  // Previously this drawer handled Escape and scroll lock but left Tab free
+  // to walk into the timeline behind it, and dropped focus on close.
+  useFocusTrap(panelRef, true, { onEscape: onClose });
 
   return (
     <AnimatePresence>
@@ -89,6 +86,10 @@ function ExperienceDrawer({ exp, onClose }) {
 
         {/* Drawer panel */}
         <motion.div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${exp?.role ?? 'Role'} at ${exp?.company ?? 'company'}`}
           className="relative z-10 flex flex-col h-full overflow-y-auto"
           style={{
             width: 'min(480px, 92vw)',
@@ -146,7 +147,7 @@ function ExperienceDrawer({ exp, onClose }) {
                 className="text-2xl font-bold mb-1.5 leading-tight"
                 style={{ color: 'var(--text-primary)' }}
               >
-                {exp?.title || exp?.role || 'Position'}
+                {exp?.role || 'Position'}
               </h2>
               {(exp?.company || exp?.location) && (
                 <p className="text-sm flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-secondary)' }}>
@@ -276,7 +277,7 @@ function ExperienceDrawer({ exp, onClose }) {
 function TimelineItem({ exp, index, isLast, onSelect }) {
   const start    = fmtDate(exp?.start_date);
   const end      = exp?.end_date ? fmtDate(exp.end_date) : 'Present';
-  const techs    = parseTechs(exp?.technologies);
+  const techs    = parseTechs(exp?.tech_used);
   const isCurrent = !exp?.end_date;
 
   return (
@@ -323,7 +324,7 @@ function TimelineItem({ exp, index, isLast, onSelect }) {
           <button
             className="w-full text-left"
             onClick={() => onSelect(exp)}
-            aria-label={`View details for ${exp?.title}`}
+            aria-label={`View details for ${exp?.role ?? 'this role'} at ${exp?.company ?? 'this company'}`}
           >
             <Card
               className="p-5 sm:p-6 cursor-pointer"
@@ -374,7 +375,7 @@ function TimelineItem({ exp, index, isLast, onSelect }) {
               </div>
 
               <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                {exp?.title || exp?.role || 'Position'}
+                {exp?.role || 'Position'}
               </h3>
 
               {(exp?.company || exp?.location) && (

@@ -1,9 +1,11 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export default function CommandPalette({ isOpen, query, setQuery, filteredCommands, executeCommand, close }) {
   const inputRef  = useRef(null);
   const listRef   = useRef(null);
+  const panelRef  = useRef(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
   const allCommands = useMemo(() => filteredCommands || [], [filteredCommands]);
@@ -12,13 +14,9 @@ export default function CommandPalette({ isOpen, query, setQuery, filteredComman
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setActiveIdx(0); }, [filteredCommands, isOpen]);
 
-  // Auto-focus input when opening
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-      setActiveIdx(0);
-    }
-  }, [isOpen]);
+  // Focus in on open, contain Tab, restore focus to whatever opened it.
+  // Previously Tab walked straight out into the page behind the overlay.
+  useFocusTrap(panelRef, isOpen, { onEscape: close, initialFocusRef: inputRef });
 
   // Scroll active item into view
   useEffect(() => {
@@ -84,6 +82,7 @@ export default function CommandPalette({ isOpen, query, setQuery, filteredComman
             animate={{ opacity: 1, scale: 1,    y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -16 }}
             transition={{ duration: 0.15 }}
+            ref={panelRef}
             className="fixed z-[101] top-[18%] left-1/2 -translate-x-1/2 w-full max-w-lg px-4 sm:px-0"
             role="dialog" aria-label="Command palette" aria-modal="true"
           >
