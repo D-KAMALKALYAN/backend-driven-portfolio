@@ -10,7 +10,7 @@ import EmptyState from '../components/EmptyState';
 import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchProjectBySlug, fetchProjectSections, fetchProjectMetrics, fetchProjectStorytelling } from '../services/api';
+import { fetchProjectBySlug, fetchProjectSections, fetchProjectStorytelling } from '../services/api';
 import { trackEvent } from '../services/analytics';
 import { formatViews } from '../utils/format';
 
@@ -185,10 +185,6 @@ export default function ProjectDetail() {
   const { data: sections, loading: ls } = useSupabaseQuery(
     () => project?.id ? fetchProjectSections(project.id) : Promise.resolve([]), [project?.id]
   );
-  const { data: metrics } = useSupabaseQuery(
-    () => project?.id ? fetchProjectMetrics(project.id).catch(() => []) : Promise.resolve([]),
-    [project?.id]
-  );
   const { data: storytelling } = useSupabaseQuery(
     () => project?.id ? fetchProjectStorytelling(project.id).catch(() => []) : Promise.resolve([]),
     [project?.id]
@@ -209,7 +205,6 @@ export default function ProjectDetail() {
 
   const techs       = parseTechs(project.tech_stack);
   const tags        = Array.isArray(project.tags) ? project.tags : [];
-  const metricList  = Array.isArray(metrics) ? metrics : [];
   const sectionList = Array.isArray(sections) ? sections : [];
   const isPopular   = project.meta?.is_popular === true || project.meta?.is_popular === 'true';
   const isFeatured  = project.featured === true;
@@ -386,20 +381,10 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          {/* ── Engineering Metrics ── */}
-          {metricList.length > 0 && (
-            <div className="mb-8">
-              <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Engineering Metrics</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {metricList.map((m, i) => (
-                  <div key={i} className="text-center p-5 rounded-2xl" style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)' }}>
-                    <p className="text-2xl font-bold font-mono" style={{ color: 'var(--accent)' }}>{m?.value ?? '—'}</p>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>{m?.label ?? ''}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Engineering metrics render through renderContent()'s 'metrics'
+              case, from a project_sections row. The separate block that used
+              to sit here read a `project_metrics` table that never existed,
+              so it was permanently empty. */}
 
           {/* ── Content Sections ── */}
           {ls ? (

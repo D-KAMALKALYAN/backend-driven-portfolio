@@ -18,7 +18,8 @@
     "db:lint": "supabase db lint --linked",
     "db:types": "supabase gen types typescript --linked > src/types/database.d.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "db:snapshot": "node scripts/introspect-schema.mjs"
   },
   "type": "module",
   "dependencies": {

@@ -74,18 +74,6 @@ export async function fetchProjectSections(projectId) {
 }
 
 /**
- * Fetch project metrics
- */
-export async function fetchProjectMetrics(projectId) {
-  const { data, error } = await supabase
-    .from('project_metrics')
-    .select('*')
-    .eq('project_id', projectId);
-  if (error) throw error;
-  return data;
-}
-
-/**
  * Fetch external profiles (GitHub, LinkedIn, etc.)
  */
 export async function fetchExternalProfiles() {
