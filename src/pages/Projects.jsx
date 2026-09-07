@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useCallback, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -13,6 +14,8 @@ import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { fetchProjects } from '../services/api';
 import { formatViews } from '../utils/format';
 import { getPopularProjectIds } from '../utils/popularity';
+import { filterProjects, collectFacets, hasActiveFilters } from '../utils/projectFilter';
+import ProjectFilterBar from '../components/ProjectFilterBar';
 import { useSiteContent } from '../hooks/useSiteContent';
 
 function parseTechs(t) {
@@ -25,6 +28,37 @@ function parseTechs(t) {
 export default function Projects() {
   const { data: projects, loading, error, refetch } = useSupabaseQuery(fetchProjects);
   const { val } = useSiteContent();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filter state lives in the URL rather than component state, so a filtered
+  // view is shareable and the back button steps through filter changes.
+  const query = searchParams.get('q') ?? '';
+  const selectedTags = useMemo(
+    () => (searchParams.get('tag') ?? '').split(',').map((t) => t.trim()).filter(Boolean),
+    [searchParams],
+  );
+
+  const updateParams = useCallback((next) => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(next)) {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      }
+      return params;
+      // replace: filter tweaks should not each add a history entry, but the
+      // resulting URL is still copyable and the back button leaves the page.
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const handleQueryChange = useCallback((q) => updateParams({ q }), [updateParams]);
+  const handleToggleTag = useCallback((tag) => {
+    const next = selectedTags.includes(tag)
+      ? selectedTags.filter((t) => t !== tag)
+      : [...selectedTags, tag];
+    updateParams({ tag: next.join(',') });
+  }, [selectedTags, updateParams]);
+  const handleClear = useCallback(() => updateParams({ q: '', tag: '' }), [updateParams]);
 
   const title = val('projects.title', 'Engineering Portfolio');
   const description = val('projects.description',
@@ -44,7 +78,12 @@ export default function Projects() {
 
   const list = Array.isArray(projects) ? projects : [];
   // Derived, not read from meta.is_popular - see utils/popularity.js.
+  // Computed over the FULL list so the badge means "most viewed overall",
+  // not "most viewed among whatever is currently filtered in".
   const popularIds = getPopularProjectIds(list, 3);
+
+  const facets = collectFacets(list);
+  const visible = filterProjects(list, { query, tags: selectedTags });
 
   return (
     <PageWrapper>
@@ -52,9 +91,22 @@ export default function Projects() {
         <Container>
           <SectionHeader label="Projects" title={title} description={description} />
 
-          {list.length > 0 ? (
+          {list.length > 0 && (
+            <ProjectFilterBar
+              facets={facets}
+              query={query}
+              onQueryChange={handleQueryChange}
+              selectedTags={selectedTags}
+              onToggleTag={handleToggleTag}
+              onClear={handleClear}
+              resultCount={visible.length}
+              totalCount={list.length}
+            />
+          )}
+
+          {visible.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-              {list.map((p, i) => {
+              {visible.map((p, i) => {
                 const techs = parseTechs(p?.tech_stack);
                 const isPopular = popularIds.has(p?.id);
                 const isFeatured = p?.featured === true;
@@ -204,8 +256,20 @@ export default function Projects() {
                 );
               })}
             </div>
+          ) : hasActiveFilters({ query, tags: selectedTags }) ? (
+            // "No projects yet" would be wrong and confusing here - there are
+            // projects, they just do not match the current filters.
+            <EmptyState
+              icon="🔍"
+              title="No projects match those filters"
+              description="Try a different search term, or remove a tag."
+            />
           ) : (
-            <EmptyState icon="📂" title="No projects yet" description="Add projects via Supabase." />
+            <EmptyState
+              icon="📂"
+              title={val('projects.empty_state', 'No projects yet')}
+              description="Add projects via Supabase."
+            />
           )}
         </Container>
       </Section>
