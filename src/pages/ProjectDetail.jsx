@@ -206,7 +206,6 @@ export default function ProjectDetail() {
   const techs       = parseTechs(project.tech_stack);
   const tags        = Array.isArray(project.tags) ? project.tags : [];
   const sectionList = Array.isArray(sections) ? sections : [];
-  const isPopular   = project.meta?.is_popular === true || project.meta?.is_popular === 'true';
   const isFeatured  = project.featured === true;
   const viewLabel   = formatViews(project.view_count);
   const startDate   = fmtDate(project.start_date);
@@ -262,11 +261,9 @@ export default function ProjectDetail() {
                     {project.status}
                   </span>
                 )}
-                {isPopular && (
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
-                    🔥 Most Popular
-                  </span>
-                )}
+                {/* No "Most Popular" badge here: popularity is a ranking
+                    relative to the other projects, and this page holds one.
+                    The absolute view count below is the honest signal. */}
                 {isFeatured && (
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
                     ⭐ Featured
