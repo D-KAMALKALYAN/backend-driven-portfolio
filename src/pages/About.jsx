@@ -7,9 +7,9 @@ import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchProfile, fetchAchievements } from '../services/api';
 import { useSiteContent } from '../hooks/useSiteContent';
+import { useQuery } from '@tanstack/react-query';
+import { queries, errorMessage } from '../services/queries';
 
 const SECTION_ICONS = {
   bio: '◎', philosophy: '◆', approach: '▣', interests: '◇', education: '▥', certifications: '▦',
@@ -112,8 +112,8 @@ function AchievementCard({ a, index }) {
 }
 
 export default function About() {
-  const { data: profile, loading: lp, error: ep, refetch } = useSupabaseQuery(fetchProfile);
-  const { data: achievements, loading: la, error: ea } = useSupabaseQuery(fetchAchievements);
+  const { data: profile, isLoading: lp, error: ep, refetch } = useQuery(queries.profile());
+  const { data: achievements, isLoading: la, error: ea } = useQuery(queries.achievements());
   const { val } = useSiteContent();
 
   if (lp) return (
@@ -121,7 +121,7 @@ export default function About() {
   );
   if (ep) return (
     <PageWrapper><Section><Container>
-      <ErrorState message={ep} onRetry={refetch} />
+      <ErrorState message={errorMessage(ep)} onRetry={refetch} />
     </Container></Section></PageWrapper>
   );
   if (!profile) return (

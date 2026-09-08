@@ -5,9 +5,9 @@ import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
 import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchExternalProfiles } from '../services/api';
 import { trackEvent } from '../services/analytics';
+import { useQuery } from '@tanstack/react-query';
+import { queries, errorMessage } from '../services/queries';
 
 /* ── All platform icons ── */
 const ICONS = {
@@ -88,7 +88,7 @@ function platformColor(platform) {
 }
 
 export default function Profiles() {
-  const { data: profiles, loading, error, refetch } = useSupabaseQuery(fetchExternalProfiles);
+  const { data: profiles, isLoading: loading, error, refetch } = useQuery(queries.externalProfiles());
 
   if (loading) return (
     <PageWrapper><Section><Container>
@@ -98,7 +98,7 @@ export default function Profiles() {
   );
   if (error) return (
     <PageWrapper><Section><Container>
-      <ErrorState message={error} onRetry={refetch} />
+      <ErrorState message={errorMessage(error)} onRetry={refetch} />
     </Container></Section></PageWrapper>
   );
 

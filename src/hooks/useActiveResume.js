@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchActiveResume } from '../services/api';
 
 /**
@@ -9,36 +9,26 @@ import { fetchActiveResume } from '../services/api';
  * hand-maintained site_content key directly — so uploading a new resume
  * could update one and not the other.
  *
+ * Backed by the query cache rather than its own effect: Landing and /resume
+ * both mount this, so without a shared cache the same row was fetched on
+ * every visit to either page.
+ *
  * @returns {{ resume: {url,fileName,version,updatedAt}|null, loading: boolean, error: string|null }}
  */
 export function useActiveResume() {
-  const [resume, setResume] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['resume', 'active'],
+    queryFn: fetchActiveResume,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    fetchActiveResume()
-      .then((r) => {
-        if (cancelled) return;
-        setResume(r);
-        setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        // Surfaced deliberately: a broken resume link is a real failure,
-        // not something to hide behind a fallback.
-        console.error('[useActiveResume]', err);
-        setError(err?.message || 'Could not load resume');
-        setResume(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, []);
-
-  return { resume, loading, error };
+  return {
+    resume: data ?? null,
+    loading: isLoading,
+    // Surfaced deliberately: a broken resume link is a real failure, not
+    // something to hide behind a fallback. That fallback is what let a
+    // missing table go unnoticed for months.
+    error: error ? (error.message || 'Could not load resume') : null,
+  };
 }

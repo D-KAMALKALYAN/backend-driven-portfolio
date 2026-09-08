@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CommandPalette from './components/CommandPalette';
@@ -8,7 +9,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { SkeletonSection } from './components/SkeletonLoader';
 import { useCommandPalette } from './hooks/useCommandPalette';
 import { ThemeProvider } from './hooks/useTheme';
-import { SiteContentProvider } from './hooks/useSiteContent';
 import { usePageTracking } from './hooks/usePageTracking';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 
@@ -98,18 +98,36 @@ function AppContent() {
   );
 }
 
+/**
+ * One client for the app.
+ *
+ * Defaults chosen for a content site: a failed read shows an error state
+ * rather than retrying three times behind a spinner, and refetch-on-focus is
+ * off because tabbing back to a portfolio should not reload it. The analytics
+ * queries opt back into both, being the one thing that genuinely moves.
+ */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 60 * 1000,
+    },
+  },
+});
+
 export default function App() {
   return (
     <BrowserRouter>
       {/* reducedMotion="user" makes every motion component respect the OS
           setting, which nothing previously did. */}
-      <MotionConfig reducedMotion="user">
-        <ThemeProvider>
-          <SiteContentProvider>
+      <QueryClientProvider client={queryClient}>
+        <MotionConfig reducedMotion="user">
+          <ThemeProvider>
             <AppContent />
-          </SiteContentProvider>
-        </ThemeProvider>
-      </MotionConfig>
+          </ThemeProvider>
+        </MotionConfig>
+      </QueryClientProvider>
     </BrowserRouter>
   );
 }
