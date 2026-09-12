@@ -34,7 +34,9 @@ export async function fetchProjects() {
     // the list was ordered by popularity alone, so the authored order could
     // not be controlled without changing view counts. Popularity is kept as
     // the tie-break, which is what sort_order collisions need.
-    .order('featured', { ascending: false })
+    //
+    // `featured` is no longer part of the ordering: the column was true on
+    // every row, and the badge it fed is now derived from end_date instead.
     .order('sort_order', { ascending: true })
     .order('view_count', { ascending: false });
   if (error) throw error;

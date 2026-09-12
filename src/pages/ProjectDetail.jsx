@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queries, errorMessage } from '../services/queries';
 import { trackEvent } from '../services/analytics';
 import { formatViews } from '../utils/format';
+import { isInProgress } from '../utils/popularity';
 
 /* ─── Storytelling section meta ─── */
 const STORY_META = {
@@ -205,7 +206,7 @@ export default function ProjectDetail() {
   const techs       = parseTechs(project.tech_stack);
   const tags        = Array.isArray(project.tags) ? project.tags : [];
   const sectionList = Array.isArray(sections) ? sections : [];
-  const isFeatured  = project.featured === true;
+  const inProgress  = isInProgress(project);
   const viewLabel   = formatViews(project.view_count);
   const startDate   = fmtDate(project.start_date);
   const endDate     = project.end_date ? fmtDate(project.end_date) : 'Present';
@@ -263,9 +264,9 @@ export default function ProjectDetail() {
                 {/* No "Most Popular" badge here: popularity is a ranking
                     relative to the other projects, and this page holds one.
                     The absolute view count below is the honest signal. */}
-                {isFeatured && (
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-                    ⭐ Featured
+                {inProgress && (
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }} title="Currently in development">
+                    🚧 In progress
                   </span>
                 )}
                 {viewLabel && (

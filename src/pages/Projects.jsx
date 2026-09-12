@@ -11,7 +11,7 @@ import EmptyState from '../components/EmptyState';
 import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import { formatViews } from '../utils/format';
-import { getPopularProjectIds } from '../utils/popularity';
+import { getPopularProjectIds, isInProgress } from '../utils/popularity';
 import { filterProjects, collectFacets, hasActiveFilters } from '../utils/projectFilter';
 import ProjectFilterBar from '../components/ProjectFilterBar';
 import { useSiteContent } from '../hooks/useSiteContent';
@@ -109,7 +109,7 @@ export default function Projects() {
               {visible.map((p, i) => {
                 const techs = parseTechs(p?.tech_stack);
                 const isPopular = popularIds.has(p?.id);
-                const isFeatured = p?.featured === true;
+                const inProgress = isInProgress(p);
                 const viewLabel = formatViews(p?.view_count);
                 const metrics = Array.isArray(p?.metrics_preview) ? p.metrics_preview : [];
 
@@ -164,13 +164,15 @@ export default function Projects() {
                                 🔥 Popular
                               </span>
                             )}
-                            {/* ⭐ Featured badge */}
-                            {isFeatured && !isPopular && (
+                            {/* Derived from end_date, not the manual `featured` flag,
+                                which was true on every row and so meant nothing. */}
+                            {inProgress && (
                               <span
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
                                 style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
+                                title="Currently in development"
                               >
-                                ⭐ Featured
+                                🚧 In progress
                               </span>
                             )}
                           </div>
