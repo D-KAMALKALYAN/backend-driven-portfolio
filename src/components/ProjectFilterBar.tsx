@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { useDebounce } from '../hooks/useDebounce';
 import type { Facet } from '../utils/projectFilter';

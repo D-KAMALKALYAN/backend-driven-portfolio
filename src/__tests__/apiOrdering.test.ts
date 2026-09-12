@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import * as api from '../services/api';
+import type { Db } from '../types/rows';
 
 /**
  * Every list query must be deterministically ordered.
@@ -21,32 +23,27 @@ const calls: { table: string | null; orders: OrderCall[]; filters: FilterCall[] 
   filters: [],
 };
 
-vi.mock('../services/supabaseClient', () => {
-  // A minimal stand-in for the PostgREST builder: records what the query
-  // asked for and resolves empty. Typed loosely on purpose - it is the
-  // recorder, not the thing under test.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chain: any = {
-    select: () => chain,
-    eq: (col: string, val: unknown) => { calls.filters.push({ col, val }); return chain; },
-    limit: () => chain,
-    maybeSingle: () => Promise.resolve({ data: null, error: null }),
-    single: () => Promise.resolve({ data: null, error: null }),
-    order: (col: string, opts?: { ascending?: boolean }) => {
-      calls.orders.push({ col, ascending: opts?.ascending });
-      return chain;
-    },
-    then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
-  };
-  return {
-    supabase: {
-      from: (table: string) => { calls.table = table; return chain; },
-      storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: '' } }) }) },
-    },
-  };
-});
-
-const api = await import('../services/api');
+// A minimal stand-in for the PostgREST builder: records what the query
+// asked for and resolves empty. Every query takes its client as an
+// argument, so no module mocking is needed - the recorder is just passed
+// in. Typed loosely on purpose: it is the recorder, not the thing under test.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const chain: any = {
+  select: () => chain,
+  eq: (col: string, val: unknown) => { calls.filters.push({ col, val }); return chain; },
+  limit: () => chain,
+  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+  single: () => Promise.resolve({ data: null, error: null }),
+  order: (col: string, opts?: { ascending?: boolean }) => {
+    calls.orders.push({ col, ascending: opts?.ascending });
+    return chain;
+  },
+  then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
+};
+const db = {
+  from: (table: string) => { calls.table = table; return chain; },
+  storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: '' } }) }) },
+} as unknown as Db;
 
 beforeEach(() => { calls.table = null; calls.orders = []; calls.filters = []; });
 
@@ -55,7 +52,7 @@ const filterCols = () => calls.filters.map((f) => f.col);
 
 describe('deterministic ordering', () => {
   it('fetchProjectSections orders by sort_order with a stable tie-break', async () => {
-    await api.fetchProjectSections('p1');
+    await api.fetchProjectSections(db, 'p1');
     expect(calls.table).toBe('project_sections');
     expect(cols()).toEqual(['sort_order', 'created_at']);
     expect(calls.orders[0]?.ascending).toBe(true);
@@ -66,15 +63,15 @@ describe('deterministic ordering', () => {
   // project page. Lint caught the unused argument; these tests did not, so
   // they now assert the filter too.
   it('fetchProjectSections filters to the requested project', async () => {
-    await api.fetchProjectSections('p1');
+    await api.fetchProjectSections(db, 'p1');
     expect(filterCols()).toContain('project_id');
     expect(calls.filters.find((f) => f.col === 'project_id')?.val).toBe('p1');
   });
 
   it('every per-project query is scoped to that project', async () => {
     const scoped: Array<[string, () => Promise<unknown>]> = [
-      ['fetchProjectSections', () => api.fetchProjectSections('p1')],
-      ['fetchProjectStorytelling', () => api.fetchProjectStorytelling('p1')],
+      ['fetchProjectSections', () => api.fetchProjectSections(db, 'p1')],
+      ['fetchProjectStorytelling', () => api.fetchProjectStorytelling(db, 'p1')],
     ];
     for (const [name, run] of scoped) {
       calls.filters = [];
@@ -85,18 +82,18 @@ describe('deterministic ordering', () => {
 
   it('fetchProjectBySlug filters by slug', async () => {
     calls.filters = [];
-    await api.fetchProjectBySlug('some-slug');
+    await api.fetchProjectBySlug(db, 'some-slug');
     expect(filterCols()).toContain('slug');
   });
 
   it('fetchActiveResume filters to the active row', async () => {
     calls.filters = [];
-    await api.fetchActiveResume();
+    await api.fetchActiveResume(db);
     expect(filterCols()).toContain('is_active');
   });
 
   it('fetchProjects honours sort_order before popularity', async () => {
-    await api.fetchProjects();
+    await api.fetchProjects(db);
     expect(cols()).toEqual(['sort_order', 'view_count']);
     expect(calls.orders[0]?.ascending).toBe(true);  // authored order
     expect(calls.orders[1]?.ascending).toBe(false); // popularity breaks ties
@@ -104,36 +101,36 @@ describe('deterministic ordering', () => {
 
   // The manual flag was true on every row and is no longer read anywhere.
   it('fetchProjects does not order by the inert featured column', async () => {
-    await api.fetchProjects();
+    await api.fetchProjects(db);
     expect(cols()).not.toContain('featured');
   });
 
   it('fetchSkills is deterministic within a category', async () => {
-    await api.fetchSkills();
+    await api.fetchSkills(db);
     expect(cols()).toEqual(['category', 'sort_order', 'name']);
   });
 
   it('fetchExperience orders explicitly rather than by date alone', async () => {
-    await api.fetchExperience();
+    await api.fetchExperience(db);
     expect(cols()).toEqual(['sort_order', 'start_date']);
     expect(calls.orders[1]?.ascending).toBe(false); // newest first
   });
 
   it('fetchAchievements keeps its existing ordering', async () => {
-    await api.fetchAchievements();
+    await api.fetchAchievements(db);
     expect(cols()).toEqual(['sort_order', 'date_earned']);
   });
 
   it('every list query specifies at least one ORDER BY', async () => {
     const listQueries: Array<[string, () => Promise<unknown>]> = [
-      ['fetchProjects', () => api.fetchProjects()],
-      ['fetchProjectSections', () => api.fetchProjectSections('p1')],
-      ['fetchSkills', () => api.fetchSkills()],
-      ['fetchExperience', () => api.fetchExperience()],
-      ['fetchAchievements', () => api.fetchAchievements()],
-      ['fetchProjectStorytelling', () => api.fetchProjectStorytelling('p1')],
-      ['fetchRecentEvents', () => api.fetchRecentEvents()],
-      ['fetchDailyVisits', () => api.fetchDailyVisits()],
+      ['fetchProjects', () => api.fetchProjects(db)],
+      ['fetchProjectSections', () => api.fetchProjectSections(db, 'p1')],
+      ['fetchSkills', () => api.fetchSkills(db)],
+      ['fetchExperience', () => api.fetchExperience(db)],
+      ['fetchAchievements', () => api.fetchAchievements(db)],
+      ['fetchProjectStorytelling', () => api.fetchProjectStorytelling(db, 'p1')],
+      ['fetchRecentEvents', () => api.fetchRecentEvents(db)],
+      ['fetchDailyVisits', () => api.fetchDailyVisits(db)],
     ];
 
     for (const [name, run] of listQueries) {

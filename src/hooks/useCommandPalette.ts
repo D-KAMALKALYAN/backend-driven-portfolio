@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { COMMANDS, type Command } from '../constants/commands';
 
 /**
@@ -9,7 +11,7 @@ import { COMMANDS, type Command } from '../constants/commands';
 export function useCommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => {
@@ -32,10 +34,10 @@ export function useCommandPalette() {
     (command: Command) => {
       // Every command today navigates. The type says so; an `action`
       // callback branch existed here for a command shape nothing defined.
-      navigate(command.path);
+      router.push(command.path);
       close();
     },
-    [navigate, close]
+    [router, close]
   );
 
   useEffect(() => {

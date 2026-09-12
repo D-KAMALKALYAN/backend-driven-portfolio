@@ -7,7 +7,11 @@
  * Regenerate src/types/database.ts with `npm run db:types` after any schema
  * change; these aliases pick up the new shape automatically.
  */
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database';
+
+/** A typed client - browser singleton or a per-request server instance. */
+export type Db = SupabaseClient<Database>;
 
 type Tables = Database['public']['Tables'];
 type Views = Database['public']['Views'];

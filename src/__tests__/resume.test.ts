@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { fetchActiveResume as fetchActiveResumeWith } from '../services/api';
+import type { Db } from '../types/rows';
 
 /**
  * Regression tests for the P0 resume workflow bug.
@@ -24,8 +26,9 @@ const state: {
   error: { message: string; code: string } | null;
 } = { table: null, selected: null, row: null, error: null };
 
-vi.mock('../services/supabaseClient', () => ({
-  supabase: {
+// Every query takes its client as an argument, so the fake is passed in
+// rather than mocked at module level.
+const db = {
     from: (table: string) => {
       state.table = table;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,10 +50,9 @@ vi.mock('../services/supabaseClient', () => ({
         }),
       }),
     },
-  },
-}));
+} as unknown as Db;
 
-const { fetchActiveResume } = await import('../services/api');
+const fetchActiveResume = () => fetchActiveResumeWith(db);
 
 beforeEach(() => {
   state.table = null;

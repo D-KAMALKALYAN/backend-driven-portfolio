@@ -1,5 +1,7 @@
+'use client';
+
 import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { trackEvent } from '../services/analytics';
 
 /**
@@ -11,19 +13,22 @@ import { trackEvent } from '../services/analytics';
  * for the same path. The ref resets whenever the pathname actually changes.
  */
 export function usePageTracking() {
-  const location  = useLocation();
+  const pathname = usePathname() ?? '/';
+  const searchParams = useSearchParams();
   const trackedRef = useRef<string | null>(null); // last pathname we successfully tracked
 
   useEffect(() => {
     // Skip if this exact path was already tracked in this effect cycle.
     // React StrictMode fires effects twice with the same pathname;
     // a real navigation will have a different pathname, so it always fires.
-    if (trackedRef.current === location.pathname) return;
-    trackedRef.current = location.pathname;
+    if (trackedRef.current === pathname) return;
+    trackedRef.current = pathname;
 
+    const search = searchParams?.toString() ?? '';
     trackEvent('page_view', {
-      search: location.search || undefined,
+      search: search ? `?${search}` : undefined,
     });
+  // Search-param changes (project filters) are not new page views.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [pathname]);
 }
