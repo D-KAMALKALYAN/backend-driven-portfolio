@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavLinks } from '../hooks/useNavLinks';
 import { useTheme } from '../hooks/useTheme';
@@ -7,14 +10,14 @@ import { useTheme } from '../hooks/useTheme';
 export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled]     = useState(false);
-  const location                    = useLocation();
+  const pathname                    = usePathname() ?? '/';
   const { theme, toggleTheme }      = useTheme();
   const navLinks                    = useNavLinks();
 
   // Close the mobile menu on navigation. This is a genuine
   // synchronise-to-external-change, not a cascading render.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 8);
@@ -36,7 +39,7 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
 
           {/* Logo ── left side */}
           <Link
-            to="/"
+            href="/"
             className="flex items-center gap-3 no-underline shrink-0"
           >
             <span className="w-8 h-8 rounded-[var(--r-md)] bg-[var(--accent)] flex items-center justify-center text-white t-sm font-bold shadow-sm">
@@ -51,12 +54,12 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
           <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => {
               const active = link.path === '/'
-                ? location.pathname === '/'
-                : location.pathname.startsWith(link.path);
+                ? pathname === '/'
+                : pathname.startsWith(link.path);
               return (
                 <Link
                   key={link.path}
-                  to={link.path}
+                  href={link.path}
                   className={`relative px-3 py-2 rounded-[var(--r-md)] t-sm font-medium no-underline transition-colors duration-150 ${
                     active
                       ? 'text-[var(--accent-hover)]'
@@ -137,11 +140,11 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 space-y-0.5 max-h-[75vh] overflow-y-auto">
               {navLinks.map((link) => {
-                const active = link.path === '/' ? location.pathname === '/' : location.pathname.startsWith(link.path);
+                const active = link.path === '/' ? pathname === '/' : pathname.startsWith(link.path);
                 return (
                   <Link
                     key={link.path}
-                    to={link.path}
+                    href={link.path}
                     className={`flex items-center px-3 py-2.5 rounded-[var(--r-md)] t-sm font-medium no-underline transition-colors ${
                       active
                         ? 'bg-[var(--accent-glow)] text-[var(--accent-hover)]'

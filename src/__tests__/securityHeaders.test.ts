@@ -1,103 +1,78 @@
 import { describe, it, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
+import { buildCsp, STATIC_SECURITY_HEADERS } from '../lib/csp';
 
 /**
- * The CSP is only as good as its accuracy, and two parts of it go stale
- * silently:
- *
- *   1. The hash allowing the inline theme-bootstrap script in index.html.
- *      Edit that script without updating the hash and CSP blocks it — the
- *      page still renders, so nothing looks broken, but the flash-of-wrong-
- *      theme the script exists to prevent comes back.
- *
- *   2. The Supabase origin in connect-src / img-src / frame-src. Point the
- *      app at a different project and every request is blocked.
- *
- * Neither fails loudly in a browser, so they are asserted here.
+ * The CSP is only as good as its accuracy. It used to be a static string in
+ * vercel.json with a sha256 hash for the one inline script, and two parts of
+ * it went stale silently: that hash, and the Supabase origin. It is now a
+ * pure function of (nonce, supabaseUrl, isDev), built per request in
+ * src/proxy.ts, so the policy itself is asserted here rather than a file.
  */
 
-interface VercelHeader { key: string; value: string }
-interface VercelConfig {
-  headers: Array<{ source: string; headers: VercelHeader[] }>;
-  rewrites: Array<{ source: string; destination: string }>;
-}
+const SUPABASE = 'https://abcdefghij.supabase.co';
+const NONCE = 'dGVzdC1ub25jZQ==';
+const csp = buildCsp({ nonce: NONCE, supabaseUrl: SUPABASE });
+const directive = (name: string, policy = csp) => policy.match(new RegExp(`(?:^|; )${name} ([^;]*)`))?.[1] ?? '';
 
-const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')) as VercelConfig;
-
-const globalHeaders =
-  vercel.headers.find((h) => h.source === '/(.*)')?.headers ?? [];
-const header = (key: string) => globalHeaders.find((h) => h.key === key)?.value;
-const csp = header('Content-Security-Policy') ?? '';
-
-/** sha256-base64 of every inline (src-less) script in index.html. */
-function inlineScriptHashes() {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
-  return [...html.matchAll(re)].map(
-    (m) => `sha256-${crypto.createHash('sha256').update(m[1] ?? '', 'utf8').digest('base64')}`,
-  );
-}
-
-describe('security headers', () => {
-  it('sets a Content-Security-Policy', () => {
-    expect(csp).toBeTruthy();
-  });
-
-  it('allows every inline script in index.html by hash', () => {
-    const hashes = inlineScriptHashes();
-    expect(hashes.length).toBeGreaterThan(0);
-    for (const h of hashes) {
-      expect(
-        csp,
-        `index.html contains an inline script whose hash is not in the CSP.\n` +
-        `Add '${h}' to script-src in vercel.json, or the script will be blocked ` +
-        `and the theme flash it prevents will return.`,
-      ).toContain(h);
-    }
-  });
-
-  it('does not weaken script-src with unsafe-inline or unsafe-eval', () => {
-    const scriptSrc = csp.match(/script-src ([^;]*)/)?.[1] ?? '';
+describe('Content-Security-Policy', () => {
+  it('nonces scripts and relies on strict-dynamic, never unsafe-inline', () => {
+    const scriptSrc = directive('script-src');
+    expect(scriptSrc).toContain(`'nonce-${NONCE}'`);
+    expect(scriptSrc).toContain("'strict-dynamic'");
     expect(scriptSrc).not.toContain("'unsafe-inline'");
     expect(scriptSrc).not.toContain("'unsafe-eval'");
   });
 
-  it('allows the Supabase origin the client actually uses', () => {
-    // .env is not present in CI, so fall back to the origin in the CSP and
-    // assert only that all three directives agree on one origin.
-    const origins = ['connect-src', 'img-src', 'frame-src'].map(
-      (d) => csp.match(new RegExp(`${d} ([^;]*)`))?.[1] ?? '',
-    );
-    const supabase = origins[0]?.match(/https:\/\/[a-z0-9]+\.supabase\.co/)?.[0];
-    expect(supabase, 'connect-src must name the Supabase origin').toBeTruthy();
-    expect(origins[1]).toContain(supabase); // images from storage
-    expect(origins[2]).toContain(supabase); // the resume PDF iframe
+  it('allows unsafe-eval only in development, where React needs it', () => {
+    const dev = buildCsp({ nonce: NONCE, supabaseUrl: SUPABASE, isDev: true });
+    expect(directive('script-src', dev)).toContain("'unsafe-eval'");
+    expect(directive('script-src')).not.toContain("'unsafe-eval'");
+  });
+
+  it('names the Supabase origin in every directive that talks to it', () => {
+    expect(directive('connect-src')).toContain(SUPABASE);
+    expect(directive('img-src')).toContain(SUPABASE);   // cover images from storage
+    expect(directive('frame-src')).toContain(SUPABASE); // the resume PDF iframe
   });
 
   it('allows the realtime websocket', () => {
-    // /analytics subscribes to postgres_changes; without wss the socket is blocked
-    // and the Live badge silently degrades to Snapshot.
-    expect(csp).toMatch(/connect-src [^;]*wss:\/\/[a-z0-9]+\.supabase\.co/);
+    // /analytics subscribes to postgres_changes; without wss the socket is
+    // blocked and the Live badge silently degrades to Snapshot.
+    expect(directive('connect-src')).toContain('wss://abcdefghij.supabase.co');
   });
 
-  it('sets the other baseline headers', () => {
-    expect(header('X-Content-Type-Options')).toBe('nosniff');
-    expect(header('Referrer-Policy')).toBeTruthy();
-    expect(header('Permissions-Policy')).toBeTruthy();
-    expect(header('Strict-Transport-Security')).toMatch(/max-age=\d+/);
+  it('keeps fonts first-party (self-hosted via next/font)', () => {
+    expect(directive('font-src')).toBe("'self'");
+    expect(csp).not.toContain('fonts.gstatic.com');
+    expect(csp).not.toContain('fonts.googleapis.com');
   });
 
   it('forbids framing and plugin content', () => {
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("base-uri 'self'");
+    expect(csp).toContain("form-action 'self'");
   });
 
-  it('still rewrites all routes to index.html for the SPA', () => {
-    const rewrite = vercel.rewrites.find((r) => r.source === '/(.*)');
-    expect(rewrite?.destination).toBe('/index.html');
+  it('tolerates a missing Supabase URL without producing a malformed policy', () => {
+    const noSupabase = buildCsp({ nonce: NONCE, supabaseUrl: '' });
+    expect(noSupabase).not.toMatch(/\s{2,}/);
+    expect(directive('connect-src', noSupabase).trim()).toBe("'self'");
+  });
+});
+
+describe('static security headers', () => {
+  const header = (key: string) => STATIC_SECURITY_HEADERS.find((h) => h.key === key)?.value;
+
+  it('sets the baseline set', () => {
+    expect(header('X-Content-Type-Options')).toBe('nosniff');
+    expect(header('Referrer-Policy')).toBeTruthy();
+    expect(header('Permissions-Policy')).toBeTruthy();
+    expect(header('Strict-Transport-Security')).toMatch(/max-age=\d+/);
+    expect(header('X-Frame-Options')).toBe('DENY');
+  });
+
+  it('does not carry the CSP, which must vary per request', () => {
+    expect(header('Content-Security-Policy')).toBeUndefined();
   });
 });

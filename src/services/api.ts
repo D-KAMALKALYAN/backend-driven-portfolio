@@ -1,11 +1,17 @@
-import { supabase } from './supabaseClient';
-import type { ActiveResume, AnalyticsSummary, ContactMessageInsert } from '../types/rows';
+import type { ActiveResume, AnalyticsSummary, ContactMessageInsert, Db } from '../types/rows';
+
+/**
+ * Every query takes the client as its first argument rather than importing a
+ * singleton. The same function then serves three callers: server components
+ * (a per-request client whose fetch is cached and tagged), the browser (the
+ * shared client, for the live analytics page), and tests (a recorder).
+ */
 
 /**
  * Fetch site content (taglines, meta, etc.)
  */
-export async function fetchSiteContent() {
-  const { data, error } = await supabase
+export async function fetchSiteContent(db: Db) {
+  const { data, error } = await db
     .from('site_content')
     .select('*');
   if (error) throw error;
@@ -15,8 +21,8 @@ export async function fetchSiteContent() {
 /**
  * Fetch profile/about data
  */
-export async function fetchProfile() {
-  const { data, error } = await supabase
+export async function fetchProfile(db: Db) {
+  const { data, error } = await db
     .from('profiles')
     .select('*')
     .single();
@@ -27,8 +33,8 @@ export async function fetchProfile() {
 /**
  * Fetch all projects (list view)
  */
-export async function fetchProjects() {
-  const { data, error } = await supabase
+export async function fetchProjects(db: Db) {
+  const { data, error } = await db
     .from('projects')
     .select('*')
     // sort_order was set in the database (0,1,1,2,3) and ignored entirely -
@@ -47,8 +53,8 @@ export async function fetchProjects() {
 /**
  * Fetch single project by slug
  */
-export async function fetchProjectBySlug(slug: string) {
-  const { data, error } = await supabase
+export async function fetchProjectBySlug(db: Db, slug: string) {
+  const { data, error } = await db
     .from('projects')
     .select('*')
     .eq('slug', slug)
@@ -60,8 +66,8 @@ export async function fetchProjectBySlug(slug: string) {
 /**
  * Fetch project sections for a given project
  */
-export async function fetchProjectSections(projectId: string) {
-  const { data, error } = await supabase
+export async function fetchProjectSections(db: Db, projectId: string) {
+  const { data, error } = await db
     .from('project_sections')
     .select('*')
     .eq('project_id', projectId)
@@ -79,8 +85,8 @@ export async function fetchProjectSections(projectId: string) {
 /**
  * Fetch external profiles (GitHub, LinkedIn, etc.)
  */
-export async function fetchExternalProfiles() {
-  const { data, error } = await supabase
+export async function fetchExternalProfiles(db: Db) {
+  const { data, error } = await db
     .from('external_profiles')
     .select('*');
   if (error) throw error;
@@ -90,8 +96,8 @@ export async function fetchExternalProfiles() {
 /**
  * Fetch skills
  */
-export async function fetchSkills() {
-  const { data, error } = await supabase
+export async function fetchSkills(db: Db) {
+  const { data, error } = await db
     .from('skills')
     .select('*')
     // Ordered by category alone, so order WITHIN a category was
@@ -108,8 +114,8 @@ export async function fetchSkills() {
 /**
  * Fetch experience entries
  */
-export async function fetchExperience() {
-  const { data, error } = await supabase
+export async function fetchExperience(db: Db) {
+  const { data, error } = await db
     .from('experience')
     .select('*')
     // sort_order lets the timeline be arranged explicitly; start_date is the
@@ -123,8 +129,8 @@ export async function fetchExperience() {
 /**
  * Submit contact message (sanitized server-side via RLS)
  */
-export async function submitContactMessage(message: ContactMessageInsert) {
-  const { data, error } = await supabase
+export async function submitContactMessage(db: Db, message: ContactMessageInsert) {
+  const { data, error } = await db
     .from('contact_messages')
     .insert(message);
   if (error) throw error;
@@ -147,8 +153,8 @@ export async function submitContactMessage(message: ContactMessageInsert) {
  *
  * Resolves to null only when no resume has been marked active.
  */
-export async function fetchActiveResume(): Promise<ActiveResume | null> {
-  const { data, error } = await supabase
+export async function fetchActiveResume(db: Db): Promise<ActiveResume | null> {
+  const { data, error } = await db
     .from('resume')
     .select('file_name, file_url, version, updated_at')
     .eq('is_active', true)
@@ -160,7 +166,7 @@ export async function fetchActiveResume(): Promise<ActiveResume | null> {
   const objectName = data.file_name || deriveObjectName(data.file_url);
   if (!objectName) return null;
 
-  const { data: pub } = supabase.storage.from('resumes').getPublicUrl(objectName);
+  const { data: pub } = db.storage.from('resumes').getPublicUrl(objectName);
 
   return {
     url: pub?.publicUrl ?? null,
@@ -186,8 +192,8 @@ function deriveObjectName(fileUrl: string | null): string | null {
 /**
  * Fetch achievements (certifications, awards, publications, etc.)
  */
-export async function fetchAchievements() {
-  const { data, error } = await supabase
+export async function fetchAchievements(db: Db) {
+  const { data, error } = await db
     .from('achievements')
     .select('*')
     .order('sort_order', { ascending: true })
@@ -202,8 +208,8 @@ export async function fetchAchievements() {
  * Aggregate summary stats via RPC (computed server-side).
  * Requires: CREATE FUNCTION get_analytics_summary() in Supabase.
  */
-export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary> {
-  const { data, error } = await supabase.rpc('get_analytics_summary');
+export async function fetchAnalyticsSummary(db: Db): Promise<AnalyticsSummary> {
+  const { data, error } = await db.rpc('get_analytics_summary');
   if (error) throw error;
   // The function is declared RETURNS json, so the generated type is `Json`.
   // Narrow it once here rather than at every consumer.
@@ -215,8 +221,8 @@ export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary> {
  * Daily visit counts for the last 30 days.
  * Requires: CREATE VIEW analytics_daily_visits in Supabase.
  */
-export async function fetchDailyVisits() {
-  const { data, error } = await supabase
+export async function fetchDailyVisits(db: Db) {
+  const { data, error } = await db
     .from('analytics_daily_visits')
     .select('date, visits, unique_visitors')
     .order('date', { ascending: true });
@@ -227,8 +233,8 @@ export async function fetchDailyVisits() {
 /**
  * Top N projects by view_count — only published.
  */
-export async function fetchTopProjects(limit = 8) {
-  const { data, error } = await supabase
+export async function fetchTopProjects(db: Db, limit = 8) {
+  const { data, error } = await db
     .from('projects')
     .select('id, title, slug, view_count, cover_image_url, tagline')
     .eq('status', 'published')
@@ -242,8 +248,8 @@ export async function fetchTopProjects(limit = 8) {
 /**
  * Recent analytics events (for live feed display).
  */
-export async function fetchRecentEvents(limit = 20) {
-  const { data, error } = await supabase
+export async function fetchRecentEvents(db: Db, limit = 20) {
+  const { data, error } = await db
     .from('analytics')
     .select('id, event, path, created_at')
     .order('created_at', { ascending: false })
@@ -258,8 +264,8 @@ export async function fetchRecentEvents(limit = 20) {
  * Fetch storytelling sections for a project.
  * Requires: CREATE TABLE project_storytelling in Supabase.
  */
-export async function fetchProjectStorytelling(projectId: string) {
-  const { data, error } = await supabase
+export async function fetchProjectStorytelling(db: Db, projectId: string) {
+  const { data, error } = await db
     .from('project_storytelling')
     .select('*')
     .eq('project_id', projectId)

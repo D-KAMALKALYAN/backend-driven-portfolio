@@ -136,3 +136,16 @@ docker exec -i supabase_db_elite-portfolio psql -U postgres -d postgres < supaba
 ```
 
 Run it twice. The second run must produce zero errors and change nothing.
+
+## Content edits and the page cache (since ADR-032)
+
+The app renders on the server and caches every content read for up to an hour,
+tagged by table. To make an edit visible on the next request instead, one
+Database Webhook (dashboard → Database → Webhooks) covers every content table:
+
+- events: INSERT, UPDATE, DELETE
+- URL: `POST https://<site>/api/revalidate`
+- header: `Authorization: Bearer <REVALIDATE_SECRET>` (same value as the Vercel env var)
+
+The handler reads `table` from the standard payload and expires `table:<name>`.
+`contact_messages` and `analytics` are never cached, so they need no hook.

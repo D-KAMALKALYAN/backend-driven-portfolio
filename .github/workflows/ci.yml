@@ -45,14 +45,18 @@ jobs:
           # secrets - no test makes a network call. Their presence also keeps
           # the run honest: it exercises the same code path as production
           # rather than a special test-only branch.
-          VITE_SUPABASE_URL: https://placeholder.supabase.co
-          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
 
+      # Every route renders per request, so `next build` needs no database:
+      # nothing is fetched at build time. If this step ever starts needing
+      # real credentials, something has become static that should not be.
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: https://placeholder.supabase.co
-          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: https://example.com
 
       - name: Fail if a fabricated metric reappears
         run: |
