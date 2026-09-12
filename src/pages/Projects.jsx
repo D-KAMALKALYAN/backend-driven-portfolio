@@ -10,13 +10,13 @@ import { StatusBadge } from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchProjects } from '../services/api';
 import { formatViews } from '../utils/format';
 import { getPopularProjectIds } from '../utils/popularity';
 import { filterProjects, collectFacets, hasActiveFilters } from '../utils/projectFilter';
 import ProjectFilterBar from '../components/ProjectFilterBar';
 import { useSiteContent } from '../hooks/useSiteContent';
+import { useQuery } from '@tanstack/react-query';
+import { queries, errorMessage } from '../services/queries';
 
 function parseTechs(t) {
   if (!t) return [];
@@ -26,7 +26,7 @@ function parseTechs(t) {
 }
 
 export default function Projects() {
-  const { data: projects, loading, error, refetch } = useSupabaseQuery(fetchProjects);
+  const { data: projects, isLoading: loading, error, refetch } = useQuery(queries.projects());
   const { val } = useSiteContent();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -72,7 +72,7 @@ export default function Projects() {
   );
   if (error) return (
     <PageWrapper><Section><Container>
-      <ErrorState message={error} onRetry={refetch} />
+      <ErrorState message={errorMessage(error)} onRetry={refetch} />
     </Container></Section></PageWrapper>
   );
 

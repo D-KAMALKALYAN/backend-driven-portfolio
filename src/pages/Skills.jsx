@@ -6,9 +6,9 @@ import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
 import { SkeletonGrid } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchSkills } from '../services/api';
 import { useSiteContent } from '../hooks/useSiteContent';
+import { useQuery } from '@tanstack/react-query';
+import { queries, errorMessage } from '../services/queries';
 
 /* ── Category colour map ───────────────────────────────────────── */
 const COLORS = {
@@ -178,7 +178,7 @@ export default function Skills() {
   const title = val('skills.title', 'Technical Arsenal');
   const description = val('skills.description',
     'Technologies, frameworks, and tools across the full stack.');
-  const { data: skills, loading, error, refetch } = useSupabaseQuery(fetchSkills);
+  const { data: skills, isLoading: loading, error, refetch } = useQuery(queries.skills());
   const [activeFilter, setActiveFilter] = useState('All');
 
   if (loading) return (
@@ -189,7 +189,7 @@ export default function Skills() {
   );
   if (error) return (
     <PageWrapper><Section><Container>
-      <ErrorState message={error} onRetry={refetch} />
+      <ErrorState message={errorMessage(error)} onRetry={refetch} />
     </Container></Section></PageWrapper>
   );
 

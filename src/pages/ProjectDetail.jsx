@@ -9,8 +9,8 @@ import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchProjectBySlug, fetchProjectSections, fetchProjectStorytelling } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { queries, errorMessage } from '../services/queries';
 import { trackEvent } from '../services/analytics';
 import { formatViews } from '../utils/format';
 
@@ -181,14 +181,13 @@ function ProjectLink({ href, icon, label, primary }) {
 export default function ProjectDetail() {
   const { slug } = useParams();
 
-  const { data: project, loading: lp, error: ep } = useSupabaseQuery(() => fetchProjectBySlug(slug), [slug]);
-  const { data: sections, loading: ls } = useSupabaseQuery(
-    () => project?.id ? fetchProjectSections(project.id) : Promise.resolve([]), [project?.id]
-  );
-  const { data: storytelling } = useSupabaseQuery(
-    () => project?.id ? fetchProjectStorytelling(project.id).catch(() => []) : Promise.resolve([]),
-    [project?.id]
-  );
+  const { data: project, isLoading: lp, error: ep } = useQuery(queries.project(slug));
+
+  // Dependent on the project row. `enabled` expresses that directly, where
+  // the old hook had to return Promise.resolve([]) for a query it did not
+  // want yet - which looked like a successful empty result.
+  const { isLoading: ls, data: sections } = useQuery(queries.projectSections(project?.id));
+  const { data: storytelling } = useQuery(queries.projectStorytelling(project?.id));
 
   /* ── Fire project_view event once per project load ── */
   const trackedProjectRef = useRef(null);
@@ -200,7 +199,7 @@ export default function ProjectDetail() {
   }, [project?.id]); // fires once per project per session load
 
   if (lp) return <PageWrapper><Section><Container><SkeletonSection lines={6} /></Container></Section></PageWrapper>;
-  if (ep) return <PageWrapper><Section><Container><ErrorState message={ep} /></Container></Section></PageWrapper>;
+  if (ep) return <PageWrapper><Section><Container><ErrorState message={errorMessage(ep)} /></Container></Section></PageWrapper>;
   if (!project) return <PageWrapper><Section><Container><EmptyState title="Project not found" /></Container></Section></PageWrapper>;
 
   const techs       = parseTechs(project.tech_stack);

@@ -16,10 +16,10 @@ import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import { SkeletonSection } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { fetchExperience } from '../services/api';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useQuery } from '@tanstack/react-query';
+import { queries, errorMessage } from '../services/queries';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function fmtDate(d) {
@@ -414,7 +414,7 @@ function TimelineItem({ exp, index, isLast, onSelect }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Experience() {
-  const { data: experience, loading, error, refetch } = useSupabaseQuery(fetchExperience);
+  const { data: experience, isLoading: loading, error, refetch } = useQuery(queries.experience());
   const { val } = useSiteContent();
 
   const title = val('experience.title', 'Career Timeline');
@@ -432,7 +432,7 @@ export default function Experience() {
   );
   if (error) return (
     <PageWrapper><Section><Container>
-      <ErrorState message={error} onRetry={refetch} />
+      <ErrorState message={errorMessage(error)} onRetry={refetch} />
     </Container></Section></PageWrapper>
   );
 

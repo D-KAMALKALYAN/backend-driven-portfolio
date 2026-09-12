@@ -4,9 +4,9 @@ import { useEffect } from 'react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
-import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSystemStatus } from '../hooks/useSystemStatus';
-import { fetchAnalyticsSummary, fetchExperience } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { queries } from '../services/queries';
 import { buildCareerLine } from '../utils/career';
 import { useActiveResume } from '../hooks/useActiveResume';
 import { trackEvent } from '../services/analytics';
@@ -16,7 +16,7 @@ import { useSiteContent } from '../hooks/useSiteContent';
 
 // ─── Analytics teaser widget ──────────────────────────────────────────────────
 function AnalyticsTeaser() {
-  const { data: stats, loading } = useSupabaseQuery(fetchAnalyticsSummary);
+  const { data: stats, isLoading: loading } = useQuery(queries.analyticsSummary());
 
   const fmt = (v) => {
     if (loading || v == null) return '—';
@@ -182,7 +182,7 @@ export default function Landing() {
   const { content, loading } = useSiteContent();
   const { system, latency, systemColor, latencyColor } = useSystemStatus();
   const { resume } = useActiveResume();
-  const { data: experience } = useSupabaseQuery(fetchExperience);
+  const { data: experience } = useQuery(queries.experience());
 
   // Current role + years, derived from the experience table. These are the
   // signals a recruiter looks for first and they were absent from the hero
