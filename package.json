@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "test:watch": "vitest",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
@@ -16,10 +17,9 @@
     "db:pull": "supabase db pull --linked",
     "db:push": "supabase db push --linked",
     "db:lint": "supabase db lint --linked",
-    "db:types": "supabase gen types typescript --linked > src/types/database.d.ts",
+    "db:types": "supabase gen types typescript --linked > src/types/database.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "db:snapshot": "node scripts/introspect-schema.mjs"
+    "lint:fix": "eslint . --fix"
   },
   "type": "module",
   "dependencies": {
@@ -34,6 +34,9 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^22.20.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
     "eslint": "^10.9.1",
@@ -43,6 +46,8 @@
     "jsdom": "^29.1.1",
     "supabase": "^2.116.0",
     "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
     "vite": "^8.0.1",
     "vitest": "^3.2.7"
   }

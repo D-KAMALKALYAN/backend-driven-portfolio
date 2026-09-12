@@ -29,8 +29,14 @@ npm run db:reset          # rebuild local DB from supabase/migrations/ - THE tes
 npm run db:diff           # what differs between local and linked production
 npm run db:lint           # static checks on the schema
 npm run db:push           # apply pending migrations to production
+npm run db:types          # regenerate src/types/database.ts from the linked project
 npm run db:stop
 ```
+
+**After any schema change, run `db:types` and commit the result.** The frontend's
+Supabase client is typed with that file, so a column rename that is not followed by
+regeneration is a compile error in every component that reads it - which is the
+point. The file is generated; do not edit it by hand.
 
 **`db:reset` is the important one.** It drops the local database and replays every
 migration from scratch. If that succeeds, the repo can rebuild the database — which
@@ -64,6 +70,22 @@ showed that `001` had only ever been partially applied: production had **no
 `trg_single_active_resume` trigger that `002` was supposed to drop (that DROP was
 added to `002` after `002` had already been run). `20260912100000_production_gaps`
 closes those. Every migration file we had described a schema that did not exist.
+
+## After ANY trigger or function that reads a table
+
+Test it as `anon`, never as `postgres`. Superusers bypass RLS, so a test as
+postgres can pass while the same code sees zero rows in production. This has
+now caused two production defects (ADR-016, ADR-030).
+
+```sql
+SET ROLE anon;
+-- exercise the path: insert rows, call the function, hit the limit
+RESET ROLE;
+```
+
+If the function must see rows the caller cannot - a rate limit counting
+another user's rows, an aggregate - it needs `SECURITY DEFINER` with
+`SET search_path = public`.
 
 ## After ANY change to RLS or an authorization function
 

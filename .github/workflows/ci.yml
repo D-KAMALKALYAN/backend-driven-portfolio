@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, test, build
+    name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -31,6 +31,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # The Supabase client is typed with the generated Database schema, so a
+      # query against a table or column that does not exist is a compile
+      # error. This replaced the regex grep for stale table names that used
+      # to live below - five production bugs were this class of mistake.
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test
         env:
@@ -47,21 +54,9 @@ jobs:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-anon-key
 
-      # The audit found four production bugs caused by the frontend querying
-      # tables and columns that do not exist. Until generated Supabase types
-      # land, this is a cheap guard against the same class of mistake.
-      - name: Check for references to tables removed during the audit
-        run: |
-          if grep -rn "resume_versions\|fetchResumeUrl" src/ --include=*.js --include=*.jsx \
-               | grep -v "__tests__"; then
-            echo "::error::Reference to a table or function that no longer exists"
-            exit 1
-          fi
-          echo "OK - no stale table references"
-
       - name: Fail if a fabricated metric reappears
         run: |
-          if grep -rn "99\.9%" src/ --include=*.jsx | grep -v "^\s*//" | grep -v "'Uptime: 99.9%'"; then
+          if grep -rn "99\.9%" src/ --include=*.tsx | grep -v "^\s*//" | grep -v "'Uptime: 99.9%'"; then
             echo "::error::Hardcoded uptime figure found - see ADR-011"
             exit 1
           fi

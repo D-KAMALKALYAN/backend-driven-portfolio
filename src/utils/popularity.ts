@@ -1,0 +1,64 @@
+/**
+ * "Popular" is derived, not stored.
+ *
+ * The schema shipped a `refresh_popular_badges()` function that wrote
+ * `meta.is_popular` onto the top three projects, to be run by a daily cron
+ * that was never created. Every project's `meta` is `{}`, so the badge it
+ * fed has never appeared.
+ *
+ * The choice was to schedule the function or to delete it. Deleting it is
+ * better here: "top N by view_count" is trivially computable from data the
+ * list page has already fetched, so storing it buys nothing and costs a
+ * scheduler, an extension, and a value that is stale between runs. The
+ * `featured` boolean already exists for manual promotion, so nothing is lost.
+ *
+ * Note this is a *relative* ranking, so it is only meaningful where the whole
+ * set is in hand. The project detail page shows an absolute view count
+ * instead.
+ */
+
+import type { Project } from '../types/rows';
+
+/** Only the two columns the ranking reads. */
+export type PopularityInput = Pick<Project, 'id'> & Partial<Pick<Project, 'view_count'>>;
+
+/**
+ * Ids of the top `count` projects by view count.
+ *
+ * Ties are broken by id so the set is stable across renders rather than
+ * depending on array order. Projects with no views are never popular — a
+ * "popular" badge on something nobody has viewed is worse than no badge.
+ *
+ */
+export function getPopularProjectIds(
+  projects: ReadonlyArray<PopularityInput | null | undefined> | null | undefined,
+  count = 3,
+): Set<string> {
+  if (!Array.isArray(projects) || projects.length === 0) return new Set<string>();
+
+  const ranked = projects
+    .filter((p): p is PopularityInput => Boolean(p?.id) && Number(p?.view_count) > 0)
+    .sort((a, b) => {
+      const diff = Number(b.view_count) - Number(a.view_count);
+      return diff !== 0 ? diff : String(a.id).localeCompare(String(b.id));
+    })
+    .slice(0, Math.max(0, count));
+
+  return new Set(ranked.map((p) => p.id));
+}
+
+/**
+ * Is this project still being worked on?
+ *
+ * `featured` was a manual boolean that had been set to true on every row, so
+ * the badge marked everything and distinguished nothing. Replaced with a
+ * derived signal: a project with no end_date is in progress. That is
+ * objective, needs no curation, and - unlike popularity - says something
+ * about the author rather than the audience.
+ *
+ * The `featured` column stays in the schema but nothing reads it.
+ */
+export function isInProgress(project: Partial<Pick<Project, 'start_date' | 'end_date'>> | null | undefined): boolean {
+  if (!project?.start_date) return false;
+  return project.end_date === null || project.end_date === undefined || project.end_date === '';
+}

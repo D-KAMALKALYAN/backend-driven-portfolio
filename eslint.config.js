@@ -1,43 +1,48 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
-export default [
-  { ignores: ['dist', 'node_modules', 'supabase/.temp', 'coverage'] },
+export default tseslint.config(
+  { ignores: ['dist', 'node_modules', 'supabase/.temp', 'coverage', 'src/types/database.ts'] },
+
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
 
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: { ...globals.browser, ...globals.es2021 },
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
     },
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
 
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
-      // The codebase carries eslint-disable comments for a linter that was
-      // never installed. Now that it is, exhaustive-deps is the rule that
-      // matters most: useSupabaseQuery spreads a caller-supplied deps array
-      // into useCallback, so a wrong deps list is a stale closure or an
-      // infinite loop with no other warning.
+      // exhaustive-deps is the rule that matters most in this codebase: a
+      // wrong deps list is a stale closure or an infinite loop with no other
+      // warning.
       'react-hooks/exhaustive-deps': 'warn',
 
-      'no-unused-vars': ['error', {
+      // The TypeScript-aware version replaces core no-unused-vars, which
+      // false-positives on type-only usage.
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
         caughtErrors: 'none',
       }],
+
+      // `any` is what the migration exists to remove. An explicit one must be
+      // justified at the site, not waved through.
+      '@typescript-eslint/no-explicit-any': 'error',
 
       // Fire-and-forget telemetry and debug logging are intentional here.
       'no-console': ['warn', { allow: ['warn', 'error', 'debug', 'info'] }],
@@ -49,7 +54,7 @@ export default [
   },
 
   {
-    files: ['**/__tests__/**/*.{js,jsx}', '**/*.test.{js,jsx}'],
+    files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },
@@ -59,7 +64,7 @@ export default [
   },
 
   {
-    files: ['*.config.js', 'vite.config.js', 'vitest.config.js', 'eslint.config.js'],
+    files: ['*.config.{js,ts}'],
     languageOptions: { globals: { ...globals.node } },
   },
-];
+);

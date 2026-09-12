@@ -1,0 +1,269 @@
+import { useCallback, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import PageWrapper from '../components/PageWrapper';
+import { Section, Container } from '../components/Layout';
+import SectionHeader from '../components/SectionHeader';
+import Card from '../components/Card';
+import Badge from '../components/Badge';
+import { StatusBadge } from '../components/Badge';
+import EmptyState from '../components/EmptyState';
+import { SkeletonGrid } from '../components/SkeletonLoader';
+import ErrorState from '../components/ErrorState';
+import { formatViews } from '../utils/format';
+import { getPopularProjectIds, isInProgress } from '../utils/popularity';
+import { filterProjects, collectFacets, hasActiveFilters } from '../utils/projectFilter';
+import ProjectFilterBar from '../components/ProjectFilterBar';
+import { useSiteContent } from '../hooks/useSiteContent';
+import { useQuery } from '@tanstack/react-query';
+import { queries, errorMessage } from '../services/queries';
+
+// tech_stack is text[] in the schema. The string branch stays for rows edited
+// by hand in the dashboard as a comma-separated value.
+function parseTechs(t: string[] | string | null | undefined): string[] {
+  if (!t) return [];
+  if (Array.isArray(t)) return t;
+  if (typeof t === 'string') return t.split(',').map((s) => s.trim()).filter(Boolean);
+  return [];
+}
+
+export default function Projects() {
+  const { data: projects, isLoading: loading, error, refetch } = useQuery(queries.projects());
+  const { val } = useSiteContent();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filter state lives in the URL rather than component state, so a filtered
+  // view is shareable and the back button steps through filter changes.
+  const query = searchParams.get('q') ?? '';
+  const selectedTags = useMemo(
+    () => (searchParams.get('tag') ?? '').split(',').map((t) => t.trim()).filter(Boolean),
+    [searchParams],
+  );
+
+  const updateParams = useCallback((next: Record<string, string>) => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(next)) {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      }
+      return params;
+      // replace: filter tweaks should not each add a history entry, but the
+      // resulting URL is still copyable and the back button leaves the page.
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const handleQueryChange = useCallback((q: string) => updateParams({ q }), [updateParams]);
+  const handleToggleTag = useCallback((tag: string) => {
+    const next = selectedTags.includes(tag)
+      ? selectedTags.filter((t) => t !== tag)
+      : [...selectedTags, tag];
+    updateParams({ tag: next.join(',') });
+  }, [selectedTags, updateParams]);
+  const handleClear = useCallback(() => updateParams({ q: '', tag: '' }), [updateParams]);
+
+  const title = val('projects.title', 'Engineering Portfolio');
+  const description = val('projects.description',
+    'Systems built with architecture-first thinking — depth in design, security, and scalability.');
+
+  if (loading) return (
+    <PageWrapper><Section><Container>
+      <SectionHeader label="Projects" title={title} />
+      <SkeletonGrid count={4} cols={2} />
+    </Container></Section></PageWrapper>
+  );
+  if (error) return (
+    <PageWrapper><Section><Container>
+      <ErrorState message={errorMessage(error)} onRetry={refetch} />
+    </Container></Section></PageWrapper>
+  );
+
+  const list = Array.isArray(projects) ? projects : [];
+  // Derived, not read from meta.is_popular - see utils/popularity.js.
+  // Computed over the FULL list so the badge means "most viewed overall",
+  // not "most viewed among whatever is currently filtered in".
+  const popularIds = getPopularProjectIds(list, 3);
+
+  const facets = collectFacets(list);
+  const visible = filterProjects(list, { query, tags: selectedTags });
+
+  return (
+    <PageWrapper>
+      <Section>
+        <Container>
+          <SectionHeader label="Projects" title={title} description={description} />
+
+          {list.length > 0 && (
+            <ProjectFilterBar
+              facets={facets}
+              query={query}
+              onQueryChange={handleQueryChange}
+              selectedTags={selectedTags}
+              onToggleTag={handleToggleTag}
+              onClear={handleClear}
+              resultCount={visible.length}
+              totalCount={list.length}
+            />
+          )}
+
+          {visible.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+              {visible.map((p, i) => {
+                const techs = parseTechs(p.tech_stack);
+                const isPopular = popularIds.has(p.id);
+                const inProgress = isInProgress(p);
+                const viewLabel = formatViews(p.view_count);
+
+                return (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                    whileHover={{ y: -2 }}
+                  >
+                    <Card
+                      glow
+                      className="group relative flex flex-col p-5 sm:p-6 h-full"
+                    >
+                      {/* Cover image (if present) */}
+                      {p?.cover_image_url && (
+                        <div className="mb-4 -mx-5 sm:-mx-6 -mt-5 sm:-mt-6 overflow-hidden rounded-t-2xl">
+                          <img
+                            src={p.cover_image_url}
+                            alt={p.title}
+                            className="w-full h-36 object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </div>
+                      )}
+
+                      {/* Header row */}
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3
+                              className="text-base font-semibold transition-colors truncate group-hover:text-[var(--accent-hover)]"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              {/* Stretched link: the only card-level anchor. The
+                                  ::after overlay makes the whole card clickable
+                                  without nesting anchors inside it. */}
+                              <Link
+                                to={`/projects/${p?.slug ?? i}`}
+                                className="no-underline after:absolute after:inset-0 after:content-['']"
+                                style={{ color: 'inherit' }}
+                              >
+                                {p?.title || 'Untitled'}
+                              </Link>
+                            </h3>
+                            {/* 🔥 Most Popular badge */}
+                            {isPopular && (
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                                style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }}
+                              >
+                                🔥 Popular
+                              </span>
+                            )}
+                            {/* Derived from end_date, not the manual `featured` flag,
+                                which was true on every row and so meant nothing. */}
+                            {inProgress && (
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                                style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
+                                title="Currently in development"
+                              >
+                                🚧 In progress
+                              </span>
+                            )}
+                          </div>
+                          <StatusBadge status={p?.status} />
+                        </div>
+                        <svg
+                          className="w-4 h-4 shrink-0 mt-0.5 transition-colors group-hover:text-[var(--accent)]"
+                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </div>
+
+                      {/* Tagline or description */}
+                      <p
+                        className="text-sm leading-relaxed line-clamp-2 flex-1 mb-4"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {p?.tagline || p?.description || 'No description available.'}
+                      </p>
+
+                      {/* Tech stack */}
+                      {techs.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {techs.slice(0, 5).map((t) => <Badge key={t}>{t}</Badge>)}
+                          {techs.length > 5 && <Badge>+{techs.length - 5}</Badge>}
+                        </div>
+                      )}
+
+                      {/* Bottom row: view count + URL links */}
+                      <div
+                        className="flex items-center justify-between gap-3 pt-3"
+                        style={{ borderTop: '1px solid var(--border)' }}
+                      >
+                        {/* View count social proof */}
+                        {viewLabel ? (
+                          <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
+                            👁 {viewLabel}
+                          </span>
+                        ) : <span />}
+
+                        {/* Quick links sit above the stretched-link overlay. */}
+                        <div className="flex items-center gap-2 relative z-[1]">
+                          {p?.demo_url && (
+                            <a
+                              href={p.demo_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors"
+                              style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--accent)' }}
+                            >
+                              Demo ↗
+                            </a>
+                          )}
+                          {p?.repo_url && (
+                            <a
+                              href={p.repo_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors"
+                              style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}
+                            >
+                              Repo ↗
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : hasActiveFilters({ query, tags: selectedTags }) ? (
+            // "No projects yet" would be wrong and confusing here - there are
+            // projects, they just do not match the current filters.
+            <EmptyState
+              icon="🔍"
+              title="No projects match those filters"
+              description="Try a different search term, or remove a tag."
+            />
+          ) : (
+            <EmptyState
+              icon="📂"
+              title={val('projects.empty_state', 'No projects yet')}
+              description="Add projects via Supabase."
+            />
+          )}
+        </Container>
+      </Section>
+    </PageWrapper>
+  );
+}
