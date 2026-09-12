@@ -83,12 +83,17 @@ describe('deterministic ordering', () => {
     expect(filterCols()).toContain('is_active');
   });
 
-  it('fetchProjects honours featured and sort_order before popularity', async () => {
+  it('fetchProjects honours sort_order before popularity', async () => {
     await api.fetchProjects();
-    expect(cols()).toEqual(['featured', 'sort_order', 'view_count']);
-    expect(calls.orders[0].ascending).toBe(false); // featured first
-    expect(calls.orders[1].ascending).toBe(true);  // then authored order
-    expect(calls.orders[2].ascending).toBe(false); // popularity breaks ties
+    expect(cols()).toEqual(['sort_order', 'view_count']);
+    expect(calls.orders[0].ascending).toBe(true);  // authored order
+    expect(calls.orders[1].ascending).toBe(false); // popularity breaks ties
+  });
+
+  // The manual flag was true on every row and is no longer read anywhere.
+  it('fetchProjects does not order by the inert featured column', async () => {
+    await api.fetchProjects();
+    expect(cols()).not.toContain('featured');
   });
 
   it('fetchSkills is deterministic within a category', async () => {

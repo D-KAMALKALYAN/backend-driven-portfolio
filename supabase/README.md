@@ -46,17 +46,24 @@ npm run db:diff           # confirm it produces the intended difference
 npm run db:push
 ```
 
-## Capturing production into the repo (still outstanding)
+## The baseline (done 2026-09-12)
 
-`001_initial_schema.sql` does not describe production. `002`–`005` are corrective
-migrations layered on top, not a baseline. The durable fix:
+`20260912091438_remote_schema.sql` was pulled from production with
+`supabase db pull` and is the source of truth. `npm run db:reset` from it
+reproduces production; the residual `db:diff` is formatting noise on function
+bodies, verified byte-for-byte on the one policy it flagged.
 
-```bash
-npm run db:pull           # writes a baseline migration from live production
-npm run db:reset          # prove the repo can rebuild it
-```
+**The hand-written `001`–`007` are in `migrations-archive/`.** They no longer run.
+They are kept because their comments document *why* each change was made — the
+resume bug, the fail-open `is_admin()` incident, the policy-name lesson — and
+because git history alone does not preserve reasoning. Do not move them back.
 
-Until that runs, the repo still cannot recreate the database from scratch.
+**What the baseline revealed.** Diffing the archived migrations against production
+showed that `001` had only ever been partially applied: production had **no
+`updated_at` triggers and no rate-limit triggers**, and still carried the
+`trg_single_active_resume` trigger that `002` was supposed to drop (that DROP was
+added to `002` after `002` had already been run). `20260912100000_production_gaps`
+closes those. Every migration file we had described a schema that did not exist.
 
 ## After ANY change to RLS or an authorization function
 
@@ -87,11 +94,23 @@ under RLS. A 204 is not proof of denial — re-read the row and confirm it is un
 
 | File | Purpose | Applied |
 |---|---|---|
-| `001_initial_schema.sql` | Original design. **Does not match production.** Kept for history. | partially, by hand |
-| `002_reconcile_drift.sql` | Resume storage_path, soft-delete in RLS, constraints, zero-filled view | yes |
-| `003_analytics_integrity.sql` | Idempotency index, event/meta/size constraints, contact CHECKs | yes |
-| `004_fix_policy_gaps.sql` | Enumerate-and-replace policies rather than dropping by assumed name | yes |
-| `005_fix_is_admin_fail_open.sql` | **Critical.** `is_admin()` returned TRUE for anon | yes |
+| `20260912091438_remote_schema.sql` | **Baseline** pulled from production. Source of truth. | yes (by definition) |
+| `20260912100000_production_gaps.sql` | `updated_at` + rate-limit triggers production never had; drop the superseded resume trigger; two missing indexes | **pending** |
+| `20260912100100_content_population.sql` | Fix crossed CodeGuardian/Skillverse sections; populate `profiles.meta`, `project_storytelling`, real `og_image` | **pending** |
 
-Background on each: `developer-notes/discussions/` and `developer-notes/decisions.md`
-(ADR-014, ADR-015, ADR-016).
+Archived (do not run): `migrations-archive/001`–`007`. Background on each in
+`developer-notes/discussions/` and `developer-notes/decisions.md`.
+
+## Testing a data migration
+
+A migration that references production rows by id will fail on a fresh
+`db:reset`, because the rows are not there. Guard it — `INSERT … SELECT … WHERE
+EXISTS`, `ON CONFLICT DO UPDATE` — so it inserts on production and no-ops on an
+empty database. Then test it against real rows: seed the local database with the
+referenced ids and apply the file directly:
+
+```bash
+docker exec -i supabase_db_elite-portfolio psql -U postgres -d postgres < supabase/migrations/<file>.sql
+```
+
+Run it twice. The second run must produce zero errors and change nothing.

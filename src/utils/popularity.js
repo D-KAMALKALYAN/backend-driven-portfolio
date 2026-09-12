@@ -41,3 +41,19 @@ export function getPopularProjectIds(projects, count = 3) {
 
   return new Set(ranked.map((p) => p.id));
 }
+
+/**
+ * Is this project still being worked on?
+ *
+ * `featured` was a manual boolean that had been set to true on every row, so
+ * the badge marked everything and distinguished nothing. Replaced with a
+ * derived signal: a project with no end_date is in progress. That is
+ * objective, needs no curation, and - unlike popularity - says something
+ * about the author rather than the audience.
+ *
+ * The `featured` column stays in the schema but nothing reads it.
+ */
+export function isInProgress(project) {
+  if (!project?.start_date) return false;
+  return project.end_date === null || project.end_date === undefined || project.end_date === '';
+}
