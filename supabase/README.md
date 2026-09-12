@@ -29,8 +29,14 @@ npm run db:reset          # rebuild local DB from supabase/migrations/ - THE tes
 npm run db:diff           # what differs between local and linked production
 npm run db:lint           # static checks on the schema
 npm run db:push           # apply pending migrations to production
+npm run db:types          # regenerate src/types/database.ts from the linked project
 npm run db:stop
 ```
+
+**After any schema change, run `db:types` and commit the result.** The frontend's
+Supabase client is typed with that file, so a column rename that is not followed by
+regeneration is a compile error in every component that reads it - which is the
+point. The file is generated; do not edit it by hand.
 
 **`db:reset` is the important one.** It drops the local database and replays every
 migration from scratch. If that succeeds, the repo can rebuild the database — which
