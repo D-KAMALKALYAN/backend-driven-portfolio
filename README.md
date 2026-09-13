@@ -341,7 +341,7 @@ jobs:
 |---|---|
 | Public read | RLS policy: `status = 'published'` only |
 | Contact form | `POST /api/contact`: server-side validation + tag stripping, real IP recorded, DB trigger rate-limits to 3/address/day (reported as 429) |
-| Analytics | DB trigger silently drops if session exceeds 100 events/hour |
+| Analytics | `POST /api/track`: events allow-listed, ids validated, IP + country recorded server-side, idempotency key server-computed; DB trigger silently drops past 100 events/session/hour |
 | Admin writes | `is_admin()` function checks JWT email claim |
 | Server-side ops | `service_role` key read only in route handlers (`server-only` modules) |
 | Scripts | Content-Security-Policy with a per-request nonce and `'strict-dynamic'`; no `unsafe-inline` for scripts |
@@ -358,7 +358,7 @@ jobs:
 - [ ] Multi-language support via `site_content` locale keys
 - [ ] GitHub activity auto-sync (Edge Function + cron)
 - [x] OpenGraph image generation per project (`next/og`)
-- [ ] Move analytics writes behind `/api/track`, then drop anonymous INSERT from RLS
+- [x] Move analytics writes behind `/api/track`; drop anonymous INSERT from RLS once the service key is configured
 
 ---
 
