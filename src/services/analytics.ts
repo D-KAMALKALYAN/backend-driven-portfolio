@@ -1,5 +1,4 @@
-import { supabase } from './supabaseClient';
-import type { AnalyticsEventInsert, Json } from '../types/rows';
+import type { Json } from '../types/rows';
 
 /** Events the backend is expected to accept. Keep in sync with the CHECK
  *  constraint `analytics_event_check` in the baseline migration. */
@@ -93,21 +92,50 @@ export function buildEventKey({ event, path, visitorId, now = Date.now(), window
   return `${event}:${path}:${bucket}:${h.toString(16).padStart(8, '0')}`;
 }
 
+/** What the browser sends to POST /api/track. The server adds the rest. */
+export interface TrackPayload {
+  event: AnalyticsEventName;
+  path: string | null;
+  referrer: string | null;
+  session_id: string;
+  visitor_id: string;
+  meta: EventMeta;
+}
+
+/** Sender abstraction so the payload logic is testable without a network. */
+export type TrackSender = (payload: TrackPayload) => void;
+
+const defaultSender: TrackSender = (payload) => {
+  if (typeof fetch !== 'function') return;
+  // keepalive lets the request outlive a navigation that starts right
+  // after a click (resume_download, demo_click) - otherwise the event
+  // that matters most is the one most likely to be cancelled.
+  fetch('/api/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  }).catch((err: unknown) => {
+    console.debug('[analytics] track failed:', err instanceof Error ? err.message : err);
+  });
+};
+
 /**
  * Fire-and-forget analytics event. Never throws, never blocks a render.
  *
- * The idempotency key travels inside `meta` rather than as a top-level
- * column so this is safe to deploy before the migration that adds the
- * unique index. Once that index exists, duplicate writes are rejected by
- * Postgres and the rejection is swallowed here - which is exactly the
- * desired behaviour for a duplicate.
+ * The browser no longer writes to the database. It sends what only it can
+ * know - event, path, referrer, its session and visitor ids - to
+ * /api/track, and the server adds what only it can know: IP, country and
+ * the idempotency key (computed from the server's clock, so a client
+ * cannot choose it). The unique index in Postgres still makes a repeat
+ * inside the window a no-op.
  *
- * `meta` must be a plain object. The type now enforces that at compile time;
+ * `meta` must be a plain object. The type enforces that at compile time;
  * the runtime guard stays because callers in untyped code (and the arity bug
  * it was written for - `trackEvent('profile_click', pathname, {...})` -
  * silently wrote meta="/profiles") are exactly what the type does not cover.
  */
-export function trackEvent(event: AnalyticsEventName, meta: EventMeta = {}): void {
+export function trackEvent(event: AnalyticsEventName, meta: EventMeta = {}, send: TrackSender = defaultSender): void {
   if (typeof event !== 'string' || !event) return;
 
   let safeMeta: EventMeta = {};
@@ -115,29 +143,22 @@ export function trackEvent(event: AnalyticsEventName, meta: EventMeta = {}): voi
   if (metaUnknown && typeof metaUnknown === 'object' && !Array.isArray(metaUnknown)) {
     safeMeta = metaUnknown as EventMeta;
   } else if (metaUnknown !== undefined && metaUnknown !== null) {
-    if (import.meta.env?.DEV) {
+    if (process.env.NODE_ENV === 'development') {
       console.warn('[analytics] meta must be a plain object; received', typeof metaUnknown, metaUnknown);
     }
     safeMeta = { invalid_meta: String(metaUnknown).slice(0, 200) };
   }
 
-  const path = typeof window !== 'undefined' ? window.location.pathname : null;
-  const visitorId = getVisitorId();
-
-  const payload: AnalyticsEventInsert = {
-    event,
-    path,
-    referrer: (typeof document !== 'undefined' && document.referrer) || null,
-    user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-    session_id: getSessionId(),
-    meta: {
-      ...safeMeta,
-      visitor_id: visitorId,
-      event_key: buildEventKey({ event, path, visitorId }),
-    },
-  };
-
-  Promise.resolve(supabase.from('analytics').insert(payload)).catch((err: unknown) => {
+  try {
+    send({
+      event,
+      path: typeof window !== 'undefined' ? window.location.pathname : null,
+      referrer: (typeof document !== 'undefined' && document.referrer) || null,
+      session_id: getSessionId(),
+      visitor_id: getVisitorId(),
+      meta: safeMeta,
+    });
+  } catch (err) {
     console.debug('[analytics] track failed:', err instanceof Error ? err.message : err);
-  });
+  }
 }

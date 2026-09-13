@@ -1,26 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { AnalyticsEventInsert } from '../types/rows';
-import type { AnalyticsEventName, EventMeta } from '../services/analytics';
-import { asObject } from '../utils/json';
+import {
+  trackEvent as trackEventWith,
+  buildEventKey,
+  getVisitorId,
+  getSessionId,
+  ANALYTICS_EVENTS,
+  type AnalyticsEventName,
+  type EventMeta,
+  type TrackPayload,
+} from '../services/analytics';
 
-// Capture inserts without touching the network.
-const inserted: AnalyticsEventInsert[] = [];
-vi.mock('../services/supabaseClient', () => ({
-  supabase: {
-    from: () => ({
-      insert: (payload: AnalyticsEventInsert) => {
-        inserted.push(payload);
-        return Promise.resolve({ data: null, error: null });
-      },
-    }),
-  },
-}));
+// The browser no longer inserts; it hands a payload to a sender that POSTs
+// to /api/track. The sender is injected, so the payload is captured here
+// without a network.
+const sent: TrackPayload[] = [];
+const trackEvent = (event: AnalyticsEventName, meta?: EventMeta) => trackEventWith(event, meta, (p) => { sent.push(p); });
 
-const { trackEvent, buildEventKey, getVisitorId, getSessionId, ANALYTICS_EVENTS } =
-  await import('../services/analytics');
-
-/** meta as written; the column is jsonb so the test narrows it once. */
-const metaOf = (i: number) => asObject(inserted[i]?.meta) ?? {};
+const metaOf = (i: number) => sent[i]?.meta ?? {};
 
 /**
  * The runtime guards exist for callers the type system does not cover
@@ -31,7 +27,7 @@ const badMeta = (v: unknown) => v as EventMeta;
 const badEvent = (v: unknown) => v as AnalyticsEventName;
 
 beforeEach(() => {
-  inserted.length = 0;
+  sent.length = 0;
   localStorage.clear();
   sessionStorage.clear();
 });
@@ -79,49 +75,49 @@ describe('identity', () => {
 });
 
 describe('trackEvent', () => {
-  it('writes one row with an idempotency key and visitor id', () => {
+  it('sends one payload carrying the session and visitor ids', () => {
     trackEvent('page_view');
-    expect(inserted).toHaveLength(1);
-    expect(inserted[0]?.event).toBe('page_view');
-    expect(metaOf(0)['event_key']).toBeTruthy();
-    expect(metaOf(0)['visitor_id']).toBeTruthy();
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.event).toBe('page_view');
+    expect(sent[0]?.session_id).toBeTruthy();
+    expect(sent[0]?.visitor_id).toBeTruthy();
   });
 
-  it('produces the same event_key for a repeat within the window', () => {
+  it('leaves the idempotency key to the server', () => {
+    // The key is computed server-side from the server's clock so a client
+    // cannot choose it; the browser must not send one.
     trackEvent('page_view');
-    trackEvent('page_view');
-    expect(metaOf(0)['event_key']).toBe(metaOf(1)['event_key']);
+    expect(metaOf(0)['event_key']).toBeUndefined();
   });
 
   it('merges caller meta without losing it', () => {
     trackEvent('project_view', { project_id: 'abc' });
     expect(metaOf(0)['project_id']).toBe('abc');
-    expect(metaOf(0)['event_key']).toBeTruthy();
   });
 
   // Regression: trackEvent('profile_click', pathname, {...}) stored meta="/profiles"
   // and silently dropped the real metadata.
   it('never writes a non-object meta', () => {
     trackEvent('profile_click', badMeta('/profiles'));
-    expect(typeof inserted[0]?.meta).toBe('object');
-    expect(Array.isArray(inserted[0]?.meta)).toBe(false);
+    expect(typeof sent[0]?.meta).toBe('object');
+    expect(Array.isArray(sent[0]?.meta)).toBe(false);
     expect(metaOf(0)['invalid_meta']).toBe('/profiles');
   });
 
   it('coerces array meta to an object', () => {
     trackEvent('page_view', badMeta(['a', 'b']));
-    expect(Array.isArray(inserted[0]?.meta)).toBe(false);
+    expect(Array.isArray(sent[0]?.meta)).toBe(false);
   });
 
   it('ignores an empty or non-string event', () => {
     trackEvent(badEvent(''));
     trackEvent(badEvent(null));
     trackEvent(badEvent(42));
-    expect(inserted).toHaveLength(0);
+    expect(sent).toHaveLength(0);
   });
 
-  it('never throws, even if the insert rejects', () => {
-    expect(() => trackEvent('page_view')).not.toThrow();
+  it('never throws, even if the sender does', () => {
+    expect(() => trackEventWith('page_view', {}, () => { throw new Error('offline'); })).not.toThrow();
   });
 
   it('declares every event the UI emits', () => {
