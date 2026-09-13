@@ -339,9 +339,9 @@ jobs:
 
 | Layer | Mechanism |
 |---|---|
-| Public read | RLS policy: `status = 'published'` only |
-| Contact form | `POST /api/contact`: server-side validation + tag stripping, real IP recorded, DB trigger rate-limits to 3/address/day (reported as 429) |
-| Analytics | `POST /api/track`: events allow-listed, ids validated, IP + country recorded server-side, idempotency key server-computed; DB trigger silently drops past 100 events/session/hour |
+| Public read | RLS: anon can `SELECT` published content; **no anon `INSERT` policy exists on any table** |
+| Contact form | `POST /api/contact`: server-side validation + tag stripping, real IP recorded, DB triggers rate-limit to 3/email/day and 10/IP/day (reported as 429) |
+| Analytics | `POST /api/track`: events allow-listed, ids validated, IP + country recorded server-side, idempotency key server-computed; DB trigger silently drops past 100 events/session/hour or 600/IP/hour |
 | Admin writes | `is_admin()` function checks JWT email claim |
 | Server-side ops | `service_role` key read only in route handlers (`server-only` modules) |
 | Scripts | Content-Security-Policy with a per-request nonce and `'strict-dynamic'`; no `unsafe-inline` for scripts |

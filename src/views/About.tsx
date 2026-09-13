@@ -144,7 +144,7 @@ export default function About({ profile, achievements }: AboutProps) {
       <Section>
         <Container>
           <SectionHeader
-            label="About"
+            label={val('about.title', 'About')}
             title={profile.full_name || 'About Me'}
             description={profile.title || val('about.paragraph') || undefined}
           />
