@@ -1,12 +1,33 @@
 import DOMPurify from 'dompurify';
 
 /**
- * Sanitize a string input to prevent XSS.
- * Strips all HTML tags, leaving only safe text.
+ * Strip every HTML tag from a string, leaving text.
+ *
+ * DOMPurify does the work where a DOM exists (the browser, jsdom in tests).
+ * It is a parser, not a regex, so it handles the malformed markup an
+ * attacker would send. On the server there is no DOM - `DOMPurify.isSupported`
+ * is false and `sanitize` is not even a function - so the route handler falls
+ * back to a plain tag strip. That is acceptable there because this is
+ * hygiene for stored text, not the XSS boundary: React escapes everything it
+ * renders, and no page renders contact text at all.
  */
 export function sanitizeInput(input: unknown): string {
   if (typeof input !== 'string') return '';
-  return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] }).trim();
+  if (DOMPurify.isSupported) {
+    return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] }).trim();
+  }
+  return stripTags(input).trim();
+}
+
+/** Server-side fallback: remove tags; decode nothing. */
+function stripTags(str: string): string {
+  // Drop <script>/<style> bodies too, which a bare tag strip would leave
+  // behind as text. Two passes rather than one backreference regex, so the
+  // intent is readable.
+  const withoutBlocks = str
+    .replace(/<script[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style\s*>/gi, '');
+  return withoutBlocks.replace(/<[^>]*>/g, '');
 }
 
 /**

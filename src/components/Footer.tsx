@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+'use client';
+
+import Link from 'next/link';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { asObjectArray, asString } from '../utils/json';
 
@@ -66,7 +68,7 @@ export default function Footer() {
               {navLinks.map((link) => (
                 <Link
                   key={link.path}
-                  to={link.path}
+                  href={link.path}
                   className="text-xs no-underline transition-colors"
                   style={{ color: 'var(--text-muted)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}

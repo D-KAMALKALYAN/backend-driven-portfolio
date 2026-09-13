@@ -16,11 +16,11 @@
 
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
 [![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-0F172A?style=flat-square&logo=tailwindcss&logoColor=38BDF8)](https://tailwindcss.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
 
-[Live Demo](https://your-domain.dev) · [Database Schema](./docs/schema.sql) · [Report Bug](https://github.com/your-username/portfolio/issues)
+[Live Demo](https://backend-driven-portfolio.vercel.app) · [Database workflow](./supabase/README.md) · [Report Bug](https://github.com/D-KAMALKALYAN/backend-driven-portfolio/issues)
 
 </div>
 
@@ -50,34 +50,45 @@ Manual resume links       →    Upload to bucket → trigger handles the rest
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  FRONTEND  (React + Vite + Tailwind)                            │
-│  Pure rendering layer. No hardcoded content. No business logic. │
+┌──────────────────────────────────────────────────────────────────┐
+│  NEXT.JS (App Router, React 19, Tailwind)  ·  on Vercel          │
 │                                                                  │
-│  Pages        → query Supabase, render what comes back          │
-│  Components   → accept data as props, display it                │
-│  Hooks        → typed wrappers around supabase-js calls         │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │  supabase-js (anon key + RLS)
-┌──────────────────────────▼──────────────────────────────────────┐
+│  Server components  → read content on the server; the HTML      │
+│                       arrives with the content in it             │
+│  Client components  → interactivity, live analytics, realtime   │
+│  Route handlers     → /api/contact (validate → insert → email)  │
+│                       /api/revalidate (database webhook target)  │
+│  proxy.ts           → per-request CSP nonce ('strict-dynamic')  │
+│  opengraph-image    → share cards drawn from the same rows       │
+└───────────────┬──────────────────────────────┬───────────────────┘
+                │ anon key + RLS (reads,        │ service role (writes,
+                │ cached + tagged by table)     │ server only)
+┌───────────────▼──────────────────────────────▼───────────────────┐
 │  SUPABASE                                                        │
 │                                                                  │
-│  PostgREST API   → auto-generated REST from schema              │
-│  Row Level Security → public read, controlled write             │
-│  Storage         → resumes (private) + assets (public)          │
-│  Realtime        → live analytics, new message notifications    │
-│  Edge Functions  → GitHub sync, email notifications, cron jobs  │
+│  PostgREST        → auto-generated REST from schema              │
+│  Row Level Security → public read, no anonymous write (target)  │
+│  Storage          → resumes (public bucket, trigger-indexed)     │
+│  Realtime         → live analytics feed                          │
+│  Database Webhook → POST /api/revalidate on content change       │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  PostgreSQL                                              │   │
-│  │                                                          │   │
-│  │  projects          project_sections    skills           │   │
+│  │  projects          project_sections    project_storytelling │
 │  │  experience        achievements        profiles         │   │
 │  │  contact_messages  analytics           resume           │   │
-│  │  site_content      activity_logs       feature_flags    │   │
+│  │  site_content      external_profiles   feature_flags    │   │
 │  └──────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**Rendering.** Every page is rendered on the server per request, so crawlers and
+link unfurlers see real HTML with real `<title>`, description and a per-URL
+OpenGraph image. Content reads are cached in Next's Data Cache and tagged by table;
+a Supabase Database Webhook hits `/api/revalidate` when a row changes, so an edit is
+live on the next request without a deploy. Per-request rendering is the price of a
+nonce-based Content-Security-Policy - see `developer-notes/decisions.md` ADR-032 for
+why that trade was made over static generation.
 
 ---
 
@@ -165,13 +176,27 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 ├── public/
 │   └── og-image.png           # 1200x630 share image (seo.og_image points here)
 ├── src/
+│   ├── app/                   # Next.js App Router
+│   │   ├── layout.tsx         # fonts, theme bootstrap (nonced), providers, shell
+│   │   ├── page.tsx …         # one thin server file per route: fetch → <View />
+│   │   ├── projects/[slug]/   # page + generateMetadata + opengraph-image
+│   │   ├── api/contact/       # validate → insert (real IP) → Resend notification
+│   │   ├── api/revalidate/    # database webhook → expire the changed table's cache tag
+│   │   ├── sitemap.ts, robots.ts, error.tsx, not-found.tsx
+│   ├── proxy.ts               # per-request CSP nonce
+│   ├── views/                 # The page bodies (client components, data via props)
 │   ├── components/            # Pure UI; data arrives as typed props
-│   ├── pages/                 # One file per route
-│   ├── hooks/                 # useSiteContent, useActiveResume, useRealtimeEvents, useFocusTrap, ...
+│   ├── hooks/                 # useSiteContent (context), useRealtimeEvents, useFocusTrap, ...
+│   ├── lib/
+│   │   ├── supabase/server.ts # per-request client whose fetch is cached + tagged by table
+│   │   ├── content.ts         # server reads, deduplicated per request
+│   │   ├── contact.ts         # the contact write path as testable functions
+│   │   ├── csp.ts             # the policy as a pure function
+│   │   └── ogCard.tsx         # the share card (next/og)
 │   ├── services/
-│   │   ├── supabaseClient.ts  # createClient<Database>() - the single typed client
-│   │   ├── api.ts             # one function per query, deterministic ORDER BY
-│   │   ├── queries.ts         # TanStack Query option factories + centralised keys
+│   │   ├── supabaseClient.ts  # the browser client (analytics, realtime only)
+│   │   ├── api.ts             # one function per query, client injected, deterministic ORDER BY
+│   │   ├── queries.ts         # TanStack factories for the reads that stay in the browser
 │   │   └── analytics.ts       # trackEvent() with idempotency key
 │   ├── types/
 │   │   ├── database.ts        # GENERATED by `npm run db:types` - never edit by hand
@@ -184,8 +209,8 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   ├── migrations-archive/    # Pre-baseline hand-written migrations, kept for the reasoning
 │   └── README.md              # Database workflow and testing rules
 ├── .github/workflows/ci.yml   # lint -> typecheck -> test -> build
+├── next.config.ts             # static security headers, image origins
 ├── tsconfig.json              # strict, noUncheckedIndexedAccess
-├── vercel.json                # CSP + security headers + asset caching
 └── README.md
 ```
 
@@ -221,12 +246,20 @@ cp .env.example .env
 ```
 
 ```env
-# .env
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key_here
+# .env  (see .env.example for the full list)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Server only
+SUPABASE_SERVICE_ROLE_KEY=...   # /api/contact writes with it when present
+RESEND_API_KEY=re_...           # contact notifications
+REVALIDATE_SECRET=...           # shared secret for the database webhook
 ```
 
-> ⚠️ Never put `SUPABASE_SERVICE_ROLE_KEY` in a Vite `.env` file. It gets bundled into the client. Use it only in Edge Functions or a server-side API layer.
+> Only `NEXT_PUBLIC_*` names reach the browser bundle. The service-role key and the
+> Resend key are read in route handlers only; `import 'server-only'` in those modules
+> makes an accidental client import a build error.
 
 ### 3. Apply database schema
 
@@ -253,26 +286,33 @@ npm run dev
 
 ## Deployment
 
-### Frontend (Vercel — recommended)
+### Vercel
 
-```bash
-# Connect your repo to Vercel
-# Set environment variables in Vercel dashboard:
-VITE_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY
-```
+Connect the repo; `vercel.json` pins the framework to Next.js. Set these in the
+project's environment variables:
 
-### Edge Functions
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | PostgREST origin (also allow-listed in the CSP) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | public read key; RLS is the boundary |
+| `REVALIDATE_SECRET` | yes | bearer token the database webhook sends to `/api/revalidate` |
+| `RESEND_API_KEY` | for email | contact-form notifications |
+| `SUPABASE_SERVICE_ROLE_KEY` | recommended | lets `/api/contact` insert without an anon INSERT policy |
+| `RESEND_FROM`, `CONTACT_NOTIFY_TO` | optional | sender identity; defaults to `onboarding@resend.dev` and `profiles.email` |
+| `NEXT_PUBLIC_SITE_URL` | optional | canonical origin for sitemap/OG when not the Vercel production URL |
 
-```bash
-supabase functions deploy sync-github
-supabase functions deploy notify-contact
-supabase functions deploy refresh-badges
+### Content updates without a deploy
 
-# Set secrets
-supabase secrets set GITHUB_TOKEN=ghp_...
-supabase secrets set RESEND_API_KEY=re_...
-```
+Reads are cached for an hour and tagged by table. To make edits live immediately,
+add one **Database Webhook** in the Supabase dashboard (Database → Webhooks):
+
+- Events: `INSERT`, `UPDATE`, `DELETE` on `projects`, `project_sections`,
+  `project_storytelling`, `site_content`, `profiles`, `skills`, `experience`,
+  `achievements`, `external_profiles`, `resume`
+- Type: HTTP request, `POST https://<your-domain>/api/revalidate`
+- Header: `Authorization: Bearer <REVALIDATE_SECRET>`
+
+The handler reads `table` from the standard payload and expires that table's tag.
 
 ### Keep Free Tier Active
 
@@ -289,8 +329,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -s "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/feature_flags?select=key" \
-          -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}" > /dev/null
+          curl -s "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/feature_flags?select=key" \
+          -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" > /dev/null
 ```
 
 ---
@@ -300,11 +340,12 @@ jobs:
 | Layer | Mechanism |
 |---|---|
 | Public read | RLS policy: `status = 'published'` only |
-| Contact form | RLS `WITH CHECK` validates email format + DB trigger rate-limits to 3/day |
+| Contact form | `POST /api/contact`: server-side validation + tag stripping, real IP recorded, DB trigger rate-limits to 3/address/day (reported as 429) |
 | Analytics | DB trigger silently drops if session exceeds 100 events/hour |
 | Admin writes | `is_admin()` function checks JWT email claim |
-| Server-side ops | `service_role` key used only in Edge Functions, never in client |
-| Resume access | Storage bucket private; signed URLs generated server-side |
+| Server-side ops | `service_role` key read only in route handlers (`server-only` modules) |
+| Scripts | Content-Security-Policy with a per-request nonce and `'strict-dynamic'`; no `unsafe-inline` for scripts |
+| Resume access | Public storage bucket; the active row is resolved server-side and the URL built by the SDK |
 | SQL injection | Supabase JS client uses parameterized queries — not possible via SDK |
 
 ---
@@ -312,11 +353,12 @@ jobs:
 ## Roadmap
 
 - [ ] Admin dashboard (React + service_role, separate deployment)
-- [ ] Real-time analytics view (Supabase Realtime subscription)
+- [x] Real-time analytics view (Supabase Realtime subscription)
 - [ ] AI portfolio assistant (RAG over project descriptions)
 - [ ] Multi-language support via `site_content` locale keys
 - [ ] GitHub activity auto-sync (Edge Function + cron)
-- [ ] OpenGraph image generation per project (Edge Function + Satori)
+- [x] OpenGraph image generation per project (`next/og`)
+- [ ] Move analytics writes behind `/api/track`, then drop anonymous INSERT from RLS
 
 ---
 

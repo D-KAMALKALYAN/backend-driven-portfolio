@@ -1,3 +1,5 @@
+'use client';
+
 import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '../hooks/useFocusTrap';

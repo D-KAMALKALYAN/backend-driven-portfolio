@@ -1,3 +1,5 @@
+'use client';
+
 import { useMemo } from 'react';
 import { NAV_LINKS } from '../constants/routes';
 import { useSiteContent } from './useSiteContent';

@@ -1,22 +1,18 @@
-import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 
 /**
  * PageWrapper — wraps every page with:
- * - Page transition animation (fade + slight y slide)
+ * - A CSS entrance fade (see .enter in globals.css). This used to be a
+ *   framer-motion initial/animate pair, which server-rendered the page at
+ *   opacity 0 until hydration - the content was in the HTML but invisible,
+ *   which defeats rendering it on the server in the first place.
  * - Consistent min-height and top padding (navbar clearance)
  * - Subtle grid-bg pattern on all pages
  */
 export default function PageWrapper({ children, className = '' }: { children?: ReactNode; className?: string }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      className={`min-h-screen pt-16 grid-bg ${className}`}
-    >
+    <div className={`enter min-h-screen pt-16 grid-bg ${className}`}>
       {children}
-    </motion.div>
+    </div>
   );
 }

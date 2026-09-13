@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import type { AnalyticsEvent } from '../types/rows';
