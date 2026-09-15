@@ -150,9 +150,8 @@ Database Webhook (dashboard → Database → Webhooks) covers every content tabl
 The handler reads `table` from the standard payload and expires `table:<name>`.
 `contact_messages` and `analytics` are never cached, so they need no hook.
 
-## Held migration: `20260913090000_drop_anon_insert_policies.sql`
+## Writes are server-only (since `20260913090000`)
 
-Committed, not yet pushed. Precondition: `GET /api/health` on production returns
-`"serviceRole": true`. Then `npm run db:push`, then the POST-CHECK in the file
-(direct anon INSERT must be refused; the site's `/api/track` and `/api/contact`
-must still succeed).
+The anon role has no INSERT policy on any table. `/api/track` and `/api/contact`
+write with the service role; `GET /api/health` shows whether a deployment has it.
+A new write path is a route handler plus a test, never a policy.
