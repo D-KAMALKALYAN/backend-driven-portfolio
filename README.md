@@ -300,6 +300,8 @@ project's environment variables:
 | `SUPABASE_SERVICE_ROLE_KEY` | recommended | lets `/api/contact` insert without an anon INSERT policy |
 | `RESEND_FROM`, `CONTACT_NOTIFY_TO` | optional | sender identity; defaults to `onboarding@resend.dev` and `profiles.email` |
 | `NEXT_PUBLIC_SITE_URL` | optional | canonical origin for sitemap/OG when not the Vercel production URL |
+| `NEXT_PUBLIC_SENTRY_DSN` | optional | error reporting (errors only, tunnelled through `/monitoring`); no-op when absent |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
 ### Content updates without a deploy
 
