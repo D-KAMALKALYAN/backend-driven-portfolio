@@ -339,6 +339,98 @@ export type Database = {
         }
         Relationships: []
       }
+      now_entries: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          progress: string | null
+          project_id: string | null
+          sort_order: number
+          started_on: string | null
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          kind: string
+          progress?: string | null
+          project_id?: string | null
+          sort_order?: number
+          started_on?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          progress?: string | null
+          project_id?: string | null
+          sort_order?: number
+          started_on?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "now_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_sections: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string | null
+          heading: string | null
+          id: string
+          is_visible: boolean
+          page: string
+          section_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          heading?: string | null
+          id?: string
+          is_visible?: boolean
+          page: string
+          section_type: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          heading?: string | null
+          id?: string
+          is_visible?: boolean
+          page?: string
+          section_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -661,6 +753,78 @@ export type Database = {
           proficiency?: number | null
           sort_order?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ventures: {
+        Row: {
+          created_at: string
+          description: string | null
+          ended_on: string | null
+          founded_on: string | null
+          id: string
+          industry: string[]
+          is_featured: boolean
+          is_visible: boolean
+          link_checked_at: string | null
+          logo_url: string | null
+          meta: Json
+          name: string
+          relationship: string
+          role: string | null
+          slug: string
+          sort_order: number
+          status: string
+          tagline: string | null
+          tech_stack: string[]
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          ended_on?: string | null
+          founded_on?: string | null
+          id?: string
+          industry?: string[]
+          is_featured?: boolean
+          is_visible?: boolean
+          link_checked_at?: string | null
+          logo_url?: string | null
+          meta?: Json
+          name: string
+          relationship: string
+          role?: string | null
+          slug: string
+          sort_order?: number
+          status?: string
+          tagline?: string | null
+          tech_stack?: string[]
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          ended_on?: string | null
+          founded_on?: string | null
+          id?: string
+          industry?: string[]
+          is_featured?: boolean
+          is_visible?: boolean
+          link_checked_at?: string | null
+          logo_url?: string | null
+          meta?: Json
+          name?: string
+          relationship?: string
+          role?: string | null
+          slug?: string
+          sort_order?: number
+          status?: string
+          tagline?: string | null
+          tech_stack?: string[]
+          updated_at?: string
+          website_url?: string | null
         }
         Relationships: []
       }

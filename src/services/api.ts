@@ -274,3 +274,45 @@ export async function fetchProjectStorytelling(db: Db, projectId: string) {
   return data;
 }
 
+// ─── V2 sections (ADR-036) ────────────────────────────────────────────────────
+
+/**
+ * Which sections a page renders, in order. RLS already hides is_visible =
+ * false rows; the filter here is belt-and-braces for a service-role caller.
+ */
+export async function fetchPageSections(db: Db, page: 'landing' | 'about') {
+  const { data, error } = await db
+    .from('page_sections')
+    .select('*')
+    .eq('page', page)
+    .eq('is_visible', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+/** "Currently ..." entries. Active only; the staleness rule lives in utils/now.ts. */
+export async function fetchNowEntries(db: Db) {
+  const { data, error } = await db
+    .from('now_entries')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .order('started_on', { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return data;
+}
+
+/** Every visible venture; the caller splits own work from endorsements. */
+export async function fetchVentures(db: Db) {
+  const { data, error } = await db
+    .from('ventures')
+    .select('*')
+    .eq('is_visible', true)
+    .order('is_featured', { ascending: false })
+    .order('sort_order', { ascending: true })
+    .order('founded_on', { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return data;
+}

@@ -1,4 +1,5 @@
 import Landing from '../views/Landing';
+import PageSections from '../lib/sections';
 import { getActiveResume, getExperience } from '../lib/content';
 
 /**
@@ -8,5 +9,9 @@ import { getActiveResume, getExperience } from '../lib/content';
  */
 export default async function Page() {
   const [experience, resume] = await Promise.all([getExperience(), getActiveResume()]);
-  return <Landing experience={experience} resume={resume} />;
+  return (
+    <Landing experience={experience} resume={resume}>
+      <PageSections page="landing" />
+    </Landing>
+  );
 }

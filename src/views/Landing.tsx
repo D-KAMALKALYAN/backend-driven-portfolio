@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
@@ -21,6 +21,8 @@ import type { ActiveResume, Experience } from '../types/rows';
 export interface LandingProps {
   experience: Experience[];
   resume: ActiveResume | null;
+  /** Registry-driven sections (server-rendered), placed below the hero. */
+  children?: ReactNode;
 }
 
 // ─── Analytics teaser widget ──────────────────────────────────────────────────
@@ -191,7 +193,7 @@ function GradientOrbs() {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function Landing({ experience, resume }: LandingProps) {
+export default function Landing({ experience, resume, children }: LandingProps) {
   const { content } = useSiteContent();
   const { system, latency, systemColor, latencyColor } = useSystemStatus();
 
@@ -420,6 +422,9 @@ export default function Landing({ experience, resume }: LandingProps) {
 
         </Container>
       </Section>
+
+      {/* ── Registry sections: page_sections WHERE page = 'landing' ── */}
+      {children}
     </PageWrapper>
   );
 }

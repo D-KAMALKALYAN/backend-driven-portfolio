@@ -32,6 +32,9 @@ export type Resume = Tables['resume']['Row'];
 export type SiteContent = Tables['site_content']['Row'];
 export type FeatureFlag = Tables['feature_flags']['Row'];
 export type DailyVisit = Views['analytics_daily_visits']['Row'];
+export type NowEntry = Tables['now_entries']['Row'];
+export type Venture = Tables['ventures']['Row'];
+export type PageSection = Tables['page_sections']['Row'];
 
 /** Shape returned by the get_analytics_summary() RPC. */
 export interface AnalyticsSummary {
