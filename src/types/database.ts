@@ -165,6 +165,36 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_daily: {
+        Row: {
+          day: string
+          event: string
+          events: number
+          paths: Json
+          rolled_at: string
+          sessions: number
+          visitors: number
+        }
+        Insert: {
+          day: string
+          event: string
+          events?: number
+          paths?: Json
+          rolled_at?: string
+          sessions?: number
+          visitors?: number
+        }
+        Update: {
+          day?: string
+          event?: string
+          events?: number
+          paths?: Json
+          rolled_at?: string
+          sessions?: number
+          visitors?: number
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string | null
@@ -926,6 +956,7 @@ export type Database = {
       get_analytics_summary: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       refresh_project_view_counts: { Args: never; Returns: undefined }
+      rollup_analytics: { Args: { retain_days?: number }; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }

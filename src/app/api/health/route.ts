@@ -23,6 +23,7 @@ export function GET() {
       resend: Boolean(process.env.RESEND_API_KEY),
       revalidateSecret: Boolean(process.env.REVALIDATE_SECRET),
       sentry: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
+      cronSecret: Boolean(process.env.CRON_SECRET),
       env: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'unknown',
     },
     { headers: { 'Cache-Control': 'no-store' } },

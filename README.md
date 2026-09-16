@@ -301,6 +301,7 @@ project's environment variables:
 | `RESEND_FROM`, `CONTACT_NOTIFY_TO` | optional | sender identity; defaults to `onboarding@resend.dev` and `profiles.email` |
 | `NEXT_PUBLIC_SITE_URL` | optional | canonical origin for sitemap/OG when not the Vercel production URL |
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | error reporting (errors only, tunnelled through `/monitoring`); no-op when absent |
+| `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily`; the route refuses without it |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
 ### Sections without a deploy
@@ -369,7 +370,7 @@ jobs:
 |---|---|
 | Public read | RLS: anon can `SELECT` published content; **no anon `INSERT` policy exists on any table** |
 | Contact form | `POST /api/contact`: server-side validation + tag stripping, real IP recorded, DB triggers rate-limit to 3/email/day and 10/IP/day (reported as 429) |
-| Analytics | `POST /api/track`: events allow-listed, ids validated, IP + country recorded server-side, idempotency key server-computed; DB trigger silently drops past 100 events/session/hour or 600/IP/hour |
+| Analytics | `POST /api/track`: events allow-listed, ids validated, IP + country recorded server-side, idempotency key server-computed; DB trigger silently drops past 100 events/session/hour or 600/IP/hour; raw rows kept 90 days then rolled up daily |
 | Admin writes | `is_admin()` function checks JWT email claim |
 | Server-side ops | `service_role` key read only in route handlers (`server-only` modules) |
 | Scripts | Content-Security-Policy with a per-request nonce and `'strict-dynamic'`; no `unsafe-inline` for scripts |
