@@ -65,7 +65,7 @@ describe('section registry', () => {
   });
 
   it('knows exactly the types that have components', () => {
-    expect(KNOWN_SECTION_TYPES.sort()).toEqual(['code', 'diagram', 'endorsements', 'now', 'prose', 'steps', 'table', 'timeline', 'ventures']);
+    expect(KNOWN_SECTION_TYPES.sort()).toEqual(['code', 'diagram', 'endorsements', 'explore', 'now', 'prose', 'steps', 'table', 'timeline', 'ventures']);
   });
 
   it('renders a post body from blocks with the same content types, skipping unknown ones', () => {
