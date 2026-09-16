@@ -303,6 +303,23 @@ project's environment variables:
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | error reporting (errors only, tunnelled through `/monitoring`); no-op when absent |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
+### Sections without a deploy
+
+Two tiers (ADR-036). **Domain tables** hold the content: `now_entries` ("Currently
+building/learning/..."), `ventures` (yours, and startups you endorse - the
+`relationship` column keeps the two apart). The **`page_sections` registry** says
+which sections a page shows, in what order, with what heading:
+
+| page | section_type | what it renders |
+|---|---|---|
+| `landing` | `now` | `now_entries` where `is_active`; hides itself after 60 days without an update |
+| `landing` | `ventures` | `ventures` with `relationship` in founder / co-founder / early-employee / advisor |
+| `about` | `endorsements` | `ventures` with `relationship = 'endorsement'`, framed as someone else's work |
+
+Adding a row, reordering, retiring (`is_visible = false`) - no deploy. A section with
+no rows renders nothing. Adding a new *type* is one component plus one line in
+`src/lib/sections.tsx`.
+
 ### Content updates without a deploy
 
 Reads are cached for an hour and tagged by table. To make edits live immediately,
@@ -310,7 +327,8 @@ add one **Database Webhook** in the Supabase dashboard (Database → Webhooks):
 
 - Events: `INSERT`, `UPDATE`, `DELETE` on `projects`, `project_sections`,
   `project_storytelling`, `site_content`, `profiles`, `skills`, `experience`,
-  `achievements`, `external_profiles`, `resume`
+  `achievements`, `external_profiles`, `resume`, `page_sections`, `now_entries`,
+  `ventures`
 - Type: HTTP request, `POST https://<your-domain>/api/revalidate`
 - Header: `Authorization: Bearer <REVALIDATE_SECRET>`
 

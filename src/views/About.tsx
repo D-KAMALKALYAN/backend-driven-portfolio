@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -15,6 +16,8 @@ import type { Achievement, Profile } from '../types/rows';
 export interface AboutProps {
   profile: Profile | null;
   achievements: Achievement[];
+  /** Registry-driven sections (server-rendered), placed after achievements. */
+  children?: ReactNode;
 }
 
 const SECTION_ICONS: Record<string, string> = {
@@ -112,7 +115,7 @@ function AchievementCard({ a, index }: { a: Achievement; index: number }) {
   );
 }
 
-export default function About({ profile, achievements }: AboutProps) {
+export default function About({ profile, achievements, children }: AboutProps) {
   const { val } = useSiteContent();
 
   if (!profile) return (
@@ -231,6 +234,9 @@ export default function About({ profile, achievements }: AboutProps) {
           )}
         </Container>
       </Section>
+
+      {/* ── Registry sections: page_sections WHERE page = 'about' ── */}
+      {children}
     </PageWrapper>
   );
 }
