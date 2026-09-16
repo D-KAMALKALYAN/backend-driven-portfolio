@@ -28,10 +28,12 @@ export default function Footer() {
   const qaLabel      = asString(qaJson?.['label'], 'Command Palette');
   const shortcutKeys = qaShortcut.split('+').map((k) => k.trim());
 
-  // Backend-driven note. Shape: { title, description }
+  // Backend-driven note. Shape: { title, description, href?, link_label? }
   const noteJson     = getObject('footer.backend_note');
   const noteTitle    = asString(noteJson?.['title'], '100% backend-driven.');
   const noteDesc     = asString(noteJson?.['description']);
+  const noteHref     = asString(noteJson?.['href']);
+  const noteLink     = asString(noteJson?.['link_label'], 'How it works');
 
   // Bottom bar
   const copyright    = getVal('footer.copyright', `© ${name} — All rights reserved.`);
@@ -114,6 +116,14 @@ export default function Footer() {
                 <strong style={{ color: 'var(--text-secondary)' }}>{noteTitle}{' '}</strong>
               )}
               {noteDesc}
+              {noteHref && (
+                <>
+                  {' '}
+                  <Link href={noteHref} className="font-semibold no-underline hover:underline" style={{ color: 'var(--accent)' }}>
+                    {noteLink} →
+                  </Link>
+                </>
+              )}
             </p>
           </div>
         )}

@@ -9,6 +9,7 @@ export const ROUTES = {
   CONTACT: '/contact',
   RESUME: '/resume',
   ANALYTICS: '/analytics',
+  HOW_IT_WORKS: '/how-it-works',
 } as const;
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];

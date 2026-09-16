@@ -20,12 +20,12 @@ export default function SectionBlock({
   children: ReactNode;
 }) {
   return (
-    <section className="py-12 md:py-16">
+    <section className="py-8 md:py-10">
       <Container>
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-          <SectionHeader as="h2" title={heading} description={description ?? undefined} />
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <SectionHeader as="h2" size="section" title={heading} description={description ?? undefined} />
           {aside && (
-            <p className="text-xs font-mono mb-10 md:mb-12" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs font-mono mb-5" style={{ color: 'var(--text-muted)' }}>
               {aside}
             </p>
           )}

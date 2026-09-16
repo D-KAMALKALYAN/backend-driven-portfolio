@@ -18,6 +18,13 @@ export const COMMANDS: Command[] = [
     group: 'Tools',
   },
   {
+    id: 'tools-how-it-works',
+    label: 'How this site works',
+    shortcut: '/how-it-works',
+    path: ROUTES.HOW_IT_WORKS,
+    group: 'Tools',
+  },
+  {
     id: 'nav-home',
     label: 'Go to Home',
     shortcut: '/home',
