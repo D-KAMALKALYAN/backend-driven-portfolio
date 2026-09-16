@@ -6,13 +6,14 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavLinks } from '../hooks/useNavLinks';
 import { useTheme } from '../hooks/useTheme';
+import Button from './Button';
 
 export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled]     = useState(false);
   const pathname                    = usePathname() ?? '/';
   const { theme, toggleTheme }      = useTheme();
-  const navLinks                    = useNavLinks();
+  const { primary, secondary, cta } = useNavLinks();
 
   // Close the mobile menu on navigation. This is a genuine
   // synchronise-to-external-change, not a cascading render.
@@ -50,9 +51,9 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
             </span>
           </Link>
 
-          {/* Desktop nav links ── centred */}
+          {/* Desktop nav links ── centred. Five at most; the rest are one level down. */}
           <div className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => {
+            {primary.map((link) => {
               const active = link.path === '/'
                 ? pathname === '/'
                 : pathname.startsWith(link.path);
@@ -81,6 +82,13 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
 
           {/* Right actions */}
           <div className="flex items-center gap-2">
+            {/* The one action a recruiter came for, one click from every page. */}
+            <div className="hidden md:block">
+              <Button as={Link} href={cta.path} size="sm">
+                {cta.label}
+              </Button>
+            </div>
+
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
@@ -137,22 +145,30 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="lg:hidden border-t border-[var(--border)] overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-surface)' }}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 space-y-0.5 max-h-[75vh] overflow-y-auto">
-              {navLinks.map((link) => {
+              {[...primary, ...secondary].map((link, i) => {
                 const active = link.path === '/' ? pathname === '/' : pathname.startsWith(link.path);
+                const firstSecondary = i === primary.length && secondary.length > 0;
                 return (
-                  <Link
-                    key={link.path}
-                    href={link.path}
-                    className={`flex items-center px-3 py-2.5 rounded-[var(--r-md)] t-sm font-medium no-underline transition-colors ${
-                      active
-                        ? 'bg-[var(--accent-glow)] text-[var(--accent-hover)]'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
+                  <div key={link.path}>
+                    {firstSecondary && (
+                      <div className="mt-2 mb-1 border-t border-[var(--border)] pt-2 px-3 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                        More
+                      </div>
+                    )}
+                    <Link
+                      href={link.path}
+                      className={`flex items-center px-3 py-2.5 rounded-[var(--r-md)] t-sm font-medium no-underline transition-colors ${
+                        active
+                          ? 'bg-[var(--accent-glow)] text-[var(--accent-hover)]'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  </div>
                 );
               })}
               <button

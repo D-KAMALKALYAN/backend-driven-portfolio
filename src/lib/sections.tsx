@@ -4,6 +4,7 @@ import { getPageSections } from './content';
 import NowSection from '../components/sections/NowSection';
 import VenturesSection from '../components/sections/VenturesSection';
 import TimelineSection from '../components/sections/TimelineSection';
+import ExploreSection from '../components/sections/ExploreSection';
 import { CodeBlock, DiagramBlock, ProseBlock, StepsBlock, TableBlock } from '../components/sections/ContentBlocks';
 import type { BlockLike, PageSection } from '../types/rows';
 
@@ -46,6 +47,7 @@ const SECTION_TYPES: Record<string, (section: PageSection) => ReactNode> = {
   ventures: (section) => <VenturesSection key={section.id} section={section} variant="own" />,
   endorsements: (section) => <VenturesSection key={section.id} section={section} variant="endorsements" />,
   timeline: (section) => <TimelineSection key={section.id} section={section} />,
+  explore: (section) => <ExploreSection key={section.id} section={section} />,
   // Content-only types: everything rendered is in the row's config.
   ...CONTENT_BLOCKS,
 };

@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { NAV_LINKS } from '../constants/routes';
+import { NAV_CTA, NAV_LINKS } from '../constants/routes';
 import { useSiteContent } from './useSiteContent';
 import { useSiteFeatures } from './useSiteFeatures';
+import { visibleNav } from '../utils/nav';
 
 /**
  * Navigation labels resolved from site_content.
@@ -19,12 +20,10 @@ export function useNavLinks() {
   const features = useSiteFeatures();
 
   return useMemo(
-    () => NAV_LINKS
-      .filter((link) => !link.requires || features[link.requires])
-      .map((link) => ({
-        ...link,
-        label: link.contentKey ? val(link.contentKey, link.label) : link.label,
-      })),
+    () => ({
+      ...visibleNav(NAV_LINKS, features, val),
+      cta: { ...NAV_CTA, label: val(NAV_CTA.contentKey, NAV_CTA.label) },
+    }),
     [val, features],
   );
 }

@@ -15,10 +15,18 @@ export const ROUTES = {
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];
 
+export type NavTier = 'primary' | 'secondary';
+
 export interface NavLink {
   label: string;
   path: RoutePath;
   contentKey: string;
+  /**
+   * `primary` is the top bar: the five questions a visitor arrives with.
+   * `secondary` is one level down - reachable from About, the mobile menu,
+   * the footer and the palette - so the bar stays readable (ADR-039).
+   */
+  tier: NavTier;
   /**
    * Render only when the deployment has this content. A nav item that leads
    * to an empty page is worse than no item; the server decides per request.
@@ -39,13 +47,18 @@ export interface NavLink {
  * visibility); keep in code what only changes when the code changes.
  */
 export const NAV_LINKS: NavLink[] = [
-  { label: 'Home',       path: ROUTES.HOME,       contentKey: 'nav.home' },
-  { label: 'About',      path: ROUTES.ABOUT,      contentKey: 'nav.about' },
-  { label: 'Projects',   path: ROUTES.PROJECTS,   contentKey: 'nav.projects' },
-  { label: 'Skills',     path: ROUTES.SKILLS,     contentKey: 'nav.skills' },
-  { label: 'Experience', path: ROUTES.EXPERIENCE, contentKey: 'nav.experience' },
-  { label: 'Profiles',   path: ROUTES.PROFILES,   contentKey: 'nav.profiles' },
-  { label: 'Contact',    path: ROUTES.CONTACT,    contentKey: 'nav.contact' },
-  { label: 'Resume',     path: ROUTES.RESUME,     contentKey: 'nav.resume' },
-  { label: 'Writing',    path: ROUTES.WRITING,    contentKey: 'nav.writing', requires: 'writing' },
+  // Primary: who, what have they built, what do they think, how do I reach them.
+  { label: 'Home',       path: ROUTES.HOME,       contentKey: 'nav.home',       tier: 'primary' },
+  { label: 'Projects',   path: ROUTES.PROJECTS,   contentKey: 'nav.projects',   tier: 'primary' },
+  { label: 'Writing',    path: ROUTES.WRITING,    contentKey: 'nav.writing',    tier: 'primary', requires: 'writing' },
+  { label: 'About',      path: ROUTES.ABOUT,      contentKey: 'nav.about',      tier: 'primary' },
+  { label: 'Contact',    path: ROUTES.CONTACT,    contentKey: 'nav.contact',    tier: 'primary' },
+  // Secondary: the detail pages behind About. Resume is also the bar's CTA.
+  { label: 'Skills',     path: ROUTES.SKILLS,     contentKey: 'nav.skills',     tier: 'secondary' },
+  { label: 'Experience', path: ROUTES.EXPERIENCE, contentKey: 'nav.experience', tier: 'secondary' },
+  { label: 'Profiles',   path: ROUTES.PROFILES,   contentKey: 'nav.profiles',   tier: 'secondary' },
+  { label: 'Resume',     path: ROUTES.RESUME,     contentKey: 'nav.resume',     tier: 'secondary' },
 ];
+
+/** The one action a recruiter came for; rendered as a button, not a link. */
+export const NAV_CTA: NavLink = { label: 'Resume', path: ROUTES.RESUME, contentKey: 'nav.resume', tier: 'secondary' };
