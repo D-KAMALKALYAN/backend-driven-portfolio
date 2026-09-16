@@ -7,6 +7,9 @@ import {
   fetchExternalProfiles,
   fetchNowEntries,
   fetchPageSections,
+  fetchPostBlocks,
+  fetchPostBySlug,
+  fetchPosts,
   fetchVentures,
   fetchProfile,
   fetchProjectBySlug,
@@ -45,6 +48,18 @@ export const getActiveResume = cache(() => fetchActiveResume(db()));
 export const getPageSections = cache((page: 'landing' | 'about' | 'how_it_works') => fetchPageSections(db(), page));
 export const getNowEntries = cache(() => fetchNowEntries(db()));
 export const getVentures = cache(() => fetchVentures(db()));
+export const getPosts = cache(() => fetchPosts(db()));
+export const getPostBlocks = cache((postId: string) => fetchPostBlocks(db(), postId));
+
+/** The published post for a slug, or null - a draft or unknown slug is a 404, not an error. */
+export const findPostBySlug = cache(async (slug: string) => {
+  try {
+    return await fetchPostBySlug(db(), slug);
+  } catch (err) {
+    if (isNoRows(err)) return null;
+    throw err;
+  }
+});
 
 /**
  * The project row for a slug, or null. PostgREST's .single() raises

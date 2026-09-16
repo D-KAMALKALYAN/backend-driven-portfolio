@@ -274,6 +274,40 @@ export async function fetchProjectStorytelling(db: Db, projectId: string) {
   return data;
 }
 
+// ─── Writing (ADR-038) ────────────────────────────────────────────────────────
+
+/** Published posts, newest first. RLS hides drafts and scheduled posts. */
+export async function fetchPosts(db: Db) {
+  const { data, error } = await db
+    .from('posts')
+    .select('*')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchPostBySlug(db: Db, slug: string) {
+  const { data, error } = await db
+    .from('posts')
+    .select('*')
+    .eq('slug', slug)
+    .eq('status', 'published')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchPostBlocks(db: Db, postId: string) {
+  const { data, error } = await db
+    .from('post_blocks')
+    .select('*')
+    .eq('post_id', postId)
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
 // ─── V2 sections (ADR-036) ────────────────────────────────────────────────────
 
 /**

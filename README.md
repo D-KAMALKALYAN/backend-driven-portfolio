@@ -318,6 +318,11 @@ which sections a page shows, in what order, with what heading:
 | `about` | `endorsements` | `ventures` with `relationship = 'endorsement'`, framed as someone else's work |
 | `how_it_works` | `prose`, `diagram`, `steps`, `table` | content-only blocks rendered from the row's `config` - the [architecture write-up](https://backend-driven-portfolio.vercel.app/how-it-works) is eight of these |
 
+**Writing** uses the same blocks: a `posts` row is the head, `post_blocks` rows (`prose`,
+`code`, `diagram`, `steps`, `table`) are the body. Set `status = 'published'` and the post,
+its share card, its sitemap entry and the **Writing** nav item appear; until then the
+route is a 404 and the nav item is not rendered. A future `published_at` schedules it.
+
 Adding a row, reordering, retiring (`is_visible = false`) - no deploy. A section with
 no rows renders nothing. Adding a new *type* is one component plus one line in
 `src/lib/sections.tsx`.
@@ -330,7 +335,7 @@ add one **Database Webhook** in the Supabase dashboard (Database → Webhooks):
 - Events: `INSERT`, `UPDATE`, `DELETE` on `projects`, `project_sections`,
   `project_storytelling`, `site_content`, `profiles`, `skills`, `experience`,
   `achievements`, `external_profiles`, `resume`, `page_sections`, `now_entries`,
-  `ventures`
+  `ventures`, `posts`, `post_blocks`
 - Type: HTTP request, `POST https://<your-domain>/api/revalidate`
 - Header: `Authorization: Bearer <REVALIDATE_SECRET>`
 

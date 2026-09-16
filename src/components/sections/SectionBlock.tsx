@@ -20,16 +20,18 @@ export default function SectionBlock({
   children: ReactNode;
 }) {
   return (
-    <section className="py-8 md:py-10">
+    <section className={heading ? 'py-8 md:py-10' : 'py-3 md:py-4'}>
       <Container>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-          <SectionHeader as="h2" size="section" title={heading} description={description ?? undefined} />
-          {aside && (
-            <p className="text-xs font-mono mb-5" style={{ color: 'var(--text-muted)' }}>
-              {aside}
-            </p>
-          )}
-        </div>
+        {(heading || aside) && (
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            {heading && <SectionHeader as="h2" size="section" title={heading} description={description ?? undefined} />}
+            {aside && (
+              <p className="text-xs font-mono mb-5" style={{ color: 'var(--text-muted)' }}>
+                {aside}
+              </p>
+            )}
+          </div>
+        )}
         {children}
       </Container>
     </section>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { COMMANDS, type Command } from '../constants/commands';
+import { useSiteFeatures } from './useSiteFeatures';
 
 /**
  * Command palette state management + keyboard shortcut handling.
@@ -12,6 +13,7 @@ export function useCommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const router = useRouter();
+  const features = useSiteFeatures();
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => {
@@ -26,8 +28,9 @@ export function useCommandPalette() {
   }, []);
 
   const filteredCommands = COMMANDS.filter((cmd) =>
-    cmd.label.toLowerCase().includes(query.toLowerCase()) ||
-    cmd.shortcut?.toLowerCase().includes(query.toLowerCase())
+    (!cmd.requires || features[cmd.requires]) &&
+    (cmd.label.toLowerCase().includes(query.toLowerCase()) ||
+      cmd.shortcut?.toLowerCase().includes(query.toLowerCase()))
   );
 
   const executeCommand = useCallback(
