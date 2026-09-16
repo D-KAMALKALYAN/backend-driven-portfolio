@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import ErrorPanel from '../components/ErrorPanel';
 
 /**
@@ -9,7 +10,9 @@ import ErrorPanel from '../components/ErrorPanel';
  */
 export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // The single place to wire an error reporter. Deliberately vendor-free.
+    // The audit found a boundary that caught errors and told nobody. This
+    // is the hook it left for a reporter; Sentry is a no-op without a DSN.
+    Sentry.captureException(error);
     console.error('[route error]', error.digest ?? '', error);
   }, [error]);
 

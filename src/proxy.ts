@@ -28,8 +28,9 @@ export const config = {
   matcher: [
     {
       // Everything except Next's own static output, image optimiser, files in
-      // /public with an extension, and router prefetches (which carry no HTML).
-      source: '/((?!_next/static|_next/image|.*\\..*).*)',
+      // /public with an extension, the Sentry tunnel (an opaque envelope POST,
+      // no HTML to nonce), and router prefetches (which carry no HTML).
+      source: '/((?!_next/static|_next/image|monitoring|.*\\..*).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },
