@@ -314,6 +314,7 @@ which sections a page shows, in what order, with what heading:
 |---|---|---|
 | `landing` | `now` | `now_entries` where `is_active`; hides itself after 60 days without an update |
 | `landing` | `ventures` | `ventures` with `relationship` in founder / co-founder / early-employee / advisor |
+| `about` | `timeline` | roles + projects + credentials merged into one chronology, newest first - derived, no table |
 | `about` | `endorsements` | `ventures` with `relationship = 'endorsement'`, framed as someone else's work |
 
 Adding a row, reordering, retiring (`is_visible = false`) - no deploy. A section with
