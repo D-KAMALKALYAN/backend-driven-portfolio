@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { getPageSections } from './content';
 import NowSection from '../components/sections/NowSection';
 import VenturesSection from '../components/sections/VenturesSection';
+import TimelineSection from '../components/sections/TimelineSection';
 import type { PageSection } from '../types/rows';
 
 /**
@@ -22,6 +23,7 @@ const SECTION_TYPES: Record<string, (section: PageSection) => ReactNode> = {
   now: (section) => <NowSection key={section.id} section={section} />,
   ventures: (section) => <VenturesSection key={section.id} section={section} variant="own" />,
   endorsements: (section) => <VenturesSection key={section.id} section={section} variant="endorsements" />,
+  timeline: (section) => <TimelineSection key={section.id} section={section} />,
 };
 
 export const KNOWN_SECTION_TYPES = Object.keys(SECTION_TYPES);
