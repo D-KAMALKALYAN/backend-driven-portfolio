@@ -431,6 +431,89 @@ export type Database = {
         }
         Relationships: []
       }
+      post_blocks: {
+        Row: {
+          block_type: string
+          config: Json
+          created_at: string
+          description: string | null
+          heading: string | null
+          id: string
+          post_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          block_type: string
+          config?: Json
+          created_at?: string
+          description?: string | null
+          heading?: string | null
+          id?: string
+          post_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          block_type?: string
+          config?: Json
+          created_at?: string
+          description?: string | null
+          heading?: string | null
+          id?: string
+          post_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_blocks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          created_at: string
+          id: string
+          meta: Json
+          published_at: string | null
+          slug: string
+          status: string
+          summary: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meta?: Json
+          published_at?: string | null
+          slug: string
+          status?: string
+          summary?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meta?: Json
+          published_at?: string | null
+          slug?: string
+          status?: string
+          summary?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

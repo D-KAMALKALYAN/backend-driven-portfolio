@@ -10,6 +10,7 @@ export const ROUTES = {
   RESUME: '/resume',
   ANALYTICS: '/analytics',
   HOW_IT_WORKS: '/how-it-works',
+  WRITING: '/writing',
 } as const;
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];
@@ -18,6 +19,11 @@ export interface NavLink {
   label: string;
   path: RoutePath;
   contentKey: string;
+  /**
+   * Render only when the deployment has this content. A nav item that leads
+   * to an empty page is worse than no item; the server decides per request.
+   */
+  requires?: 'writing';
 }
 
 /**
@@ -41,4 +47,5 @@ export const NAV_LINKS: NavLink[] = [
   { label: 'Profiles',   path: ROUTES.PROFILES,   contentKey: 'nav.profiles' },
   { label: 'Contact',    path: ROUTES.CONTACT,    contentKey: 'nav.contact' },
   { label: 'Resume',     path: ROUTES.RESUME,     contentKey: 'nav.resume' },
+  { label: 'Writing',    path: ROUTES.WRITING,    contentKey: 'nav.writing', requires: 'writing' },
 ];

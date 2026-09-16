@@ -4,8 +4,8 @@ import { getPageSections } from './content';
 import NowSection from '../components/sections/NowSection';
 import VenturesSection from '../components/sections/VenturesSection';
 import TimelineSection from '../components/sections/TimelineSection';
-import { DiagramBlock, ProseBlock, StepsBlock, TableBlock } from '../components/sections/ContentBlocks';
-import type { PageSection } from '../types/rows';
+import { CodeBlock, DiagramBlock, ProseBlock, StepsBlock, TableBlock } from '../components/sections/ContentBlocks';
+import type { BlockLike, PageSection } from '../types/rows';
 
 /**
  * The registry, resolved.
@@ -20,16 +20,34 @@ import type { PageSection } from '../types/rows';
  * section also hides itself when its table is empty, so registering a
  * section ahead of its content costs nothing.
  */
+/** Content-only blocks: shared by page_sections and post_blocks. */
+export const CONTENT_BLOCKS: Record<string, (block: BlockLike) => ReactNode> = {
+  prose: (b) => <ProseBlock key={b.id} section={b} />,
+  diagram: (b) => <DiagramBlock key={b.id} section={b} />,
+  steps: (b) => <StepsBlock key={b.id} section={b} />,
+  table: (b) => <TableBlock key={b.id} section={b} />,
+  code: (b) => <CodeBlock key={b.id} section={b} />,
+};
+
+/** A post body: ordered blocks, unknown types skipped and reported. */
+export function renderBlocks(blocks: ReadonlyArray<BlockLike & { block_type: string }>): { nodes: ReactNode[]; unknown: string[] } {
+  const nodes: ReactNode[] = [];
+  const unknown: string[] = [];
+  for (const b of blocks) {
+    const render = CONTENT_BLOCKS[b.block_type];
+    if (render) nodes.push(render(b));
+    else unknown.push(b.block_type);
+  }
+  return { nodes, unknown };
+}
+
 const SECTION_TYPES: Record<string, (section: PageSection) => ReactNode> = {
   now: (section) => <NowSection key={section.id} section={section} />,
   ventures: (section) => <VenturesSection key={section.id} section={section} variant="own" />,
   endorsements: (section) => <VenturesSection key={section.id} section={section} variant="endorsements" />,
   timeline: (section) => <TimelineSection key={section.id} section={section} />,
   // Content-only types: everything rendered is in the row's config.
-  prose: (section) => <ProseBlock key={section.id} section={section} />,
-  diagram: (section) => <DiagramBlock key={section.id} section={section} />,
-  steps: (section) => <StepsBlock key={section.id} section={section} />,
-  table: (section) => <TableBlock key={section.id} section={section} />,
+  ...CONTENT_BLOCKS,
 };
 
 export const KNOWN_SECTION_TYPES = Object.keys(SECTION_TYPES);

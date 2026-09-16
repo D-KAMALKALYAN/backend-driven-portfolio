@@ -5,6 +5,7 @@ import { MotionConfig } from 'framer-motion';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../hooks/useTheme';
 import { SiteContentProvider } from '../hooks/useSiteContent';
+import { SiteFeaturesProvider, type SiteFeatures } from '../hooks/useSiteFeatures';
 import type { SiteContent } from '../types/rows';
 
 /**
@@ -14,7 +15,7 @@ import type { SiteContent } from '../types/rows';
  * server a module-level instance would be shared between requests, and
  * cached analytics from one visitor could leak into another's render.
  */
-export function Providers({ content, children }: { content: SiteContent[]; children: ReactNode }) {
+export function Providers({ content, features, children }: { content: SiteContent[]; features: SiteFeatures; children: ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -37,7 +38,9 @@ export function Providers({ content, children }: { content: SiteContent[]; child
       {/* reducedMotion="user" makes every motion component respect the OS setting. */}
       <MotionConfig reducedMotion="user">
         <ThemeProvider>
-          <SiteContentProvider content={content}>{children}</SiteContentProvider>
+          <SiteContentProvider content={content}>
+            <SiteFeaturesProvider features={features}>{children}</SiteFeaturesProvider>
+          </SiteContentProvider>
         </ThemeProvider>
       </MotionConfig>
     </QueryClientProvider>

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import SectionBlock from './SectionBlock';
 import { asObject, asObjectArray, asString, asStringArray } from '../../utils/json';
 import { enterAt } from '../../utils/enter';
-import type { PageSection } from '../../types/rows';
+import type { BlockLike } from '../../types/rows';
 
 /**
  * Content-only section types. Unlike `now` or `timeline`, these fetch
@@ -16,6 +16,7 @@ import type { PageSection } from '../../types/rows';
  *   diagram  { ascii: string, caption?: string }
  *   steps    { steps: [{ title, body }] }
  *   table    { columns: string[], rows: string[][] }
+ *   code     { snippet: string, language?: string, caption?: string }
  *
  * Inline emphasis: `code` spans are rendered as <code>. Nothing else - no
  * HTML, no markdown engine. Text is text.
@@ -43,7 +44,7 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-export function ProseBlock({ section }: { section: PageSection }) {
+export function ProseBlock({ section }: { section: BlockLike }) {
   const c = asObject(section.config) ?? {};
   const paragraphs = asStringArray(c['paragraphs']);
   const bullets = asStringArray(c['bullets']);
@@ -54,14 +55,16 @@ export function ProseBlock({ section }: { section: PageSection }) {
 
   return (
     <SectionBlock heading={section.heading ?? ''} description={section.description}>
-      <div className="max-w-3xl space-y-4">
+      {/* flex gap, not space-y: Tailwind v4's space utilities are zero-specificity
+          and lose to the m-0 on each paragraph. */}
+      <div className="max-w-3xl flex flex-col gap-4">
         {paragraphs.map((p, i) => (
           <p key={i} className="enter text-base leading-relaxed m-0" style={{ ...enterAt(i * 60), color: 'var(--text-secondary)' }}>
             <Inline text={p} />
           </p>
         ))}
         {bullets.length > 0 && (
-          <ul className="space-y-2 pl-5 m-0" style={{ color: 'var(--text-secondary)' }}>
+          <ul className="flex flex-col gap-2 pl-5 m-0 list-disc" style={{ color: 'var(--text-secondary)' }}>
             {bullets.map((b, i) => (
               <li key={i} className="enter text-base leading-relaxed" style={enterAt(200 + i * 50)}>
                 <Inline text={b} />
@@ -81,7 +84,7 @@ export function ProseBlock({ section }: { section: PageSection }) {
   );
 }
 
-export function DiagramBlock({ section }: { section: PageSection }) {
+export function DiagramBlock({ section }: { section: BlockLike }) {
   const c = asObject(section.config) ?? {};
   const ascii = asString(c['ascii']);
   const caption = asString(c['caption']);
@@ -107,7 +110,7 @@ export function DiagramBlock({ section }: { section: PageSection }) {
   );
 }
 
-export function StepsBlock({ section }: { section: PageSection }) {
+export function StepsBlock({ section }: { section: BlockLike }) {
   const c = asObject(section.config) ?? {};
   const steps = asObjectArray(c['steps'])
     .map((s) => ({ title: asString(s['title']), body: asString(s['body']) }))
@@ -143,7 +146,7 @@ export function StepsBlock({ section }: { section: PageSection }) {
   );
 }
 
-export function TableBlock({ section }: { section: PageSection }) {
+export function TableBlock({ section }: { section: BlockLike }) {
   const c = asObject(section.config) ?? {};
   const columns = asStringArray(c['columns']);
   const rows = (Array.isArray(c['rows']) ? c['rows'] : []).map((r) => asStringArray(r)).filter((r) => r.length > 0);
@@ -188,6 +191,29 @@ export function TableBlock({ section }: { section: PageSection }) {
           </tbody>
         </table>
       </div>
+    </SectionBlock>
+  );
+}
+
+export function CodeBlock({ section }: { section: BlockLike }) {
+  const c = asObject(section.config) ?? {};
+  const snippet = asString(c['snippet']);
+  const language = asString(c['language']);
+  const caption = asString(c['caption']);
+  if (!snippet) return null;
+
+  return (
+    <SectionBlock heading={section.heading ?? ''} description={section.description}>
+      <figure className="m-0">
+        <pre
+          className="enter overflow-x-auto text-xs leading-relaxed p-5 rounded-2xl font-mono m-0"
+          style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', boxShadow: 'var(--shadow-card)' }}
+          data-language={language || undefined}
+        >
+          <code>{snippet}</code>
+        </pre>
+        {caption && <figcaption className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>{caption}</figcaption>}
+      </figure>
     </SectionBlock>
   );
 }

@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import localFont from 'next/font/local';
 import { Providers } from './providers';
 import AppShell from '../components/AppShell';
-import { getSiteContent } from '../lib/content';
+import { getPosts, getSiteContent } from '../lib/content';
 import { getVal } from '../utils/siteContent';
 import { THEME_BOOTSTRAP_SCRIPT } from '../lib/themeScript';
 import { siteUrl } from '../lib/site';
@@ -65,7 +65,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // Set by src/proxy.ts. Reading headers() is also what opts every route
   // into per-request rendering, which the nonce requires.
   const nonce = (await headers()).get('x-nonce') ?? undefined;
-  const content = await getSiteContent();
+  const [content, posts] = await Promise.all([getSiteContent(), getPosts()]);
+  // Nav items that lead to content render only when the content exists.
+  const features = { writing: posts.length > 0 };
 
   return (
     // suppressHydrationWarning: the bootstrap script sets data-theme before
@@ -75,7 +77,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
       </head>
       <body>
-        <Providers content={content}>
+        <Providers content={content} features={features}>
           <AppShell>{children}</AppShell>
         </Providers>
       </body>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { nowFreshness, latestUpdate, formatUpdated, NOW_STALE_AFTER_DAYS } from '../utils/now';
 import { splitVentures } from '../utils/ventures';
-import { resolveSections, KNOWN_SECTION_TYPES } from '../lib/sections';
+import { resolveSections, renderBlocks, KNOWN_SECTION_TYPES } from '../lib/sections';
 import type { PageSection } from '../types/rows';
 
 const NOW = new Date('2026-09-15T12:00:00Z');
@@ -65,6 +65,13 @@ describe('section registry', () => {
   });
 
   it('knows exactly the types that have components', () => {
-    expect(KNOWN_SECTION_TYPES.sort()).toEqual(['diagram', 'endorsements', 'now', 'prose', 'steps', 'table', 'timeline', 'ventures']);
+    expect(KNOWN_SECTION_TYPES.sort()).toEqual(['code', 'diagram', 'endorsements', 'now', 'prose', 'steps', 'table', 'timeline', 'ventures']);
+  });
+
+  it('renders a post body from blocks with the same content types, skipping unknown ones', () => {
+    const b = (block_type: string, sort: number) => ({ id: `${block_type}-${sort}`, heading: null, description: null, config: {}, block_type });
+    const { nodes, unknown } = renderBlocks([b('prose', 1), b('code', 2), b('video', 3), b('table', 4)]);
+    expect(nodes).toHaveLength(3);
+    expect(unknown).toEqual(['video']);
   });
 });

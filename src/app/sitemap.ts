@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { getProjects } from '../lib/content';
+import { getPosts, getProjects } from '../lib/content';
 import { siteUrl } from '../lib/site';
 import { NAV_LINKS, ROUTES } from '../constants/routes';
 
@@ -13,10 +13,11 @@ export const dynamic = 'force-dynamic';
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const projects = await getProjects();
+  const [projects, posts] = await Promise.all([getProjects(), getPosts()]);
 
   const pages: MetadataRoute.Sitemap = [
-    ...NAV_LINKS.map((l) => ({
+    // A gated item (Writing) is listed only when it has something to show.
+    ...NAV_LINKS.filter((l) => !l.requires || (l.requires === 'writing' && posts.length > 0)).map((l) => ({
       url: `${base}${l.path}`,
       changeFrequency: 'monthly' as const,
       priority: l.path === '/' ? 1 : 0.7,
@@ -35,5 +36,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-  return [...pages, ...projectPages];
+  const postPages: MetadataRoute.Sitemap = posts.map((p) => ({
+    url: `${base}/writing/${p.slug}`,
+    lastModified: p.updated_at,
+    changeFrequency: 'yearly',
+    priority: 0.6,
+  }));
+
+  return [...pages, ...projectPages, ...postPages];
 }

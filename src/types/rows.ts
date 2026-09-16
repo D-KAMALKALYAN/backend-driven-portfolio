@@ -35,6 +35,11 @@ export type DailyVisit = Views['analytics_daily_visits']['Row'];
 export type NowEntry = Tables['now_entries']['Row'];
 export type Venture = Tables['ventures']['Row'];
 export type PageSection = Tables['page_sections']['Row'];
+export type Post = Tables['posts']['Row'];
+export type PostBlock = Tables['post_blocks']['Row'];
+
+/** What a content block renderer needs - satisfied by PageSection and PostBlock alike. */
+export type BlockLike = Pick<PageSection, 'id' | 'heading' | 'description' | 'config'>;
 
 /** Shape returned by the get_analytics_summary() RPC. */
 export interface AnalyticsSummary {

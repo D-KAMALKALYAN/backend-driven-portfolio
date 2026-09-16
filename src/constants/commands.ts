@@ -6,6 +6,8 @@ export interface Command {
   shortcut: string;
   path: RoutePath;
   group: 'Tools' | 'Navigation';
+  /** Same gate as the nav item: only offered when the content exists. */
+  requires?: 'writing';
 }
 
 export const COMMANDS: Command[] = [
@@ -23,6 +25,14 @@ export const COMMANDS: Command[] = [
     shortcut: '/how-it-works',
     path: ROUTES.HOW_IT_WORKS,
     group: 'Tools',
+  },
+  {
+    id: 'nav-writing',
+    label: 'Writing',
+    shortcut: '/writing',
+    path: ROUTES.WRITING,
+    group: 'Navigation',
+    requires: 'writing',
   },
   {
     id: 'nav-home',
