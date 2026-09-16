@@ -329,6 +329,13 @@ Adding a row, reordering, retiring (`is_visible = false`) - no deploy. A section
 no rows renders nothing. Adding a new *type* is one component plus one line in
 `src/lib/sections.tsx`.
 
+### Search
+
+`Ctrl/⌘ K` searches content, not just commands: one SQL function, `search_content()`,
+runs Postgres full-text search over projects, posts (including their body blocks),
+skills and experience, weighted and ranked. It runs as the caller, so RLS decides what
+is searchable - a draft post cannot be found. Exposed as `GET /api/search?q=`.
+
 ### Content updates without a deploy
 
 Reads are cached for an hour and tagged by table. To make edits live immediately,

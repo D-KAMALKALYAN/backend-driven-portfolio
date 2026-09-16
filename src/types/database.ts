@@ -957,6 +957,16 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       refresh_project_view_counts: { Args: never; Returns: undefined }
       rollup_analytics: { Args: { retain_days?: number }; Returns: Json }
+      search_content: {
+        Args: { max_results?: number; q: string }
+        Returns: {
+          href: string
+          kind: string
+          rank: number
+          snippet: string
+          title: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }

@@ -3,33 +3,34 @@
 import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import type { Command } from '../constants/commands';
+import type { PaletteItem } from '../utils/palette';
 
 export interface CommandPaletteProps {
   isOpen: boolean;
   query: string;
   setQuery: (query: string) => void;
-  filteredCommands: Command[];
-  executeCommand: (command: Command) => void;
+  items: PaletteItem[];
+  searching: boolean;
+  executeCommand: (item: PaletteItem) => void;
   close: () => void;
 }
 
 interface IndexedCommand {
-  cmd: Command;
+  cmd: PaletteItem;
   idx: number;
 }
 
-export default function CommandPalette({ isOpen, query, setQuery, filteredCommands, executeCommand, close }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, query, setQuery, items, searching, executeCommand, close }: CommandPaletteProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const listRef   = useRef<HTMLDivElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
-  const allCommands = useMemo(() => filteredCommands || [], [filteredCommands]);
+  const allCommands = useMemo(() => items || [], [items]);
 
   // Reset the highlighted row whenever the result set or open state changes.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setActiveIdx(0); }, [filteredCommands, isOpen]);
+  useEffect(() => { setActiveIdx(0); }, [items, isOpen]);
 
   // Focus in on open, contain Tab, restore focus to whatever opened it.
   // Previously Tab walked straight out into the page behind the overlay.
@@ -120,7 +121,7 @@ export default function CommandPalette({ isOpen, query, setQuery, filteredComman
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
                   onKeyDown={handleKeyDown}      /* ← single source of key events */
-                  placeholder="Type a command or search..."
+                  placeholder="Search projects, notes, skills - or type a command"
                   className="flex-1 bg-transparent border-none outline-none text-sm"
                   style={{ color: 'var(--text-primary)' }}
                   id="command-palette-input"
@@ -137,7 +138,7 @@ export default function CommandPalette({ isOpen, query, setQuery, filteredComman
               <div ref={listRef} className="max-h-72 overflow-y-auto py-1.5" role="listbox">
                 {grouped.size === 0 ? (
                   <p className="px-4 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-                    No commands found
+                    {searching ? 'Searching…' : 'Nothing found'}
                   </p>
                 ) : (
                   [...grouped.entries()].map(([group, items]) => (
@@ -162,10 +163,10 @@ export default function CommandPalette({ isOpen, query, setQuery, filteredComman
                             aria-selected={isActive}
                             tabIndex={-1}
                           >
-                            <span>{cmd.label}</span>
-                            {cmd.shortcut && (
-                              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-                                {cmd.shortcut}
+                            <span className="truncate">{cmd.label}</span>
+                            {cmd.hint && (
+                              <span className="text-xs font-mono truncate max-w-[45%] text-right shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                {cmd.hint}
                               </span>
                             )}
                           </button>
