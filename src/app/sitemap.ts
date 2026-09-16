@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getProjects } from '../lib/content';
 import { siteUrl } from '../lib/site';
-import { NAV_LINKS } from '../constants/routes';
+import { NAV_LINKS, ROUTES } from '../constants/routes';
 
 // Rendered per request like every page: nothing here may run at build time,
 // where there is no database (CI builds with placeholder credentials).
@@ -15,11 +15,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const projects = await getProjects();
 
-  const pages: MetadataRoute.Sitemap = NAV_LINKS.map((l) => ({
-    url: `${base}${l.path}`,
-    changeFrequency: 'monthly',
-    priority: l.path === '/' ? 1 : 0.7,
-  }));
+  const pages: MetadataRoute.Sitemap = [
+    ...NAV_LINKS.map((l) => ({
+      url: `${base}${l.path}`,
+      changeFrequency: 'monthly' as const,
+      priority: l.path === '/' ? 1 : 0.7,
+    })),
+    // Not in the nav (eight items is already the ceiling), reachable from the
+    // footer, the palette and the landing note. Indexable all the same.
+    { url: `${base}${ROUTES.HOW_IT_WORKS}`, changeFrequency: 'monthly' as const, priority: 0.8 },
+  ];
 
   const projectPages: MetadataRoute.Sitemap = projects
     .filter((p) => !p.is_deleted)

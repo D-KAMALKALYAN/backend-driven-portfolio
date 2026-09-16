@@ -42,7 +42,7 @@ export const getSkills = cache(() => fetchSkills(db()));
 export const getExperience = cache(() => fetchExperience(db()));
 export const getAchievements = cache(() => fetchAchievements(db()));
 export const getActiveResume = cache(() => fetchActiveResume(db()));
-export const getPageSections = cache((page: 'landing' | 'about') => fetchPageSections(db(), page));
+export const getPageSections = cache((page: 'landing' | 'about' | 'how_it_works') => fetchPageSections(db(), page));
 export const getNowEntries = cache(() => fetchNowEntries(db()));
 export const getVentures = cache(() => fetchVentures(db()));
 

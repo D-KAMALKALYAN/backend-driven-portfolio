@@ -4,6 +4,7 @@ import { getPageSections } from './content';
 import NowSection from '../components/sections/NowSection';
 import VenturesSection from '../components/sections/VenturesSection';
 import TimelineSection from '../components/sections/TimelineSection';
+import { DiagramBlock, ProseBlock, StepsBlock, TableBlock } from '../components/sections/ContentBlocks';
 import type { PageSection } from '../types/rows';
 
 /**
@@ -24,6 +25,11 @@ const SECTION_TYPES: Record<string, (section: PageSection) => ReactNode> = {
   ventures: (section) => <VenturesSection key={section.id} section={section} variant="own" />,
   endorsements: (section) => <VenturesSection key={section.id} section={section} variant="endorsements" />,
   timeline: (section) => <TimelineSection key={section.id} section={section} />,
+  // Content-only types: everything rendered is in the row's config.
+  prose: (section) => <ProseBlock key={section.id} section={section} />,
+  diagram: (section) => <DiagramBlock key={section.id} section={section} />,
+  steps: (section) => <StepsBlock key={section.id} section={section} />,
+  table: (section) => <TableBlock key={section.id} section={section} />,
 };
 
 export const KNOWN_SECTION_TYPES = Object.keys(SECTION_TYPES);
@@ -39,7 +45,9 @@ export function resolveSections(rows: ReadonlyArray<PageSection>): { nodes: Reac
   return { nodes, unknown };
 }
 
-export default async function PageSections({ page }: { page: 'landing' | 'about' }) {
+export type SectionPage = 'landing' | 'about' | 'how_it_works';
+
+export default async function PageSections({ page }: { page: SectionPage }) {
   const rows = await getPageSections(page);
   const { nodes, unknown } = resolveSections(rows);
   if (unknown.length > 0) {

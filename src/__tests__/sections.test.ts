@@ -65,6 +65,6 @@ describe('section registry', () => {
   });
 
   it('knows exactly the types that have components', () => {
-    expect(KNOWN_SECTION_TYPES.sort()).toEqual(['endorsements', 'now', 'timeline', 'ventures']);
+    expect(KNOWN_SECTION_TYPES.sort()).toEqual(['diagram', 'endorsements', 'now', 'prose', 'steps', 'table', 'timeline', 'ventures']);
   });
 });

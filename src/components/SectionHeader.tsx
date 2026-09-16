@@ -16,23 +16,26 @@ export interface SectionHeaderProps {
   title?: ReactNode;
   description?: ReactNode;
   as?: 'h1' | 'h2' | 'h3';
+  /** `section`: smaller title and tighter margin, for blocks within a page. */
+  size?: 'page' | 'section';
 }
 
-export default function SectionHeader({ label, title, description, as: Heading = 'h1' }: SectionHeaderProps) {
+export default function SectionHeader({ label, title, description, as: Heading = 'h1', size = 'page' }: SectionHeaderProps) {
+  const compact = size === 'section';
   return (
-    <div className="mb-10 md:mb-12">
+    <div className={compact ? 'mb-5' : 'mb-10 md:mb-12'}>
       {label && (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest bg-[var(--accent-glow)] text-[var(--accent)] mb-3">
           {label}
         </span>
       )}
       {title && (
-        <Heading className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] leading-tight tracking-tight">
+        <Heading className={`${compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'} font-bold text-[var(--text-primary)] leading-tight tracking-tight`}>
           {title}
         </Heading>
       )}
       {description && (
-        <p className="mt-3 text-base text-[var(--text-secondary)] max-w-2xl leading-relaxed">
+        <p className={`${compact ? 'mt-2 text-sm' : 'mt-3 text-base'} text-[var(--text-secondary)] max-w-2xl leading-relaxed`}>
           {description}
         </p>
       )}

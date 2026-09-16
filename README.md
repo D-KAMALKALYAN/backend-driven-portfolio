@@ -316,6 +316,7 @@ which sections a page shows, in what order, with what heading:
 | `landing` | `ventures` | `ventures` with `relationship` in founder / co-founder / early-employee / advisor |
 | `about` | `timeline` | roles + projects + credentials merged into one chronology, newest first - derived, no table |
 | `about` | `endorsements` | `ventures` with `relationship = 'endorsement'`, framed as someone else's work |
+| `how_it_works` | `prose`, `diagram`, `steps`, `table` | content-only blocks rendered from the row's `config` - the [architecture write-up](https://backend-driven-portfolio.vercel.app/how-it-works) is eight of these |
 
 Adding a row, reordering, retiring (`is_visible = false`) - no deploy. A section with
 no rows renders nothing. Adding a new *type* is one component plus one line in

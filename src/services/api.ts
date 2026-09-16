@@ -280,7 +280,7 @@ export async function fetchProjectStorytelling(db: Db, projectId: string) {
  * Which sections a page renders, in order. RLS already hides is_visible =
  * false rows; the filter here is belt-and-braces for a service-role caller.
  */
-export async function fetchPageSections(db: Db, page: 'landing' | 'about') {
+export async function fetchPageSections(db: Db, page: 'landing' | 'about' | 'how_it_works') {
   const { data, error } = await db
     .from('page_sections')
     .select('*')
