@@ -10,7 +10,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database';
 
-/** A typed client - browser singleton or a per-request server instance. */
+/** A typed client: a per-request server instance, or a recorder in tests.
+ *  The browser has none (ADR-043). */
 export type Db = SupabaseClient<Database>;
 
 type Tables = Database['public']['Tables'];
@@ -48,6 +49,22 @@ export interface AnalyticsSummary {
   total_project_views: number;
   visits_today: number;
   visits_this_week: number;
+}
+
+/** The columns fetchTopProjects selects. */
+export type TopProject = Pick<Project, 'id' | 'title' | 'slug' | 'view_count' | 'cover_image_url' | 'tagline'>;
+
+/**
+ * What GET /api/analytics returns: the dashboard in one round trip. A part
+ * that failed is null and its error is named in `errors`, so one broken
+ * view degrades one panel rather than the page.
+ */
+export interface AnalyticsDashboard {
+  summary: AnalyticsSummary | null;
+  daily: DailyVisit[] | null;
+  topProjects: TopProject[] | null;
+  recentEvents: Pick<AnalyticsEvent, 'id' | 'event' | 'path' | 'created_at'>[] | null;
+  errors: string[];
 }
 
 /** What the app knows about the active resume after resolving its URL. */

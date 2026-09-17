@@ -27,7 +27,8 @@ export interface LandingProps {
 
 // ─── Analytics teaser widget ──────────────────────────────────────────────────
 function AnalyticsTeaser() {
-  const { data: stats, isLoading: loading } = useQuery(queries.analyticsSummary());
+  const { data, isLoading: loading } = useQuery(queries.analytics());
+  const stats = data?.summary;
 
   const fmt = (v: number | null | undefined) => {
     if (loading || v == null) return '—';
@@ -214,8 +215,8 @@ export default function Landing({ experience, resume, children }: LandingProps) 
   // 'Security: Active' were hardcoded string literals sitting beside two
   // real readings, which undermines the credibility of the real ones.
   const STATUS_ITEMS = [
-    { label: 'System',  value: system,  color: systemColor  },
-    { label: 'Latency', value: latency, color: latencyColor },
+    { label: 'System',  value: system,  color: systemColor,  title: 'Is the database reachable from the server right now' },
+    { label: 'Latency', value: latency, color: latencyColor, title: 'Server → database round trip, measured on the server' },
   ];
 
   // hero.tags shape: { items: string[] }
@@ -244,7 +245,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
             }}
           >
             {STATUS_ITEMS.map((item) => (
-              <div key={item.label} className="flex items-center gap-1.5 text-xs">
+              <div key={item.label} className="flex items-center gap-1.5 text-xs" title={item.title}>
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse"
                   style={{ backgroundColor: item.color, boxShadow: `0 0 6px ${item.color}` }}

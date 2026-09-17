@@ -29,16 +29,18 @@ describe('Content-Security-Policy', () => {
     expect(directive('script-src')).not.toContain("'unsafe-eval'");
   });
 
-  it('names the Supabase origin in every directive that talks to it', () => {
-    expect(directive('connect-src')).toContain(SUPABASE);
+  it('names the Supabase origin where the browser loads assets from it', () => {
     expect(directive('img-src')).toContain(SUPABASE);   // cover images from storage
     expect(directive('frame-src')).toContain(SUPABASE); // the resume PDF iframe
   });
 
-  it('allows the realtime websocket', () => {
+  it('allows the realtime websocket and nothing else to Supabase', () => {
     // /analytics subscribes to postgres_changes; without wss the socket is
-    // blocked and the Live badge silently degrades to Snapshot.
+    // blocked and the Live badge silently degrades to Snapshot. The https
+    // origin is absent on purpose: every read and write goes through this
+    // origin's route handlers, and the policy is what keeps it that way.
     expect(directive('connect-src')).toContain('wss://abcdefghij.supabase.co');
+    expect(directive('connect-src')).not.toContain(SUPABASE);
   });
 
   it('keeps fonts first-party (self-hosted via next/font)', () => {
