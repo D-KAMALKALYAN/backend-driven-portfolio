@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
 import Card from '../components/Card';
+import CountUp from '../components/CountUp';
 import Button from '../components/Button';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { trackEvent } from '../services/analytics';
@@ -38,23 +39,6 @@ const DEFAULT_HIGHLIGHTS: Highlight[] = [
   { icon: '🛠', label: 'Full-Stack', text: 'Java, Spring Boot, React, Node.js, PostgreSQL' },
   { icon: '☁️', label: 'Cloud', text: 'Supabase, Docker, CI/CD pipelines' },
 ];
-
-// ─── Animated counter ─────────────────────────────────────────────────────────
-function CountUp({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    if (!value) return;
-    let start = 0;
-    const step = Math.ceil(value / 20);
-    const t = setInterval(() => {
-      start += step;
-      if (start >= value) { setDisplay(value); clearInterval(t); }
-      else setDisplay(start);
-    }, 40);
-    return () => clearInterval(t);
-  }, [value]);
-  return <>{display}{suffix}</>;
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Resume({ resume, profile, skillCount, expCount }: ResumeProps) {
