@@ -3,6 +3,7 @@
   "buildCommand": "next build",
   "installCommand": "npm ci",
   "outputDirectory": ".next",
+  "regions": ["hnd1"],
   "crons": [
     {
       "path": "/api/cron/rollup",

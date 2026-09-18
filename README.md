@@ -290,8 +290,13 @@ npm run dev
 
 ### Vercel
 
-Connect the repo; `vercel.json` pins the framework to Next.js. Set these in the
-project's environment variables:
+Connect the repo; `vercel.json` pins the framework to Next.js and puts the functions
+in **`hnd1` (Tokyo)**, the region of the Supabase project (`ap-northeast-1`). Every
+server-side read - page renders on a cache miss, `/api/analytics`, `/api/search`, the
+health ping - is a round trip to the database, and from Vercel's default `iad1` that
+trip measured 250-800 ms; next to the database it is tens of milliseconds. If the
+database ever moves, move this line with it. Set these in the project's environment
+variables:
 
 | Variable | Required | Purpose |
 |---|---|---|
