@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -8,6 +8,7 @@ import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
 import Card from '../components/Card';
+import CountUp from '../components/CountUp';
 import EmptyState from '../components/EmptyState';
 import { SkeletonSection, SkeletonGrid } from '../components/SkeletonLoader';
 import { queries } from '../services/queries';
@@ -17,26 +18,6 @@ import type { DailyVisit, Project } from '../types/rows';
 
 /** The columns fetchTopProjects selects. */
 type TopProject = Pick<Project, 'id' | 'title' | 'slug' | 'view_count' | 'cover_image_url' | 'tagline'>;
-
-// ─── Animated counter ────────────────────────────────────────────────────────
-function CountUp({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    if (!value) return;
-    const target = Number(value);
-    if (!target) return;
-    let current = 0;
-    const steps = 30;
-    const step  = Math.max(1, Math.ceil(target / steps));
-    const t = setInterval(() => {
-      current = Math.min(current + step, target);
-      setDisplay(current);
-      if (current >= target) clearInterval(t);
-    }, 30);
-    return () => clearInterval(t);
-  }, [value]);
-  return <>{display.toLocaleString()}{suffix}</>;
-}
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 interface StatCardProps {
