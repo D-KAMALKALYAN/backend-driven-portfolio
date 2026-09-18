@@ -72,7 +72,7 @@ Manual resume links       →    Upload to bucket → trigger handles the rest
 │  Storage          → resumes (public bucket, trigger-indexed)     │
 │  Realtime         → live analytics feed (the browser's one       │
 │                     direct connection, over wss)                 │
-│  Database Webhook → POST /api/revalidate on content change       │
+│  pg_net triggers  → POST /api/revalidate on content change       │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  PostgreSQL                                              │   │
@@ -87,7 +87,7 @@ Manual resume links       →    Upload to bucket → trigger handles the rest
 **Rendering.** Every page is rendered on the server per request, so crawlers and
 link unfurlers see real HTML with real `<title>`, description and a per-URL
 OpenGraph image. Content reads are cached in Next's Data Cache and tagged by table;
-a Supabase Database Webhook hits `/api/revalidate` when a row changes, so an edit is
+a trigger on every content table hits `/api/revalidate` when a row changes, so an edit is
 live on the next request without a deploy. Per-request rendering is the price of a
 nonce-based Content-Security-Policy - see `developer-notes/decisions.md` ADR-032 for
 why that trade was made over static generation.
@@ -181,7 +181,7 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   │   ├── page.tsx …         # one thin server file per route: fetch → <View />
 │   │   ├── projects/[slug]/   # page + generateMetadata + opengraph-image
 │   │   ├── api/contact/       # validate → insert (real IP) → Resend notification
-│   │   ├── api/revalidate/    # database webhook → expire the changed table's cache tag
+│   │   ├── api/revalidate/    # content-table triggers → expire the changed table's cache tag
 │   │   ├── sitemap.ts, robots.ts, error.tsx, not-found.tsx
 │   ├── proxy.ts               # per-request CSP nonce
 │   ├── views/                 # The page bodies (client components, data via props)
@@ -254,7 +254,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 # Server only
 SUPABASE_SERVICE_ROLE_KEY=...   # /api/contact writes with it when present
 RESEND_API_KEY=re_...           # contact notifications
-REVALIDATE_SECRET=...           # shared secret for the database webhook
+REVALIDATE_SECRET=...           # shared secret the revalidate triggers send (also in Vault)
 ```
 
 > Only `NEXT_PUBLIC_*` names reach the browser bundle. The service-role key and the
@@ -295,7 +295,7 @@ project's environment variables:
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | PostgREST origin (also allow-listed in the CSP) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | public read key; RLS is the boundary |
-| `REVALIDATE_SECRET` | yes | bearer token the database webhook sends to `/api/revalidate` |
+| `REVALIDATE_SECRET` | yes | bearer token the content-table triggers send to `/api/revalidate`; the same value goes into Vault as `revalidate_secret` |
 | `RESEND_API_KEY` | for email | contact-form notifications |
 | `SUPABASE_SERVICE_ROLE_KEY` | recommended | lets `/api/contact` insert without an anon INSERT policy |
 | `RESEND_FROM`, `CONTACT_NOTIFY_TO` | optional | sender identity; defaults to `onboarding@resend.dev` and `profiles.email` |
@@ -338,17 +338,24 @@ is searchable - a draft post cannot be found. Exposed as `GET /api/search?q=`.
 
 ### Content updates without a deploy
 
-Reads are cached for an hour and tagged by table. To make edits live immediately,
-add one **Database Webhook** in the Supabase dashboard (Database → Webhooks):
+Reads are cached for an hour and tagged by table. An edit becomes live on the next
+request because every content table carries a statement-level trigger
+(`supabase/migrations/20260918090000_revalidate_triggers.sql`) that POSTs the standard
+webhook payload to `/api/revalidate` through `pg_net`. The secret never touches the
+repo: the trigger reads it from Supabase Vault at call time. Set it once, in the SQL
+editor:
 
-- Events: `INSERT`, `UPDATE`, `DELETE` on `projects`, `project_sections`,
-  `project_storytelling`, `site_content`, `profiles`, `skills`, `experience`,
-  `achievements`, `external_profiles`, `resume`, `page_sections`, `now_entries`,
-  `ventures`, `posts`, `post_blocks`
-- Type: HTTP request, `POST https://<your-domain>/api/revalidate`
-- Header: `Authorization: Bearer <REVALIDATE_SECRET>`
+```sql
+select vault.create_secret('<REVALIDATE_SECRET>', 'revalidate_secret');
+-- optional: point at a preview or local server instead of production
+select vault.create_secret('https://<your-domain>/api/revalidate', 'revalidate_url');
+```
 
-The handler reads `table` from the standard payload and expires that table's tag.
+Until the secret exists the trigger logs a warning and the edit simply waits for the
+hourly refresh; a write is never blocked by the notification. The handler reads `table`
+from the payload and expires that table's tag. (The dashboard's "Database Webhooks"
+feature is the same mechanism configured by hand, one table at a time; the migration
+retires any it finds.)
 
 ### Keep Free Tier Active
 
