@@ -9,10 +9,12 @@ import SectionHeader from '../components/SectionHeader';
 import Card from '../components/Card';
 import CountUp from '../components/CountUp';
 import Button from '../components/Button';
+import Icon, { isIconName } from '../components/Icon';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { trackEvent } from '../services/analytics';
 import { getVal, getItems } from '../utils/siteContent';
 import { enterAt } from '../utils/enter';
+import { tint } from '../lib/palette';
 import type { ActiveResume, Profile } from '../types/rows';
 
 export interface ResumeProps {
@@ -27,6 +29,7 @@ import { readProfileMeta } from '../utils/profileMeta';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 interface Highlight {
+  /** An icon name from components/Icon (e.g. "lock"); any other string is shown as text. */
   icon: string;
   label: string;
   text: string;
@@ -34,10 +37,10 @@ interface Highlight {
 
 // Fallback highlights if DB key is missing
 const DEFAULT_HIGHLIGHTS: Highlight[] = [
-  { icon: '🔒', label: 'Security', text: 'SAST/DAST, enterprise-grade application security' },
-  { icon: '🏗', label: 'Architecture', text: 'Scalable backend systems, microservices design' },
-  { icon: '🛠', label: 'Full-Stack', text: 'Java, Spring Boot, React, Node.js, PostgreSQL' },
-  { icon: '☁️', label: 'Cloud', text: 'Supabase, Docker, CI/CD pipelines' },
+  { icon: 'lock',     label: 'Security',     text: 'SAST/DAST, enterprise-grade application security' },
+  { icon: 'building', label: 'Architecture', text: 'Scalable backend systems, microservices design' },
+  { icon: 'wrench',   label: 'Full-Stack',   text: 'Java, Spring Boot, React, Node.js, PostgreSQL' },
+  { icon: 'cloud',    label: 'Cloud',        text: 'Supabase, Docker, CI/CD pipelines' },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -86,19 +89,19 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
                   whileHover={{ scale: 1.08, rotate: 2 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--accent)' }}>
+                  <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </motion.div>
 
-                <h3 className="text-xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                <h3 className="text-xl font-semibold mb-1 text-primary">
                   {profile?.full_name || getVal(content, 'profile.name', 'Kamal Kalyan')}
                 </h3>
-                <p className="text-sm mb-1" style={{ color: 'var(--accent)' }}>
+                <p className="text-sm mb-1 text-accent">
                   {profile?.title || getVal(content, 'profile.role', 'Backend Engineer')}
                 </p>
-                <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs mb-6 text-muted">
                   PDF · Supabase Storage · Always up-to-date
                 </p>
 
@@ -135,18 +138,18 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>No resume uploaded yet.</p>
+                  <p className="text-sm font-mono text-muted">No resume uploaded yet.</p>
                 )}
 
                 {/* Stats */}
                 {STATS.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4 mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
+                  <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-line">
                     {STATS.map((s) => (
                       <div key={s.label} className="text-center">
-                        <p className="text-2xl font-bold font-mono" style={{ color: 'var(--accent)' }}>
+                        <p className="text-2xl font-bold font-mono text-accent">
                           <CountUp value={s.value} suffix={s.suffix} />
                         </p>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5 text-muted">
                           {s.label}
                         </p>
                       </div>
@@ -174,7 +177,7 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
               )}
 
               {/* Storage badge */}
-              <p className="flex items-center gap-2 mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="flex items-center gap-2 mt-4 text-xs text-muted">
                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -185,7 +188,7 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
 
             {/* ── Right: Highlights + CTA ── */}
             <div className="enter space-y-4" style={enterAt(200)}>
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted">
                 What&apos;s Inside
               </p>
 
@@ -193,21 +196,22 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
                 {highlights.map((h, i) => (
                   <motion.div key={h.label} className="enter" style={enterAt(250 + i * 80)} whileHover={{ x: 4 }}>
                     <div
-                      className="flex items-center gap-4 p-4 rounded-2xl transition-all cursor-default"
-                      style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)' }}
+                      className="flex items-center gap-4 p-4 rounded-2xl transition-all cursor-default shadow-card bg-card"
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = 'var(--shadow-hover), 0 0 0 1px rgba(99,102,241,0.2)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-hover), 0 0 0 1px var(--ring-accent-soft)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.boxShadow = 'var(--shadow-card)';
                       }}
                     >
-                      <span className="text-xl shrink-0">{h.icon}</span>
+                      <span className="shrink-0 text-accent inline-flex">
+                        {isIconName(h.icon) ? <Icon name={h.icon} size={20} /> : <span className="text-xl">{h.icon}</span>}
+                      </span>
                       <div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{h.label}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{h.text}</p>
+                        <p className="text-sm font-semibold text-primary">{h.label}</p>
+                        <p className="text-xs mt-0.5 text-muted">{h.text}</p>
                       </div>
-                      <svg className="w-4 h-4 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)' }}>
+                      <svg className="w-4 h-4 ml-auto shrink-0 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
@@ -220,24 +224,24 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
                 className="enter rounded-2xl p-5 mt-2 relative overflow-hidden"
                 style={{
                   ...enterAt(550),
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 50%, rgba(99,102,241,0.06) 100%)',
-                  boxShadow: '0 0 0 1px rgba(99,102,241,0.18)',
+                  background: `linear-gradient(135deg, ${tint('indigo', 12)} 0%, ${tint('violet', 8)} 50%, ${tint('indigo', 6)} 100%)`,
+                  boxShadow: `0 0 0 1px ${tint('accent', 18)}`,
                 }}
               >
                 {/* Shimmer overlay */}
                 <motion.div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%)',
+                    background: 'linear-gradient(105deg, transparent 40%, var(--sheen) 50%, transparent 60%)',
                     backgroundSize: '200% 100%',
                   }}
                   animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'linear', repeatDelay: 1.5 }}
                 />
-                <p className="text-sm font-semibold mb-1 relative z-10" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm font-semibold mb-1 relative z-10 text-primary">
                   Interested in collaborating?
                 </p>
-                <p className="text-xs mb-4 relative z-10" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs mb-4 relative z-10 text-muted">
                   View my projects or get in touch directly.
                 </p>
                 <div className="flex gap-3 relative z-10">

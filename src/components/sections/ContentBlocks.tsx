@@ -31,8 +31,7 @@ function Inline({ text }: { text: string }) {
         part.startsWith('`') && part.endsWith('`') && part.length > 2 ? (
           <code
             key={i}
-            className="px-1 py-0.5 rounded text-[0.85em] font-mono"
-            style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-primary)' }}
+            className="px-1 py-0.5 rounded text-[0.85em] font-mono bg-subtle text-primary"
           >
             {part.slice(1, -1)}
           </code>
@@ -64,7 +63,7 @@ export function ProseBlock({ section }: { section: BlockLike }) {
           </p>
         ))}
         {bullets.length > 0 && (
-          <ul className="flex flex-col gap-2 pl-5 m-0 list-disc" style={{ color: 'var(--text-secondary)' }}>
+          <ul className="flex flex-col gap-2 pl-5 m-0 list-disc text-secondary">
             {bullets.map((b, i) => (
               <li key={i} className="enter text-base leading-relaxed" style={enterAt(200 + i * 50)}>
                 <Inline text={b} />
@@ -74,9 +73,9 @@ export function ProseBlock({ section }: { section: BlockLike }) {
         )}
         {href && label && (
           href.startsWith('/') ? (
-            <Link href={href} className="inline-block text-sm font-semibold no-underline hover:underline" style={{ color: 'var(--accent)' }}>{label}</Link>
+            <Link href={href} className="inline-block text-sm font-semibold no-underline hover:underline text-accent">{label}</Link>
           ) : (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="inline-block text-sm font-semibold no-underline hover:underline" style={{ color: 'var(--accent)' }}>{label} ↗</a>
+            <a href={href} target="_blank" rel="noopener noreferrer" className="inline-block text-sm font-semibold no-underline hover:underline text-accent">{label} ↗</a>
           )
         )}
       </div>
@@ -96,14 +95,13 @@ export function DiagramBlock({ section }: { section: BlockLike }) {
         {/* Monospace, not an image: readable in both themes, zoomable, and
             the text is in the HTML for anyone who cannot see it. */}
         <pre
-          className="enter overflow-x-auto text-[11px] sm:text-xs leading-snug p-5 rounded-2xl font-mono m-0"
-          style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', boxShadow: 'var(--shadow-card)' }}
+          className="enter overflow-x-auto text-[11px] sm:text-xs leading-snug p-5 rounded-2xl font-mono m-0 bg-card text-primary shadow-card"
           aria-label={caption || section.heading || 'diagram'}
         >
           {ascii}
         </pre>
         {caption && (
-          <figcaption className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>{caption}</figcaption>
+          <figcaption className="mt-3 text-sm text-muted">{caption}</figcaption>
         )}
       </figure>
     </SectionBlock>
@@ -127,16 +125,15 @@ export function StepsBlock({ section }: { section: BlockLike }) {
             style={{ ...enterAt(i * 70), backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}
           >
             <span
-              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold font-mono"
-              style={{ backgroundColor: 'var(--accent-glow)', color: 'var(--accent)' }}
+              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold font-mono bg-accent-glow text-accent"
               aria-hidden="true"
             >
               {i + 1}
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold m-0 mb-1" style={{ color: 'var(--text-primary)' }}>{s.title}</p>
+              <p className="text-sm font-semibold m-0 mb-1 text-primary">{s.title}</p>
               {s.body && (
-                <p className="text-sm leading-relaxed m-0" style={{ color: 'var(--text-secondary)' }}><Inline text={s.body} /></p>
+                <p className="text-sm leading-relaxed m-0 text-secondary"><Inline text={s.body} /></p>
               )}
             </div>
           </li>
@@ -154,7 +151,7 @@ export function TableBlock({ section }: { section: BlockLike }) {
 
   return (
     <SectionBlock heading={section.heading ?? ''} description={section.description}>
-      <div className="overflow-x-auto rounded-2xl" style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)' }}>
+      <div className="overflow-x-auto rounded-2xl shadow-card bg-card">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr>
@@ -162,8 +159,7 @@ export function TableBlock({ section }: { section: BlockLike }) {
                 <th
                   key={col}
                   scope="col"
-                  className="text-left text-[11px] font-semibold uppercase tracking-widest px-4 py-3"
-                  style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}
+                  className="text-left text-[11px] font-semibold uppercase tracking-widest px-4 py-3 text-muted border-b border-line"
                 >
                   {col}
                 </th>
@@ -206,13 +202,12 @@ export function CodeBlock({ section }: { section: BlockLike }) {
     <SectionBlock heading={section.heading ?? ''} description={section.description}>
       <figure className="m-0">
         <pre
-          className="enter overflow-x-auto text-xs leading-relaxed p-5 rounded-2xl font-mono m-0"
-          style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', boxShadow: 'var(--shadow-card)' }}
+          className="enter overflow-x-auto text-xs leading-relaxed p-5 rounded-2xl font-mono m-0 bg-card text-primary shadow-card"
           data-language={language || undefined}
         >
           <code>{snippet}</code>
         </pre>
-        {caption && <figcaption className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>{caption}</figcaption>}
+        {caption && <figcaption className="mt-3 text-sm text-muted">{caption}</figcaption>}
       </figure>
     </SectionBlock>
   );

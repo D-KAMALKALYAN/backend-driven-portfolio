@@ -92,7 +92,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-[var(--overlay)] backdrop-blur-sm"
             onClick={close} aria-hidden="true"
           />
 
@@ -108,11 +108,11 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
           >
             <div
               className="rounded-2xl overflow-hidden"
-              style={{ backgroundColor: 'var(--bg-card)', boxShadow: '0 25px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.07)' }}
+              style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-modal)' }}
             >
               {/* Search — ALL keyboard handling is here to avoid double-fire */}
-              <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)' }}>
+              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
+                <svg className="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
@@ -122,8 +122,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                   onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
                   onKeyDown={handleKeyDown}      /* ← single source of key events */
                   placeholder="Search projects, notes, skills - or type a command"
-                  className="flex-1 bg-transparent border-none outline-none text-sm"
-                  style={{ color: 'var(--text-primary)' }}
+                  className="flex-1 bg-transparent border-none outline-none text-sm text-primary"
                   id="command-palette-input"
                   role="combobox"
                   aria-expanded={isOpen}
@@ -131,19 +130,19 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                   autoComplete="off"
                   spellCheck={false}
                 />
-                <kbd className="px-2 py-0.5 rounded-lg text-xs font-mono" style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>ESC</kbd>
+                <kbd className="px-2 py-0.5 rounded-lg text-xs font-mono bg-subtle text-muted">ESC</kbd>
               </div>
 
               {/* Results */}
               <div ref={listRef} className="max-h-72 overflow-y-auto py-1.5" role="listbox">
                 {grouped.size === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                  <p className="px-4 py-8 text-center text-sm text-muted">
                     {searching ? 'Searching…' : 'Nothing found'}
                   </p>
                 ) : (
                   [...grouped.entries()].map(([group, items]) => (
                     <div key={group}>
-                      <p className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                      <p className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
                         {group}
                       </p>
                       {items.map(({ cmd, idx }) => {
@@ -165,7 +164,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                           >
                             <span className="truncate">{cmd.label}</span>
                             {cmd.hint && (
-                              <span className="text-xs font-mono truncate max-w-[45%] text-right shrink-0" style={{ color: 'var(--text-muted)' }}>
+                              <span className="text-xs font-mono truncate max-w-[45%] text-right shrink-0 text-muted">
                                 {cmd.hint}
                               </span>
                             )}
@@ -178,18 +177,18 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
               </div>
 
               {/* Footer hints */}
-              <div className="px-4 py-2.5 flex items-center gap-4 text-[10px]" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+              <div className="px-4 py-2.5 flex items-center gap-4 text-[10px] border-t border-line text-muted">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>↑</kbd>
-                  <kbd className="px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>↓</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">↑</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">↓</kbd>
                   Navigate
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>↵</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">↵</kbd>
                   Select
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>ESC</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">ESC</kbd>
                   Close
                 </span>
               </div>

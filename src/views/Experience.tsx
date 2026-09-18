@@ -10,6 +10,7 @@ function useIsTouchDevice() {
   );
 }
 import { motion, AnimatePresence } from 'framer-motion';
+import { Briefcase, MapPin } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
@@ -19,6 +20,7 @@ import EmptyState from '../components/EmptyState';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { enterAt } from '../utils/enter';
+import { hueStyle } from '../lib/palette';
 import type { Experience as ExperienceRow } from '../types/rows';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -79,7 +81,7 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
         {/* Backdrop */}
         <motion.div
           className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          style={{ backgroundColor: 'var(--overlay)', backdropFilter: 'blur(4px)' }}
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -96,7 +98,7 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
           style={{
             width: 'min(480px, 92vw)',
             backgroundColor: 'var(--bg-surface)',
-            boxShadow: '-4px 0 40px rgba(0,0,0,0.5), -1px 0 0 var(--border)',
+            boxShadow: 'var(--shadow-drawer)',
           }}
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
@@ -115,21 +117,20 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             <div className="flex items-center gap-2">
               {isCurrent && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                  style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: 'var(--success)' }}
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold hue-chip"
+                  style={hueStyle('success')}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                   Current
                 </span>
               )}
-              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs font-mono text-muted">
                 {start}{start && end ? ' — ' : ''}{end}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-              style={{ color: 'var(--text-muted)' }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors text-muted"
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
               aria-label="Close"
@@ -146,22 +147,21 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             {/* Role + Company */}
             <div>
               <h2
-                className="text-2xl font-bold mb-1.5 leading-tight"
-                style={{ color: 'var(--text-primary)' }}
+                className="text-2xl font-bold mb-1.5 leading-tight text-primary"
               >
                 {exp?.role || 'Position'}
               </h2>
               {(exp?.company || exp?.location) && (
-                <p className="text-sm flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm flex items-center gap-1.5 flex-wrap text-secondary">
                   {exp?.company && (
                     <span className="font-medium">{exp.company}</span>
                   )}
                   {exp?.company && exp?.location && (
-                    <span style={{ color: 'var(--border-hover)' }}>·</span>
+                    <span className="text-line-hover">·</span>
                   )}
                   {exp?.location && (
-                    <span className="flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                      📍 {exp.location}
+                    <span className="flex items-center gap-1 text-muted">
+                      <MapPin size={12} aria-hidden /> {exp.location}
                     </span>
                   )}
                 </p>
@@ -169,15 +169,15 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             </div>
 
             {/* Divider */}
-            <div style={{ borderTop: '1px solid var(--border)' }} />
+            <div className="border-t border-line" />
 
             {/* Description */}
             {exp?.description && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-3 text-muted">
                   Overview
                 </p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm leading-relaxed text-secondary">
                   {exp.description.split('\n')[0]}
                 </p>
               </div>
@@ -186,7 +186,7 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             {/* Key Achievements */}
             {achievements.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-3 text-muted">
                   Key Highlights
                 </p>
                 <ul className="space-y-2.5">
@@ -196,12 +196,10 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
                       initial={{ opacity: 0, x: 12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + i * 0.06 }}
-                      className="flex items-start gap-2.5 text-sm"
-                      style={{ color: 'var(--text-secondary)' }}
+                      className="flex items-start gap-2.5 text-sm text-secondary"
                     >
                       <span
-                        className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: 'var(--accent)' }}
+                        className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-accent"
                       />
                       {item}
                     </motion.li>
@@ -213,7 +211,7 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             {/* Technologies */}
             {techs.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-3 text-muted">
                   Technologies
                 </p>
                 <motion.div
@@ -240,7 +238,7 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
               style={{
                 backgroundColor: 'var(--accent-glow)',
                 color: 'var(--accent)',
-                boxShadow: '0 0 0 1px rgba(99,102,241,0.2)',
+                boxShadow: '0 0 0 1px var(--ring-accent-soft)',
               }}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,19 +250,18 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
 
           {/* Footer hint — device-aware */}
           <div
-            className="px-6 py-4 text-center text-xs"
-            style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}
+            className="px-6 py-4 text-center text-xs border-t border-line text-muted"
           >
             {isTouch ? (
               <>
                 Tap{' '}
-                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>✕</kbd>
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-subtle">✕</kbd>
                 {' '}to close
               </>
             ) : (
               <>
                 Press{' '}
-                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--bg-subtle)' }}>ESC</kbd>
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-subtle">ESC</kbd>
                 {' '}to close
               </>
             )}
@@ -303,9 +300,9 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
           }}
         >
           {isCurrent ? (
-            <span className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: 'var(--accent)' }} />
+            <span className="w-3 h-3 rounded-full animate-pulse bg-accent" />
           ) : (
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--text-muted)' }} />
+            <span className="w-2.5 h-2.5 rounded-full bg-muted" />
           )}
         </div>
         {!isLast && (
@@ -335,40 +332,39 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
               hover={false}
               style={{
                 boxShadow: isCurrent
-                  ? 'var(--shadow-card), 0 0 0 1px rgba(99,102,241,0.2)'
+                  ? 'var(--shadow-card), 0 0 0 1px var(--ring-accent-soft)'
                   : 'var(--shadow-card)',
                 transition: 'box-shadow 0.2s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow = isCurrent
-                  ? 'var(--shadow-hover), 0 0 0 1px rgba(99,102,241,0.4)'
+                  ? 'var(--shadow-hover), 0 0 0 1px var(--ring-accent)'
                   : 'var(--shadow-hover), 0 0 0 1px var(--border-hover)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = isCurrent
-                  ? 'var(--shadow-card), 0 0 0 1px rgba(99,102,241,0.2)'
+                  ? 'var(--shadow-card), 0 0 0 1px var(--ring-accent-soft)'
                   : 'var(--shadow-card)';
               }}
             >
               {/* Date + badge + "details" hint */}
               <div className="flex items-center justify-between gap-3 mb-3">
-                <p className="text-xs font-mono font-semibold" style={{ color: 'var(--accent)' }}>
+                <p className="text-xs font-mono font-semibold text-accent">
                   {start}{start && end ? ' — ' : ''}{end}
                 </p>
                 <div className="flex items-center gap-2">
                   {isCurrent && (
                     <span
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                      style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: 'var(--success)' }}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold hue-chip"
+                      style={hueStyle('success')}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                       Current
                     </span>
                   )}
                   {/* Click-to-expand hint */}
                   <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    style={{ backgroundColor: 'var(--accent-glow)', color: 'var(--accent)' }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-accent-glow text-accent"
                   >
                     Details
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,22 +374,22 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
                 </div>
               </div>
 
-              <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="text-lg font-semibold mb-1 text-primary">
                 {exp?.role || 'Position'}
               </h3>
 
               {(exp?.company || exp?.location) && (
-                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm mb-3 text-secondary">
                   {exp?.company || ''}
                   {exp?.company && exp?.location && (
-                    <span style={{ color: 'var(--text-muted)' }}> · {exp.location}</span>
+                    <span className="text-muted"> · {exp.location}</span>
                   )}
                   {!exp?.company && exp?.location && exp.location}
                 </p>
               )}
 
               {exp?.description && (
-                <p className="text-sm leading-relaxed mb-4 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm leading-relaxed mb-4 line-clamp-2 text-secondary">
                   {exp.description.split('\n')[0]}
                 </p>
               )}
@@ -402,7 +398,7 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
                 <div className="flex flex-wrap gap-1.5">
                   {techs.slice(0, 5).map((t) => <Badge key={t}>{t}</Badge>)}
                   {techs.length > 5 && (
-                    <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle)' }}>
+                    <span className="text-xs font-mono px-2 py-0.5 rounded text-muted bg-subtle">
                       +{techs.length - 5} more
                     </span>
                   )}
@@ -448,7 +444,7 @@ export default function Experience({ experience }: { experience: ExperienceRow[]
               ))}
             </div>
           ) : (
-            <EmptyState icon="💼" title="No experience entries" description="Add experience via Supabase." />
+            <EmptyState icon={<Briefcase size={24} aria-hidden />} title="No experience entries" description="Add experience via Supabase." />
           )}
         </Container>
       </Section>

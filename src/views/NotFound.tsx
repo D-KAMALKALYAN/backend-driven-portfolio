@@ -30,17 +30,16 @@ export default function NotFound() {
         <Container>
           <div className="min-h-[50vh] flex flex-col items-center justify-center text-center gap-5">
             <p
-              className="text-6xl sm:text-7xl font-extrabold font-mono"
-              style={{ color: 'var(--accent)' }}
+              className="text-6xl sm:text-7xl font-extrabold font-mono text-accent"
             >
               404
             </p>
 
-            <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-2xl font-semibold text-primary">
               {title}
             </h1>
 
-            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm max-w-md text-muted">
               {description}
             </p>
 

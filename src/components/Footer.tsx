@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Cog } from 'lucide-react';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { asObjectArray, asString } from '../utils/json';
 
@@ -40,7 +41,7 @@ export default function Footer() {
   const techStack    = getVal('footer.tech_stack', 'React · Supabase');
 
   return (
-    <footer style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)' }}>
+    <footer className="border-t border-line bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Main row */}
@@ -49,21 +50,21 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-2">
-              <span className="w-7 h-7 rounded-lg bg-[var(--accent)] flex items-center justify-center text-white text-xs font-bold">
+              <span className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-on-accent text-xs font-bold">
                 {brandInitial}
               </span>
-              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-sm font-semibold text-primary">
                 {name}
               </span>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs leading-relaxed text-muted">
               {tagline}
             </p>
           </div>
 
           {/* Nav links — two columns in one cell */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5 text-muted">
               {navTitle}
             </p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
@@ -71,8 +72,7 @@ export default function Footer() {
                 <Link
                   key={link.path}
                   href={link.path}
-                  className="text-xs no-underline transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="text-xs no-underline transition-colors text-muted"
                   onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >
@@ -84,16 +84,15 @@ export default function Footer() {
 
           {/* Quick access */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5 text-muted">
               {qaTitle}
             </p>
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex items-center gap-1.5 text-xs text-muted">
               {shortcutKeys.map((key, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   {i > 0 && <span>+</span>}
                   <kbd
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono"
-                    style={{ backgroundColor: 'var(--bg-subtle)', boxShadow: 'var(--shadow-card)' }}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-subtle shadow-card"
                   >
                     {key}
                   </kbd>
@@ -110,16 +109,16 @@ export default function Footer() {
             className="rounded-xl px-4 py-3 mb-5 flex items-start gap-3"
             style={{ backgroundColor: 'var(--bg-subtle)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
           >
-            <span className="text-sm shrink-0 mt-px">⚙️</span>
-            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <Cog size={14} className="shrink-0 mt-px text-muted" aria-hidden />
+            <p className="text-[11px] leading-relaxed text-muted">
               {noteTitle && (
-                <strong style={{ color: 'var(--text-secondary)' }}>{noteTitle}{' '}</strong>
+                <strong className="text-secondary">{noteTitle}{' '}</strong>
               )}
               {noteDesc}
               {noteHref && (
                 <>
                   {' '}
-                  <Link href={noteHref} className="font-semibold no-underline hover:underline" style={{ color: 'var(--accent)' }}>
+                  <Link href={noteHref} className="font-semibold no-underline hover:underline text-accent">
                     {noteLink} →
                   </Link>
                 </>
@@ -130,8 +129,7 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div
-          className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 text-[11px]"
-          style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}
+          className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 text-[11px] border-t border-line text-muted"
         >
           <span>{copyright}</span>
           <span>{techStack}</span>

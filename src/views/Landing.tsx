@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { useEffect, type ReactNode } from 'react';
+import { ArrowRight, Briefcase, FolderOpen, MapPin, User, Zap, type LucideIcon } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
@@ -16,6 +17,7 @@ import { getVal, getItems } from '../utils/siteContent';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { asStringArray } from '../utils/json';
 import { enterAt } from '../utils/enter';
+import { hueStyle, tint, type Hue } from '../lib/palette';
 import type { ActiveResume, Experience } from '../types/rows';
 
 export interface LandingProps {
@@ -37,10 +39,10 @@ function AnalyticsTeaser() {
     return n.toLocaleString();
   };
 
-  const PILLS = [
-    { label: 'Page Views',      value: fmt(stats?.total_visits),        color: '#6366f1' },
-    { label: 'Sessions',       value: fmt(stats?.unique_visitors),      color: '#22c55e' },
-    { label: 'Project Views',   value: fmt(stats?.total_project_views),  color: '#f59e0b' },
+  const PILLS: Array<{ label: string; value: string; hue: Hue }> = [
+    { label: 'Page Views',    value: fmt(stats?.total_visits),        hue: 'indigo' },
+    { label: 'Sessions',      value: fmt(stats?.unique_visitors),     hue: 'green' },
+    { label: 'Project Views', value: fmt(stats?.total_project_views), hue: 'amber' },
   ];
 
   return (
@@ -51,49 +53,40 @@ function AnalyticsTeaser() {
         aria-label="View system analytics"
       >
         <motion.div
-          className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200"
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            boxShadow: 'var(--shadow-card), 0 0 0 1px rgba(99,102,241,0.12)',
-          }}
-          whileHover={{
-            boxShadow: 'var(--shadow-hover), 0 0 0 1px rgba(99,102,241,0.35)',
-            y: -2,
-          }}
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 bg-card
+                     shadow-[var(--shadow-card),0_0_0_1px_var(--ring-accent-soft)]
+                     group-hover:shadow-[var(--shadow-hover),0_0_0_1px_var(--ring-accent)]"
+          whileHover={{ y: -2 }}
         >
           {/* Live dot */}
           <span className="flex items-center gap-1.5 shrink-0">
             <span
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: '#22c55e', boxShadow: '0 0 6px #22c55e' }}
+              className="w-2 h-2 rounded-full animate-pulse hue-dot [--dot-glow:6px]"
+              style={hueStyle('success')}
             />
-            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#22c55e' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-success">
               Live
             </span>
           </span>
 
           {/* Divider */}
-          <span className="w-px self-stretch shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+          <span className="w-px self-stretch shrink-0 bg-line" />
 
           {/* Stat pills */}
           <div className="flex items-center gap-3 flex-1 flex-wrap">
             {PILLS.map((p) => (
               <span key={p.label} className="flex items-center gap-1.5 text-xs">
-                <span
-                  className="font-mono font-bold"
-                  style={{ color: p.color }}
-                >
+                <span className="font-mono font-bold hue-text" style={hueStyle(p.hue)}>
                   {p.value}
                 </span>
-                <span style={{ color: 'var(--text-muted)' }}>{p.label}</span>
+                <span className="text-muted">{p.label}</span>
               </span>
             ))}
           </div>
 
           {/* CTA arrow */}
           <motion.span
-            className="shrink-0 flex items-center gap-1 text-xs font-semibold"
-            style={{ color: 'var(--accent)' }}
+            className="shrink-0 flex items-center gap-1 text-xs font-semibold text-accent"
             animate={{ x: [0, 3, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >
@@ -119,7 +112,7 @@ function DownloadIcon() {
 }
 
 
-const NAV_ICON_MAP: Partial<Record<RoutePath, string>> = { '/about': '👤', '/projects': '📂', '/skills': '⚡', '/experience': '💼' };
+const NAV_ICON_MAP: Partial<Record<RoutePath, LucideIcon>> = { '/about': User, '/projects': FolderOpen, '/skills': Zap, '/experience': Briefcase };
 const QUICK_NAV_PATHS: RoutePath[] = ['/about', '/projects', '/skills', '/experience'];
 
 // ─── Animated gradient orbs that loosely track the cursor ────────────────────
@@ -151,7 +144,7 @@ function GradientOrbs() {
           width: '60vw',
           height: '60vw',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${tint('indigo', 12)} 0%, transparent 70%)`,
           filter: 'blur(60px)',
           willChange: 'transform',
           translateX: '-50%',
@@ -167,7 +160,7 @@ function GradientOrbs() {
           width: '50vw',
           height: '50vw',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${tint('violet', 9)} 0%, transparent 70%)`,
           filter: 'blur(80px)',
           willChange: 'transform',
         }}
@@ -183,7 +176,7 @@ function GradientOrbs() {
           width: '30vw',
           height: '30vw',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(34,197,94,0.05) 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${tint('green', 5)} 0%, transparent 70%)`,
           filter: 'blur(60px)',
         }}
         animate={{ scale: [1, 1.12, 1], opacity: [0.4, 0.8, 0.4] }}
@@ -239,7 +232,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
             className="enter inline-flex flex-wrap items-center justify-center gap-5 mb-14 px-6 py-3 rounded-full"
             style={{
               ...enterAt(50),
-              boxShadow: 'var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.04)',
+              boxShadow: 'var(--shadow-card), inset 0 1px 0 var(--sheen)',
               backgroundColor: 'var(--bg-card)',
               backdropFilter: 'blur(12px)',
             }}
@@ -250,7 +243,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
                   className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse"
                   style={{ backgroundColor: item.color, boxShadow: `0 0 6px ${item.color}` }}
                 />
-                <span style={{ color: 'var(--text-muted)' }}>{item.label}:</span>
+                <span className="text-muted">{item.label}:</span>
                 <span className="font-mono font-semibold" style={{ color: item.color }}>{item.value}</span>
               </div>
             ))}
@@ -263,7 +256,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
               className="text-5xl sm:text-7xl font-extrabold leading-tight tracking-tight mb-5"
               style={{
                 color: 'var(--text-primary)',
-                textShadow: '0 0 80px rgba(99,102,241,0.25)',
+                textShadow: '0 0 80px var(--accent-glow2)',
               }}
             >
               {name}
@@ -275,8 +268,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
             </p>
 
             <p
-              className="text-base leading-relaxed mb-7 max-w-xl mx-auto"
-              style={{ color: 'var(--text-secondary)' }}
+              className="leading-relaxed mb-7 max-w-xl mx-auto text-secondary"
             >
               {subheadline}
             </p>
@@ -296,27 +288,18 @@ export default function Landing({ experience, resume, children }: LandingProps) 
               <div className="enter flex flex-wrap items-center justify-center gap-2 mb-8" style={enterAt(300)}>
                 {availability && (
                   <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: 'rgba(34,197,94,0.08)',
-                      color: 'var(--success)',
-                      boxShadow: '0 0 0 1px rgba(34,197,94,0.2)',
-                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hue-pill"
+                    style={hueStyle('success')}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--success)' }} />
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-success" />
                     {availability}
                   </span>
                 )}
                 {location && (
                   <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: 'var(--bg-subtle)',
-                      color: 'var(--text-muted)',
-                      boxShadow: 'var(--shadow-card)',
-                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-subtle text-muted shadow-card"
                   >
-                    📍 {location}
+                    <MapPin size={12} aria-hidden /> {location}
                   </span>
                 )}
               </div>
@@ -362,15 +345,11 @@ export default function Landing({ experience, resume, children }: LandingProps) 
               {featuredTags.map((tag, i) => (
                 <motion.span
                   key={tag}
-                  whileHover={{ color: 'var(--accent)', scale: 1.05, boxShadow: '0 0 0 1px rgba(99,102,241,0.4)' }}
+                  whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.15 }}
-                  className="enter px-3 py-1 rounded-full text-xs font-mono cursor-default"
-                  style={{
-                    ...enterAt(450 + i * 80),
-                    backgroundColor: 'var(--bg-subtle)',
-                    color: 'var(--text-muted)',
-                    boxShadow: 'var(--shadow-card)',
-                  }}
+                  className="enter px-3 py-1 rounded-full text-xs font-mono cursor-default bg-subtle text-muted shadow-card
+                             transition-[color,box-shadow] duration-150 hover:text-accent hover:shadow-[var(--shadow-card),0_0_0_1px_var(--ring-accent)]"
+                  style={enterAt(450 + i * 80)}
                 >
                   {tag}
                 </motion.span>
@@ -384,16 +363,12 @@ export default function Landing({ experience, resume, children }: LandingProps) 
               <motion.div key={link.path} whileHover={{ y: -4, scale: 1.02 }} transition={{ duration: 0.18 }}>
                 <Link
                   href={link.path}
-                  className="group flex flex-col items-center gap-1.5 p-4 rounded-2xl text-center no-underline block transition-all"
-                  style={{
-                    backgroundColor: 'var(--bg-card)',
-                    boxShadow: 'var(--shadow-card)',
-                  }}
+                  className="group flex flex-col items-center gap-1.5 p-4 rounded-2xl text-center no-underline block transition-all bg-card shadow-card"
                   onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-hover), 0 0 0 1px var(--accent)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
                 >
-                  <span className="text-xl">{NAV_ICON_MAP[link.path] ?? '→'}</span>
-                  <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {(() => { const Glyph = NAV_ICON_MAP[link.path] ?? ArrowRight; return <Glyph size={20} className="text-accent" aria-hidden />; })()}
+                  <span className="text-xs font-medium text-secondary">
                     {link.label}
                   </span>
                 </Link>
@@ -411,8 +386,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
           >
             Press{' '}
             <kbd
-              className="px-2 py-1 rounded-lg text-[10px] font-mono"
-              style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-subtle)' }}
+              className="px-2 py-1 rounded-lg text-[10px] font-mono shadow-card bg-subtle"
             >
               Ctrl+K
             </kbd>

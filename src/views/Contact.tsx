@@ -11,6 +11,7 @@ import { getVal, getItems } from '../utils/siteContent';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { asObjectArray, asString } from '../utils/json';
 import { enterAt } from '../utils/enter';
+import { hueStyle } from '../lib/palette';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -62,17 +63,17 @@ function SuccessBanner({ message }: { message: string }) {
       initial={{ opacity: 0, y: -12, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8 }}
-      className="p-5 rounded-2xl mb-6 flex items-center gap-4"
-      style={{ backgroundColor: 'rgba(34,197,94,0.07)', boxShadow: '0 0 0 1px rgba(34,197,94,0.25)' }}
+      className="p-5 rounded-2xl mb-6 flex items-center gap-4 hue-pill"
+      style={hueStyle('success')}
     >
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
-        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-        style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}
+        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 hue-chip"
+        style={hueStyle('success')}
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--success)' }}>
+        <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <motion.path
             strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"
             initial={{ pathLength: 0 }}
@@ -82,10 +83,10 @@ function SuccessBanner({ message }: { message: string }) {
         </svg>
       </motion.div>
       <div>
-        <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>
+        <p className="text-sm font-semibold text-success">
           {message || "Message sent successfully!"}
         </p>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mt-0.5 text-muted">
           I'll get back to you within 24 hours.
         </p>
       </div>
@@ -121,7 +122,7 @@ interface FieldProps {
 function Field({ id, label, required, error, children }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-widest mb-2 text-muted">
         {label}{required && ' *'}
       </label>
       {children}
@@ -129,7 +130,7 @@ function Field({ id, label, required, error, children }: FieldProps) {
         {error && (
           <motion.p
             initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="mt-1.5 text-xs" style={{ color: 'var(--danger)' }}
+            className="mt-1.5 text-xs text-danger"
           >
             {error}
           </motion.p>
@@ -145,7 +146,7 @@ function CharBar({ count, max }: { count: number; max: number }) {
   const color = pct < 60 ? 'var(--success)' : pct < 85 ? 'var(--warning)' : 'var(--danger)';
   return (
     <div className="mt-2 flex items-center justify-between gap-3">
-      <div className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-subtle)' }}>
+      <div className="flex-1 h-0.5 rounded-full overflow-hidden bg-subtle">
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -153,7 +154,7 @@ function CharBar({ count, max }: { count: number; max: number }) {
           transition={{ duration: 0.2 }}
         />
       </div>
-      <span className="text-[10px] font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
+      <span className="text-[10px] font-mono shrink-0 text-muted">
         {count}/{max}
       </span>
     </div>
@@ -165,14 +166,13 @@ function InfoItem({ icon, label, value, href }: { icon: ReactNode; label: string
   const inner = (
     <div className="flex items-center gap-3">
       <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-        style={{ backgroundColor: 'var(--accent-glow)', color: 'var(--accent)' }}
+        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-accent-glow text-accent"
       >
         {icon}
       </div>
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</p>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{value}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</p>
+        <p className="text-sm text-secondary">{value}</p>
       </div>
     </div>
   );
@@ -274,8 +274,8 @@ export default function Contact() {
                   <motion.div
                     key="err"
                     initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className="p-4 rounded-xl text-sm mb-5"
-                    style={{ backgroundColor: 'rgba(239,68,68,0.07)', boxShadow: '0 0 0 1px rgba(239,68,68,0.2)', color: 'var(--danger)' }}
+                    className="p-4 rounded-xl text-sm mb-5 hue-pill"
+                    style={hueStyle('danger')}
                   >
                     {submitErr}
                   </motion.div>
@@ -363,10 +363,9 @@ export default function Contact() {
             <div className="enter lg:col-span-2 space-y-5" style={enterAt(200)}>
               {/* Contact details */}
               <div
-                className="rounded-2xl p-5"
-                style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)' }}
+                className="rounded-2xl p-5 shadow-card bg-card"
               >
-                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4 text-muted">
                   Contact Details
                 </p>
                 <div className="space-y-4">
@@ -377,7 +376,7 @@ export default function Contact() {
 
                 {/* Social links */}
                 {(socialGithub || socialLinkedin || socialLeetcode) && (
-                  <div className="mt-4 pt-4 flex items-center gap-3 flex-wrap" style={{ borderTop: '1px solid var(--border)' }}>
+                  <div className="mt-4 pt-4 flex items-center gap-3 flex-wrap border-t border-line">
                     {[
                       { href: socialGithub,   label: 'GitHub',   char: 'GH' },
                       { href: socialLinkedin, label: 'LinkedIn', char: 'LI' },
@@ -388,15 +387,10 @@ export default function Contact() {
                         href={s.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono no-underline transition-all"
-                        style={{
-                          backgroundColor: 'var(--bg-subtle)',
-                          color: 'var(--text-muted)',
-                          boxShadow: 'var(--shadow-card)',
-                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono no-underline transition-all bg-subtle text-muted shadow-card"
                         onMouseEnter={(e) => {
                           e.currentTarget.style.color = 'var(--accent)';
-                          e.currentTarget.style.boxShadow = '0 0 0 1px rgba(99,102,241,0.4)';
+                          e.currentTarget.style.boxShadow = '0 0 0 1px var(--ring-accent)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.color = 'var(--text-muted)';
@@ -412,27 +406,20 @@ export default function Contact() {
 
               {/* Availability */}
               <div
-                className="rounded-2xl p-5"
-                style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)' }}
+                className="rounded-2xl p-5 shadow-card bg-card"
               >
-                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4 text-muted">
                   Availability
                 </p>
                 <div className="space-y-3">
                   {availability.map((item, i) => (
                     <div key={item.label} className="enter flex items-center justify-between" style={enterAt(250 + i * 60)}>
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
+                      <span className="text-sm text-secondary">{item.label}</span>
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold"
-                        style={{
-                          backgroundColor: item.available ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-                          color: item.available ? 'var(--success)' : 'var(--danger)',
-                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold hue-chip"
+                        style={hueStyle(item.available ? 'success' : 'danger')}
                       >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full animate-pulse"
-                          style={{ backgroundColor: item.available ? 'var(--success)' : 'var(--danger)' }}
-                        />
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse hue-dot [--dot-glow:0px]" />
                         {item.available ? 'Open' : 'Closed'}
                       </span>
                     </div>
@@ -441,18 +428,12 @@ export default function Contact() {
               </div>
 
               {/* Security notice */}
-              <div
-                className="rounded-2xl p-4"
-                style={{
-                  backgroundColor: 'rgba(34,197,94,0.04)',
-                  boxShadow: '0 0 0 1px rgba(34,197,94,0.15)',
-                }}
-              >
+              <div className="rounded-2xl p-4 hue-panel" style={hueStyle('success')}>
                 <div className="flex items-center gap-2 mb-2">
                   <ShieldIcon />
-                  <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}>Security</span>
+                  <span className="text-xs font-semibold text-success">Security</span>
                 </div>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs leading-relaxed text-muted">
                   XSS prevention · Input sanitization · Rate limiting · Data encrypted at rest
                 </p>
               </div>

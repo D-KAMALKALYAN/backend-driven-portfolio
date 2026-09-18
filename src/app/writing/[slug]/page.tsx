@@ -54,18 +54,18 @@ export default async function Page({ params }: Props) {
       <article>
         <header className="pt-16 md:pt-20 pb-2">
           <Container>
-            <nav className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'var(--text-muted)' }} aria-label="Breadcrumb">
-              <Link href="/writing" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>Writing</Link>
+            <nav className="flex items-center gap-2 mb-6 text-xs text-muted" aria-label="Breadcrumb">
+              <Link href="/writing" className="no-underline hover:underline text-muted">Writing</Link>
               <span>/</span>
-              <span className="truncate max-w-xs" style={{ color: 'var(--text-secondary)' }}>{post.title}</span>
+              <span className="truncate max-w-xs text-secondary">{post.title}</span>
             </nav>
-            <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight max-w-3xl" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight max-w-3xl text-primary">
               {post.title}
             </h1>
             {post.summary && (
-              <p className="mt-3 text-base leading-relaxed max-w-2xl" style={{ color: 'var(--text-secondary)' }}>{post.summary}</p>
+              <p className="mt-3 leading-relaxed max-w-2xl text-secondary">{post.summary}</p>
             )}
-            <p className="mt-4 text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+            <p className="mt-4 text-xs font-mono text-muted">
               <time dateTime={post.published_at ?? undefined}>{formatPostDate(post.published_at)}</time>
               {' · '}{readingMinutes(blocks)} min read
               {updatedLater && <> · updated {formatPostDate(post.updated_at)}</>}
@@ -82,7 +82,7 @@ export default async function Page({ params }: Props) {
 
         <footer className="py-10">
           <Container>
-            <Link href="/writing" className="text-sm font-semibold no-underline hover:underline" style={{ color: 'var(--accent)' }}>
+            <Link href="/writing" className="text-sm font-semibold no-underline hover:underline text-accent">
               ← All notes
             </Link>
           </Container>

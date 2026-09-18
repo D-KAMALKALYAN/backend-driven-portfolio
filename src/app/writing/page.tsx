@@ -3,6 +3,7 @@ import Link from 'next/link';
 import PageWrapper from '../../components/PageWrapper';
 import { Section, Container } from '../../components/Layout';
 import SectionHeader from '../../components/SectionHeader';
+import { PenLine } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
 import Badge from '../../components/Badge';
 import { getPostBlocks, getPosts, getSiteContent } from '../../lib/content';
@@ -36,22 +37,21 @@ export default async function Page() {
           />
 
           {posts.length === 0 ? (
-            <EmptyState icon="✍️" title="Nothing published yet" description="Notes appear here as they are published." />
+            <EmptyState icon={<PenLine size={24} aria-hidden />} title="Nothing published yet" description="Notes appear here as they are published." />
           ) : (
             <ol className="list-none m-0 p-0 space-y-4 max-w-3xl">
               {posts.map((p, i) => (
                 <li key={p.id} className="enter" style={enterAt(i * 70)}>
                   <Link
                     href={`/writing/${p.slug}`}
-                    className="block p-6 rounded-2xl no-underline transition-all"
-                    style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}
+                    className="block p-6 rounded-2xl no-underline transition-all bg-card shadow-card"
                   >
-                    <p className="text-xs font-mono m-0 mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs font-mono m-0 mb-2 text-muted">
                       <time dateTime={p.published_at ?? undefined}>{formatPostDate(p.published_at)}</time>
                       {' · '}{minutes[i]} min read
                     </p>
-                    <h2 className="text-xl font-semibold m-0 mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>{p.title}</h2>
-                    {p.summary && <p className="text-sm leading-relaxed m-0" style={{ color: 'var(--text-secondary)' }}>{p.summary}</p>}
+                    <h2 className="text-xl font-semibold m-0 mb-2 leading-snug text-primary">{p.title}</h2>
+                    {p.summary && <p className="text-sm leading-relaxed m-0 text-secondary">{p.summary}</p>}
                     {p.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-4">
                         {p.tags.map((t) => <Badge key={t}>{t}</Badge>)}
