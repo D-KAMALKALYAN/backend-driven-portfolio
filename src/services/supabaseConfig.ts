@@ -22,3 +22,14 @@ export function getPublicSupabaseConfig(): { url: string; key: string; configure
     configured,
   };
 }
+
+/**
+ * The Realtime websocket endpoint for a project URL: `/realtime/v1` with
+ * http → ws. supabase-js derives it exactly this way; written out here
+ * because the browser no longer carries supabase-js to ask (ADR-043).
+ */
+export function realtimeEndpoint(supabaseUrl: string): string {
+  const u = new URL('realtime/v1', supabaseUrl.endsWith('/') ? supabaseUrl : `${supabaseUrl}/`);
+  u.protocol = u.protocol.replace('http', 'ws');
+  return u.href;
+}

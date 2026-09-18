@@ -1,10 +1,4 @@
-import { supabase } from './supabaseClient';
-import {
-  fetchAnalyticsSummary,
-  fetchDailyVisits,
-  fetchTopProjects,
-  fetchRecentEvents,
-} from './api';
+import type { AnalyticsDashboard } from '../types/rows';
 
 /**
  * The queries that still run in the browser, as TanStack Query option
@@ -14,6 +8,11 @@ import {
  * read on the server and arrives in the HTML, so there is nothing for the
  * browser to fetch. What remains is the data that is per-visit by nature -
  * analytics - which the visitor expects to move while they watch.
+ *
+ * It arrives through /api/analytics rather than from PostgREST directly, so
+ * the browser needs no database client (ADR-043). One payload, one key: the
+ * landing-page teaser and the dashboard share the cache entry, so a visitor
+ * who arrives at /analytics from the hero finds it already warm.
  */
 
 /** Analytics is the one thing users expect to move while they watch. */
@@ -22,24 +21,12 @@ const LIVE = {
   refetchOnWindowFocus: true,
 } as const;
 
-export const queries = {
-  analyticsSummary: () => ({ queryKey: ['analytics', 'summary'], queryFn: () => fetchAnalyticsSummary(supabase), ...LIVE }),
-  dailyVisits: () => ({ queryKey: ['analytics', 'daily'], queryFn: () => fetchDailyVisits(supabase), ...LIVE }),
-  topProjects: (limit = 8) => ({ queryKey: ['analytics', 'top-projects', limit], queryFn: () => fetchTopProjects(supabase, limit), ...LIVE }),
-  recentEvents: (limit = 20) => ({ queryKey: ['analytics', 'recent', limit], queryFn: () => fetchRecentEvents(supabase, limit), ...LIVE }),
-};
-
-/**
- * Normalise an error for `ErrorState`, which renders a string.
- *
- * PostgrestError is a plain object rather than an Error subclass, so both
- * shapes are handled.
- */
-export function errorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error && error.message) return error.message;
-  if (typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message) {
-    return error.message;
-  }
-  return 'An unexpected error occurred';
+export async function fetchAnalyticsDashboardFromApi(): Promise<AnalyticsDashboard> {
+  const res = await fetch('/api/analytics');
+  if (!res.ok) throw new Error(`Analytics unavailable (${res.status})`);
+  return (await res.json()) as AnalyticsDashboard;
 }
+
+export const queries = {
+  analytics: () => ({ queryKey: ['analytics', 'dashboard'], queryFn: fetchAnalyticsDashboardFromApi, ...LIVE }),
+};

@@ -40,8 +40,8 @@ export function cacheTagFor(url: string): { tag: string; live: boolean } {
 /**
  * Every content read goes through Next's fetch, which is what puts it in the
  * Data Cache. supabase-js accepts a custom fetch, so the existing query
- * functions in services/api.ts work unchanged: on the server they are cached
- * and tagged by table, in the browser they are plain requests.
+ * functions in services/api.ts work unchanged: cached and tagged by table,
+ * except for the live tables below.
  *
  * Only GETs are cached (Next ignores the option for other methods), and
  * tables that are live by nature are marked no-store so a future server-side

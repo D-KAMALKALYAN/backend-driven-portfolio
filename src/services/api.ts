@@ -1,10 +1,11 @@
-import type { ActiveResume, AnalyticsSummary, ContactMessageInsert, Db } from '../types/rows';
+import type { ActiveResume, AnalyticsDashboard, AnalyticsSummary, ContactMessageInsert, Db } from '../types/rows';
 
 /**
  * Every query takes the client as its first argument rather than importing a
- * singleton. The same function then serves three callers: server components
- * (a per-request client whose fetch is cached and tagged), the browser (the
- * shared client, for the live analytics page), and tests (a recorder).
+ * singleton. The same function then serves its callers: server components
+ * (a per-request client whose fetch is cached and tagged), route handlers
+ * (the same client, for the analytics dashboard), and tests (a recorder).
+ * Nothing here runs in the browser (ADR-043).
  */
 
 /**
@@ -256,6 +257,46 @@ export async function fetchRecentEvents(db: Db, limit = 20) {
     .limit(limit);
   if (error) throw error;
   return data;
+}
+
+/**
+ * The analytics dashboard, assembled for GET /api/analytics.
+ *
+ * Four independent reads, settled independently: a broken view or a missing
+ * function nulls its own part and names itself in `errors`, and the other
+ * three still arrive. That was the page's behaviour when the browser made
+ * the four calls itself, and it is kept now that one route makes them.
+ */
+export async function fetchAnalyticsDashboard(db: Db, topLimit = 8, recentLimit = 20): Promise<AnalyticsDashboard> {
+  const [summary, daily, topProjects, recentEvents] = await Promise.allSettled([
+    fetchAnalyticsSummary(db),
+    fetchDailyVisits(db),
+    fetchTopProjects(db, topLimit),
+    fetchRecentEvents(db, recentLimit),
+  ]);
+  const errors: string[] = [];
+  const part = <T,>(name: string, r: PromiseSettledResult<T>): T | null => {
+    if (r.status === 'fulfilled') return r.value;
+    errors.push(`${name}: ${describeError(r.reason)}`);
+    return null;
+  };
+  return {
+    summary: part('summary', summary),
+    daily: part('daily', daily),
+    topProjects: part('topProjects', topProjects),
+    recentEvents: part('recentEvents', recentEvents),
+    errors,
+  };
+}
+
+/** PostgrestError is a plain object, not an Error subclass; both are handled. */
+function describeError(reason: unknown): string {
+  if (reason instanceof Error) return reason.message;
+  if (reason && typeof reason === 'object') {
+    const r = reason as { code?: unknown; message?: unknown };
+    return [r.code, r.message].filter((x) => typeof x === 'string' && x).join(' ') || 'unknown error';
+  }
+  return String(reason ?? 'unknown error');
 }
 
 // ─── Storytelling API ─────────────────────────────────────────────────────────

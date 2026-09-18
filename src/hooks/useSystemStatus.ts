@@ -1,53 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { CHECKING, readHealth, systemStatusFrom, type SystemStatus } from '../utils/systemStatus';
+
+export type { SystemStatus };
 
 /**
- * Pings the Supabase DB and returns live system status + latency.
- * Colors use CSS variables defined in index.css.
+ * Live system status for the hero: is the database reachable, and how far
+ * away is it from the server.
+ *
+ * Asks /api/health, which pings the database and reports the round trip. The
+ * browser used to run this ping itself through supabase-js; that made the
+ * landing page carry the whole library for one SELECT (ADR-043).
  */
-export interface SystemStatus {
-  system: 'Checking' | 'Online' | 'Degraded';
-  latency: string;
-  systemColor: string;
-  latencyColor: string;
-}
-
 export function useSystemStatus(): SystemStatus {
-  const [status, setStatus] = useState<SystemStatus>({
-    system: 'Checking',
-    latency: '...',
-    systemColor: 'var(--text-muted)',
-    latencyColor: 'var(--text-muted)',
-  });
+  const [status, setStatus] = useState<SystemStatus>(CHECKING);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function ping() {
-      const start = performance.now();
-
-      const { error } = await supabase
-        .from('feature_flags')
-        .select('key')
-        .limit(1)
-        .single();
-
-      if (cancelled) return;
-
-      const ms = Math.round(performance.now() - start);
-
-      setStatus({
-        system: error ? 'Degraded' : 'Online',
-        latency: `${ms}ms`,
-        systemColor: error ? 'var(--error)' : 'var(--success)',
-        latencyColor:
-          ms < 200 ? 'var(--success)' : ms < 500 ? 'var(--accent)' : 'var(--error)',
+    // A timeout is a reading ("Degraded"), not silence: the catch turns it
+    // into null and the readout says so. Unmount is the only thing that
+    // discards the result.
+    fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(6000) })
+      .then(async (res) => (res.ok ? readHealth(await res.json()) : null))
+      .catch(() => null)
+      .then((reading) => {
+        if (!cancelled) setStatus(systemStatusFrom(reading));
       });
-    }
-
-    void ping();
 
     return () => {
       cancelled = true;

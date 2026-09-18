@@ -14,10 +14,7 @@ import { SkeletonSection, SkeletonGrid } from '../components/SkeletonLoader';
 import { queries } from '../services/queries';
 import { useRealtimeEvents, type FeedEvent } from '../hooks/useRealtimeEvents';
 import { groupEventsByVisit, formatEventTime } from '../utils/eventFeed';
-import type { DailyVisit, Project } from '../types/rows';
-
-/** The columns fetchTopProjects selects. */
-type TopProject = Pick<Project, 'id' | 'title' | 'slug' | 'view_count' | 'cover_image_url' | 'tagline'>;
+import type { DailyVisit, TopProject } from '../types/rows';
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -318,26 +315,25 @@ function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Analytics() {
-  // Four independent queries, through the same factories as the landing-page
-  // teaser, so both share one cache entry per key. The previous hand-rolled
-  // Promise.allSettled refetched everything on every mount and could not be
-  // shared with the teaser, which fetched the summary a second time.
-  const summaryQ  = useQuery(queries.analyticsSummary());
-  const visitsQ   = useQuery(queries.dailyVisits());
-  const projectsQ = useQuery(queries.topProjects(8));
-  const eventsQ   = useQuery(queries.recentEvents(20));
+  // One request for the whole dashboard, through the same factory as the
+  // landing-page teaser, so both share one cache entry. The four parts are
+  // settled independently on the server (ADR-043).
+  const dashboardQ = useQuery(queries.analytics());
+  const dashboard = dashboardQ.data ?? null;
 
-  const summary  = summaryQ.data ?? null;
-  const visits   = visitsQ.data ?? null;
-  const projects = projectsQ.data ?? null;
-  const events   = eventsQ.data ?? null;
+  const summary  = dashboard?.summary ?? null;
+  const visits   = dashboard?.daily ?? null;
+  const projects = dashboard?.topProjects ?? null;
+  const events   = dashboard?.recentEvents ?? null;
   // Realtime takes over the feed once the initial fetch lands.
   const { events: liveEvents, status: liveStatus, liveCount } = useRealtimeEvents(events, 20);
 
-  const loading = summaryQ.isLoading || visitsQ.isLoading || projectsQ.isLoading || eventsQ.isLoading;
+  const loading = dashboardQ.isLoading;
   // Each panel degrades on its own; the banner is for the case where nothing
   // at all came back.
-  const error = [summaryQ, visitsQ, projectsQ, eventsQ].every((q) => q.isError)
+  const nothingCameBack = dashboardQ.isError ||
+    (dashboard != null && [summary, visits, projects, events].every((p) => p == null));
+  const error = nothingCameBack
     ? 'Analytics data unavailable — the analytics view and summary function may not exist yet.'
     : null;
 
@@ -467,14 +463,17 @@ export default function Analytics() {
               All metrics are computed server-side via a PostgreSQL view ({' '}
               <code style={{ color: 'var(--accent)' }}>analytics_daily_visits</code>) and an RPC function ({' '}
               <code style={{ color: 'var(--accent)' }}>get_analytics_summary()</code>).
-              The frontend is a pure renderer — zero aggregation logic.
-              Events are written fire-and-forget via{' '}
-              <code style={{ color: 'var(--accent)' }}>trackEvent()</code>, carrying a
+              The frontend is a pure renderer — zero aggregation logic, and no database
+              client: this page reads through{' '}
+              <code style={{ color: 'var(--accent)' }}>/api/analytics</code> and events are
+              written fire-and-forget through{' '}
+              <code style={{ color: 'var(--accent)' }}>/api/track</code>, carrying a
               deterministic <code style={{ color: 'var(--accent)' }}>event_key</code> that a
               unique index in Postgres uses to reject duplicate writes. The feed below
               streams new rows over{' '}
-              <code style={{ color: 'var(--accent)' }}>postgres_changes</code> — the badge
-              shows the real socket state, not a decoration.
+              <code style={{ color: 'var(--accent)' }}>postgres_changes</code> — the one
+              connection the browser makes to the database directly; the badge shows the
+              real socket state, not a decoration.
             </p>
           </motion.div>
 

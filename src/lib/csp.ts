@@ -44,7 +44,11 @@ export function buildCsp({ nonce, supabaseUrl, isDev = false }: CspOptions): str
     // Fonts are self-hosted through next/font, so no external font origin.
     d('font-src', "'self'"),
     d('img-src', "'self'", 'data:', 'blob:', supabaseOrigin),
-    d('connect-src', "'self'", supabaseOrigin, supabaseWs),
+    // Only the realtime socket reaches Supabase from the browser; reads and
+    // writes go through this origin's route handlers (ADR-043). Leaving the
+    // https origin out makes that structural: a client-side PostgREST call
+    // added later is refused by the browser, not merely discouraged.
+    d('connect-src', "'self'", supabaseWs),
     // The resume PDF is embedded from Supabase storage.
     d('frame-src', "'self'", supabaseOrigin),
     d('object-src', "'none'"),
