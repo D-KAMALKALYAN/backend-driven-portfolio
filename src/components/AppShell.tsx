@@ -29,9 +29,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Keyboard users can reach content without traversing 8 nav links. */}
       <a
         href="#main-content"
-        className="absolute left-4 top-4 z-[100] px-4 py-2 rounded-[var(--r-md)] text-sm font-medium
-                   -translate-y-24 focus:translate-y-0 transition-transform no-underline"
-        style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+        className="absolute left-4 top-4 z-[100] px-4 py-2 rounded-[var(--r-md)] text-sm font-medium -translate-y-24 focus:translate-y-0 transition-transform no-underline bg-accent text-on-accent"
       >
         Skip to content
       </a>

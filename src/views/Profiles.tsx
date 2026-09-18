@@ -5,8 +5,10 @@ import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
+import { Link2 } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import { trackEvent } from '../services/analytics';
+import { colorStyle } from '../lib/palette';
 import { enterAt } from '../utils/enter';
 import type { ExternalProfile } from '../types/rows';
 
@@ -71,7 +73,10 @@ function normalizeUrl(url: string | null | undefined): string | null {
   return `https://${url}`;
 }
 
-/* Accent colour per platform */
+/* Brand colour per platform. These are the platforms' own identities, not
+   theme tokens - the one place in src/ a literal colour is correct. The tint
+   still derives in CSS (.hue-chip), so the old `${hex}18` string trick is
+   gone, and with it the broken `var(--accent)18` an unknown platform produced. */
 const PLATFORM_COLORS: Record<string, string> = {
   github: '#e5e7eb',
   linkedin: '#0a66c2',
@@ -124,22 +129,19 @@ export default function Profiles({ profiles }: { profiles: ExternalProfile[] }) 
                     >
                       {/* Coloured icon bubble */}
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
-                        style={{
-                          backgroundColor: `${color}18`,
-                          color,
-                        }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 hue-chip"
+                        style={colorStyle(color)}
                       >
                         {getIcon(p?.platform)}
                       </div>
 
                       {/* Labels */}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold capitalize truncate" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-sm font-semibold capitalize truncate text-primary">
                           {p.platform}
                         </p>
                         {p?.username && (
-                          <p className="text-xs font-mono truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          <p className="text-xs font-mono truncate mt-0.5 text-muted">
                             @{p.username}
                           </p>
                         )}
@@ -148,9 +150,8 @@ export default function Profiles({ profiles }: { profiles: ExternalProfile[] }) 
                       {/* External arrow */}
                       {href && (
                         <svg
-                          className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity"
+                          className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity text-muted"
                           fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                          style={{ color: 'var(--text-muted)' }}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -162,7 +163,7 @@ export default function Profiles({ profiles }: { profiles: ExternalProfile[] }) 
               })}
             </div>
           ) : (
-            <EmptyState icon="🔗" title="No profiles linked" description="Add external profiles via Supabase." />
+            <EmptyState icon={<Link2 size={24} aria-hidden />} title="No profiles linked" description="Add external profiles via Supabase." />
           )}
         </Container>
       </Section>

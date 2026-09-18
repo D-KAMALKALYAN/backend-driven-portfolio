@@ -33,7 +33,7 @@ export const CHECKING: SystemStatus = {
  */
 export function systemStatusFrom(reading: HealthReading | null): SystemStatus {
   if (!reading || !reading.ok || !reading.db) {
-    return { system: 'Degraded', latency: '—', systemColor: 'var(--error)', latencyColor: 'var(--text-muted)' };
+    return { system: 'Degraded', latency: '—', systemColor: 'var(--danger)', latencyColor: 'var(--text-muted)' };
   }
   const ms = reading.dbMs;
   if (ms == null || !Number.isFinite(ms)) {
@@ -43,7 +43,7 @@ export function systemStatusFrom(reading: HealthReading | null): SystemStatus {
     system: 'Online',
     latency: `${Math.max(0, Math.round(ms))}ms`,
     systemColor: 'var(--success)',
-    latencyColor: ms < 200 ? 'var(--success)' : ms < 500 ? 'var(--accent)' : 'var(--error)',
+    latencyColor: ms < 200 ? 'var(--success)' : ms < 500 ? 'var(--accent)' : 'var(--danger)',
   };
 }
 

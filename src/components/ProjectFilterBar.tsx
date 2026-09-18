@@ -63,9 +63,8 @@ export default function ProjectFilterBar({
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="relative flex-1">
           <svg
-            className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted"
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            style={{ color: 'var(--text-muted)' }}
             aria-hidden="true"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -78,12 +77,7 @@ export default function ProjectFilterBar({
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Search projects, tech, or tags…"
             aria-label="Search projects"
-            className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm outline-none"
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              color: 'var(--text-primary)',
-              boxShadow: 'var(--shadow-card)',
-            }}
+            className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm outline-none bg-card text-primary shadow-card"
           />
         </div>
 
@@ -91,8 +85,7 @@ export default function ProjectFilterBar({
           <button
             type="button"
             onClick={onClear}
-            className="shrink-0 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer border-none"
-            style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}
+            className="shrink-0 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer border-none bg-subtle text-secondary"
           >
             Clear filters
           </button>
@@ -115,7 +108,7 @@ export default function ProjectFilterBar({
                 className="px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer border-none transition-colors"
                 style={{
                   backgroundColor: active ? 'var(--accent)' : 'var(--bg-subtle)',
-                  color: active ? '#fff' : 'var(--text-secondary)',
+                  color: active ? 'var(--on-accent)' : 'var(--text-secondary)',
                 }}
               >
                 {value}
@@ -128,8 +121,7 @@ export default function ProjectFilterBar({
 
       {/* Announced to screen readers as results change, not just shown. */}
       <p
-        className="mt-3 text-xs"
-        style={{ color: 'var(--text-muted)' }}
+        className="mt-3 text-xs text-muted"
         role="status"
         aria-live="polite"
       >

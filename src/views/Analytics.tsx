@@ -1,9 +1,12 @@
 'use client';
 
-import { type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import {
+  Activity, Building2, Calendar, ChartColumn, Cog, Eye, FileText, FolderOpen, Link2, Mail, Radio, Rocket, Star,
+  TriangleAlert, User, type LucideIcon,
+} from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
@@ -14,39 +17,39 @@ import { SkeletonSection, SkeletonGrid } from '../components/SkeletonLoader';
 import { queries } from '../services/queries';
 import { useRealtimeEvents, type FeedEvent } from '../hooks/useRealtimeEvents';
 import { groupEventsByVisit, formatEventTime } from '../utils/eventFeed';
+import { hue, hueStyle, tint, type Hue } from '../lib/palette';
 import type { DailyVisit, TopProject } from '../types/rows';
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 interface StatCardProps {
   label: string;
   value: number | null | undefined;
-  icon: ReactNode;
-  color: string;
+  icon: LucideIcon;
+  hue: Hue;
   suffix?: string;
   delay?: number;
 }
 
-function StatCard({ label, value, icon, color, suffix = '', delay = 0 }: StatCardProps) {
+function StatCard({ label, value, icon: Glyph, hue: h, suffix = '', delay = 0 }: StatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="rounded-2xl p-5 flex flex-col gap-3"
-      style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}
+      className="rounded-2xl p-5 flex flex-col gap-3 bg-card shadow-card"
     >
       <div className="flex items-center justify-between">
         <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
-          style={{ backgroundColor: `${color}18`, color }}
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 hue-chip"
+          style={hueStyle(h)}
         >
-          {icon}
+          <Glyph size={16} aria-hidden />
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
           {label}
         </span>
       </div>
-      <p className="text-3xl font-extrabold font-mono" style={{ color: 'var(--text-primary)' }}>
+      <p className="text-3xl font-extrabold font-mono text-primary">
         {value != null ? <CountUp value={Number(value)} suffix={suffix} /> : '—'}
       </p>
     </motion.div>
@@ -57,7 +60,7 @@ function StatCard({ label, value, icon, color, suffix = '', delay = 0 }: StatCar
 function VisitChart({ data }: { data: DailyVisit[] | null | undefined }) {
   if (!data || data.length === 0) {
     return (
-      <EmptyState icon="📊" title="No visit data yet" description="Data appears after the analytics view is created in Supabase." />
+      <EmptyState icon={<ChartColumn size={24} aria-hidden />} title="No visit data yet" description="Data appears after the analytics view is created in Supabase." />
     );
   }
 
@@ -99,8 +102,8 @@ function VisitChart({ data }: { data: DailyVisit[] | null | undefined }) {
             <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.01" />
           </linearGradient>
           <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#8b5cf6" />
+            <stop offset="0%"   stopColor={hue('indigo')} />
+            <stop offset="100%" stopColor={hue('violet')} />
           </linearGradient>
         </defs>
 
@@ -167,7 +170,7 @@ function VisitChart({ data }: { data: DailyVisit[] | null | undefined }) {
 // ─── Top Projects Panel ───────────────────────────────────────────────────────
 function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefined }) {
   if (!projects || projects.length === 0) {
-    return <EmptyState icon="📂" title="No projects yet" description="Publish projects to see view counts." />;
+    return <EmptyState icon={<FolderOpen size={24} aria-hidden />} title="No projects yet" description="Publish projects to see view counts." />;
   }
   const maxViews = Math.max(...projects.map((p) => p.view_count || 0), 1);
 
@@ -184,8 +187,7 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
           >
             <Link
               href={`/projects/${p.slug}`}
-              className="group flex items-center gap-3 p-3 rounded-xl no-underline transition-all"
-              style={{ backgroundColor: 'var(--bg-subtle)' }}
+              className="group flex items-center gap-3 p-3 rounded-xl no-underline transition-all bg-subtle"
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-card)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'; }}
             >
@@ -202,18 +204,17 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
 
               {/* Name + bar */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate mb-1.5 group-hover:text-[var(--accent)] transition-colors"
-                  style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm font-medium truncate mb-1.5 group-hover:text-accent transition-colors text-primary">
                   {p.title}
                 </p>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
+                <div className="h-1.5 rounded-full overflow-hidden bg-line">
                   <motion.div
                     className="h-full rounded-full"
                     style={{
                       background: i === 0
-                        ? 'linear-gradient(90deg,#6366f1,#8b5cf6)'
+                        ? `linear-gradient(90deg,${hue('indigo')},${hue('violet')})`
                         : i === 1
-                        ? 'linear-gradient(90deg,#8b5cf6,#a78bfa)'
+                        ? `linear-gradient(90deg,${hue('violet')},${hue('purple')})`
                         : 'var(--accent)',
                     }}
                     initial={{ width: 0 }}
@@ -224,7 +225,7 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
               </div>
 
               {/* Count */}
-              <span className="text-xs font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs font-mono shrink-0 text-muted">
                 {(p.view_count || 0).toLocaleString()} views
               </span>
             </Link>
@@ -236,20 +237,21 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
 }
 
 // ─── Recent Events Feed ───────────────────────────────────────────────────────
-const EVENT_COLORS: Record<string, { color: string; icon: string }> = {
-  page_view:      { color: '#22c55e', icon: '👁' },
-  project_view:   { color: '#6366f1', icon: '📂' },
-  resume_download: { color: '#f59e0b', icon: '📄' },
-  contact_open:   { color: '#3b82f6', icon: '✉️' },
-  profile_click:  { color: '#ec4899', icon: '🔗' },
-  github_click:   { color: '#9898b0', icon: '⭐' },
-  demo_click:     { color: '#14b8a6', icon: '🚀' },
-  venture_click:  { color: '#a78bfa', icon: '🏢' },
+const EVENT_META: Record<string, { hue: Hue; icon: LucideIcon }> = {
+  page_view:       { hue: 'green',  icon: Eye },
+  project_view:    { hue: 'indigo', icon: FolderOpen },
+  resume_download: { hue: 'amber',  icon: FileText },
+  contact_open:    { hue: 'blue',   icon: Mail },
+  profile_click:   { hue: 'pink',   icon: Link2 },
+  github_click:    { hue: 'slate',  icon: Star },
+  demo_click:      { hue: 'teal',   icon: Rocket },
+  venture_click:   { hue: 'purple', icon: Building2 },
 };
+const UNKNOWN_EVENT = { hue: 'slate' as Hue, icon: Activity };
 
 function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
   if (!events || events.length === 0) {
-    return <EmptyState icon="📡" title="No events yet" description="Events appear as users interact with the portfolio." />;
+    return <EmptyState icon={<Radio size={24} aria-hidden />} title="No events yet" description="Events appear as users interact with the portfolio." />;
   }
 
   // One visit, one row. A project page writes page_view and project_view
@@ -266,33 +268,32 @@ function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: Math.min(i, 10) * 0.03 }}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-          style={{ backgroundColor: 'var(--bg-subtle)' }}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-subtle"
         >
           <span className="flex items-center gap-1 shrink-0">
             {v.events.map((e) => {
-              const m = EVENT_COLORS[e] ?? { color: '#9898b0', icon: '◎' };
+              const m = EVENT_META[e] ?? UNKNOWN_EVENT;
               return (
-                <span key={e} title={e} aria-label={e} style={{ color: m.color }}>
-                  {m.icon}
+                <span key={e} title={e} aria-label={e} className="hue-text inline-flex" style={hueStyle(m.hue)}>
+                  <m.icon size={13} />
                 </span>
               );
             })}
           </span>
 
-          <span className="truncate flex-1" style={{ color: 'var(--text-primary)' }}>
+          <span className="truncate flex-1 text-primary">
             {v.path}
           </span>
 
           {/* Sub-events, so nothing is hidden by the grouping */}
           <span className="hidden sm:flex items-center gap-1 shrink-0">
             {v.events.map((e) => {
-              const m = EVENT_COLORS[e] ?? { color: '#9898b0', icon: '◎' };
+              const m = EVENT_META[e] ?? UNKNOWN_EVENT;
               return (
                 <span
                   key={e}
-                  className="font-mono px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: `${m.color}18`, color: m.color, fontSize: '10px' }}
+                  className="font-mono px-1.5 py-0.5 rounded text-[10px] hue-chip"
+                  style={hueStyle(m.hue)}
                 >
                   {e}
                 </span>
@@ -301,8 +302,7 @@ function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
           </span>
 
           <time
-            className="shrink-0 font-mono"
-            style={{ color: 'var(--text-muted)' }}
+            className="shrink-0 font-mono text-muted"
             dateTime={v.at ? new Date(v.at).toISOString() : undefined}
           >
             {formatEventTime(v.at)}
@@ -337,13 +337,13 @@ export default function Analytics() {
     ? 'Analytics data unavailable — the analytics view and summary function may not exist yet.'
     : null;
 
-  const STATS = [
-    { label: 'Total Visits',     value: summary?.total_visits,        icon: '👁',  color: '#6366f1' },
+  const STATS: Array<Pick<StatCardProps, 'label' | 'value' | 'icon' | 'hue'>> = [
+    { label: 'Total Visits',  value: summary?.total_visits,       icon: Eye,        hue: 'indigo' },
     // Server-side this is COUNT(DISTINCT session_id), and session_id lives in
     // sessionStorage (per tab). It measures sessions, not people - labelled honestly.
-    { label: 'Sessions',         value: summary?.unique_visitors,      icon: '👤',  color: '#22c55e' },
-    { label: 'Project Views',    value: summary?.total_project_views,  icon: '📂',  color: '#f59e0b' },
-    { label: 'Today',            value: summary?.visits_today,         icon: '📅',  color: '#3b82f6' },
+    { label: 'Sessions',      value: summary?.unique_visitors,    icon: User,       hue: 'green' },
+    { label: 'Project Views', value: summary?.total_project_views, icon: FolderOpen, hue: 'amber' },
+    { label: 'Today',         value: summary?.visits_today,       icon: Calendar,   hue: 'blue' },
   ];
 
   return (
@@ -360,9 +360,9 @@ export default function Analytics() {
           {error && (
             <div
               className="mb-8 px-4 py-3 rounded-xl text-sm flex items-start gap-3"
-              style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: 'var(--text-secondary)' }}
+              style={{ backgroundColor: tint('warning', 8), border: `1px solid ${tint('warning', 25)}`, color: 'var(--text-secondary)' }}
             >
-              <span>⚠️</span>
+              <TriangleAlert size={16} className="shrink-0 mt-0.5 text-warning" aria-hidden />
               <span>{error}</span>
             </div>
           )}
@@ -385,11 +385,11 @@ export default function Analytics() {
             <div className="lg:col-span-2">
               <Card className="p-5 sm:p-6" hover={false}>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">
                     Daily Page Views — Last 30 Days
                   </p>
                   {visits && visits.length > 0 && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted">
                       {visits.length} days
                     </span>
                   )}
@@ -401,7 +401,7 @@ export default function Analytics() {
             {/* Top projects */}
             <div className="lg:col-span-1">
               <Card className="p-5 sm:p-6 h-full" hover={false}>
-                <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-4 text-muted">
                   Top Viewed Projects
                 </p>
                 {loading ? <SkeletonSection lines={5} /> : <TopProjectsPanel projects={projects} />}
@@ -412,7 +412,7 @@ export default function Analytics() {
           {/* ─ Recent events feed */}
           <Card className="p-5 sm:p-6" hover={false}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted">
                 Recent Events
               </p>
               {/* Reflects the actual socket state. Previously this was a
@@ -440,7 +440,7 @@ export default function Analytics() {
                 />
                 {liveStatus === 'live' ? 'Live' : liveStatus === 'offline' ? 'Snapshot' : 'Connecting'}
                 {liveCount > 0 && (
-                  <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+                  <span className="font-mono text-muted">
                     +{liveCount}
                   </span>
                 )}
@@ -454,24 +454,23 @@ export default function Analytics() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="mt-8 rounded-xl px-4 py-3 flex items-start gap-3"
-            style={{ backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border)' }}
+            className="mt-8 rounded-xl px-4 py-3 flex items-start gap-3 bg-subtle border border-line"
           >
-            <span className="text-sm shrink-0 mt-px">⚙️</span>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              <strong style={{ color: 'var(--text-secondary)' }}>Architecture:</strong>{' '}
+            <Cog size={14} className="shrink-0 mt-px text-muted" aria-hidden />
+            <p className="text-xs leading-relaxed text-muted">
+              <strong className="text-secondary">Architecture:</strong>{' '}
               All metrics are computed server-side via a PostgreSQL view ({' '}
-              <code style={{ color: 'var(--accent)' }}>analytics_daily_visits</code>) and an RPC function ({' '}
-              <code style={{ color: 'var(--accent)' }}>get_analytics_summary()</code>).
+              <code className="text-accent">analytics_daily_visits</code>) and an RPC function ({' '}
+              <code className="text-accent">get_analytics_summary()</code>).
               The frontend is a pure renderer — zero aggregation logic, and no database
               client: this page reads through{' '}
-              <code style={{ color: 'var(--accent)' }}>/api/analytics</code> and events are
+              <code className="text-accent">/api/analytics</code> and events are
               written fire-and-forget through{' '}
-              <code style={{ color: 'var(--accent)' }}>/api/track</code>, carrying a
-              deterministic <code style={{ color: 'var(--accent)' }}>event_key</code> that a
+              <code className="text-accent">/api/track</code>, carrying a
+              deterministic <code className="text-accent">event_key</code> that a
               unique index in Postgres uses to reject duplicate writes. The feed below
               streams new rows over{' '}
-              <code style={{ color: 'var(--accent)' }}>postgres_changes</code> — the one
+              <code className="text-accent">postgres_changes</code> — the one
               connection the browser makes to the database directly; the badge shows the
               real socket state, not a decoration.
             </p>

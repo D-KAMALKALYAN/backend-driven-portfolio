@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { TriangleAlert } from 'lucide-react';
 
 /**
  * What a visitor sees when a route throws. Rendered by app/error.tsx, which
@@ -17,25 +18,23 @@ export default function ErrorPanel({ error, onReset }: { error: Error; onReset: 
       className="min-h-[60vh] flex flex-col items-center justify-center px-6 text-center gap-4"
     >
       <div
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
-        style={{ backgroundColor: 'var(--bg-subtle)' }}
+        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-subtle"
         aria-hidden="true"
       >
-        ⚠
+        <TriangleAlert size={24} />
       </div>
 
-      <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+      <h2 className="text-xl font-semibold text-primary">
         Something went wrong on this page
       </h2>
 
-      <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-sm max-w-md text-muted">
         The rest of the site is still working. You can retry this section or head back home.
       </p>
 
       {process.env.NODE_ENV === 'development' && (
         <pre
-          className="text-xs text-left max-w-full overflow-x-auto p-3 rounded-lg font-mono"
-          style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--danger)' }}
+          className="text-xs text-left max-w-full overflow-x-auto p-3 rounded-lg font-mono bg-subtle text-danger"
         >
           {String(error.stack || error.message || error)}
         </pre>
@@ -45,15 +44,13 @@ export default function ErrorPanel({ error, onReset }: { error: Error; onReset: 
         <button
           type="button"
           onClick={onReset}
-          className="px-4 py-2 rounded-[var(--r-md)] text-sm font-medium cursor-pointer border-none"
-          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+          className="px-4 py-2 rounded-[var(--r-md)] text-sm font-medium cursor-pointer border-none bg-accent text-on-accent"
         >
           Try again
         </button>
         <Link
           href="/"
-          className="px-4 py-2 rounded-[var(--r-md)] text-sm font-medium no-underline"
-          style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}
+          className="px-4 py-2 rounded-[var(--r-md)] text-sm font-medium no-underline bg-subtle text-secondary"
         >
           Go home
         </Link>

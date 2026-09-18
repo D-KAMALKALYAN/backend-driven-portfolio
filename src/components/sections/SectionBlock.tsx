@@ -26,7 +26,7 @@ export default function SectionBlock({
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
             {heading && <SectionHeader as="h2" size="section" title={heading} description={description ?? undefined} />}
             {aside && (
-              <p className="text-xs font-mono mb-5" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs font-mono mb-5 text-muted">
                 {aside}
               </p>
             )}

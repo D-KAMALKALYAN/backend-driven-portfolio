@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { Construction, Eye, Flame, FolderOpen, Search } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
@@ -17,6 +18,7 @@ import { filterProjects, collectFacets, hasActiveFilters } from '../utils/projec
 import ProjectFilterBar from '../components/ProjectFilterBar';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { enterAt } from '../utils/enter';
+import { hueStyle } from '../lib/palette';
 import type { Project } from '../types/rows';
 
 // tech_stack is text[] in the schema. The string branch stays for rows edited
@@ -126,47 +128,44 @@ export default function Projects({ projects }: { projects: Project[] }) {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3
-                              className="text-base font-semibold transition-colors truncate group-hover:text-[var(--accent-hover)]"
-                              style={{ color: 'var(--text-primary)' }}
+                              className="font-semibold transition-colors truncate group-hover:text-accent-hover text-primary"
                             >
                               {/* Stretched link: the only card-level anchor. The
                                   ::after overlay makes the whole card clickable
                                   without nesting anchors inside it. */}
                               <Link
                                 href={`/projects/${p.slug}`}
-                                className="no-underline after:absolute after:inset-0 after:content-['']"
-                                style={{ color: 'inherit' }}
+                                className="no-underline after:absolute after:inset-0 after:content-[''] text-inherit"
                               >
                                 {p?.title || 'Untitled'}
                               </Link>
                             </h3>
-                            {/* 🔥 Most Popular badge */}
+                            {/* Most Popular badge */}
                             {isPopular && (
                               <span
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
-                                style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 hue-chip"
+                                style={hueStyle('red')}
                               >
-                                🔥 Popular
+                                <Flame size={11} aria-hidden /> Popular
                               </span>
                             )}
                             {/* Derived from end_date, not the manual `featured` flag,
                                 which was true on every row and so meant nothing. */}
                             {inProgress && (
                               <span
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
-                                style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 hue-chip"
+                                style={hueStyle('amber')}
                                 title="Currently in development"
                               >
-                                🚧 In progress
+                                <Construction size={11} aria-hidden /> In progress
                               </span>
                             )}
                           </div>
                           <StatusBadge status={p?.status} />
                         </div>
                         <svg
-                          className="w-4 h-4 shrink-0 mt-0.5 transition-colors group-hover:text-[var(--accent)]"
+                          className="w-4 h-4 shrink-0 mt-0.5 transition-colors group-hover:text-accent text-muted"
                           fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                          style={{ color: 'var(--text-muted)' }}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
@@ -174,8 +173,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
 
                       {/* Tagline or description */}
                       <p
-                        className="text-sm leading-relaxed line-clamp-2 flex-1 mb-4"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="text-sm leading-relaxed line-clamp-2 flex-1 mb-4 text-secondary"
                       >
                         {p?.tagline || p?.description || 'No description available.'}
                       </p>
@@ -190,13 +188,12 @@ export default function Projects({ projects }: { projects: Project[] }) {
 
                       {/* Bottom row: view count + URL links */}
                       <div
-                        className="flex items-center justify-between gap-3 pt-3"
-                        style={{ borderTop: '1px solid var(--border)' }}
+                        className="flex items-center justify-between gap-3 pt-3 border-t border-line"
                       >
                         {/* View count social proof */}
                         {viewLabel ? (
-                          <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
-                            👁 {viewLabel}
+                          <span className="text-[10px] font-mono text-muted">
+                            <Eye size={11} className="inline -mt-px" aria-hidden /> {viewLabel}
                           </span>
                         ) : <span />}
 
@@ -207,8 +204,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                               href={p.demo_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors"
-                              style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--accent)' }}
+                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors bg-subtle text-accent"
                             >
                               Demo ↗
                             </a>
@@ -218,8 +214,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                               href={p.repo_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors"
-                              style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}
+                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors bg-subtle text-secondary"
                             >
                               Repo ↗
                             </a>
@@ -235,13 +230,13 @@ export default function Projects({ projects }: { projects: Project[] }) {
             // "No projects yet" would be wrong and confusing here - there are
             // projects, they just do not match the current filters.
             <EmptyState
-              icon="🔍"
+              icon={<Search size={24} aria-hidden />}
               title="No projects match those filters"
               description="Try a different search term, or remove a tag."
             />
           ) : (
             <EmptyState
-              icon="📂"
+              icon={<FolderOpen size={24} aria-hidden />}
               title={val('projects.empty_state', 'No projects yet')}
               description="Add projects via Supabase."
             />

@@ -186,12 +186,14 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   ├── proxy.ts               # per-request CSP nonce
 │   ├── views/                 # The page bodies (client components, data via props)
 │   ├── components/            # Pure UI; data arrives as typed props
+│   │   └── Icon.tsx           # lucide icons by name, for the places an icon name is data
 │   ├── hooks/                 # useSiteContent (context), useRealtimeEvents, useFocusTrap, ...
 │   ├── lib/
 │   │   ├── supabase/server.ts # per-request client whose fetch is cached + tagged by table
 │   │   ├── content.ts         # server reads, deduplicated per request
 │   │   ├── contact.ts         # the contact write path as testable functions
 │   │   ├── csp.ts             # the policy as a pure function
+│   │   ├── palette.ts         # named hues; hueStyle() sets --c, the .hue-* classes derive tints
 │   │   └── ogCard.tsx         # the share card (next/og)
 │   ├── services/
 │   │   ├── supabaseConfig.ts  # the public URL + anon key, read once; realtime endpoint

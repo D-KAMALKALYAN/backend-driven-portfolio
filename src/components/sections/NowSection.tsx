@@ -1,17 +1,19 @@
 import Link from 'next/link';
+import { Activity, BookMarked, BookOpen, Compass, Hammer, PenLine, type LucideIcon } from 'lucide-react';
 import SectionBlock from './SectionBlock';
 import Card from '../Card';
 import { getNowEntries, getProjects } from '../../lib/content';
 import { formatUpdated, nowFreshness } from '../../utils/now';
 import { enterAt } from '../../utils/enter';
+import { hueStyle, type Hue, type Tone } from '../../lib/palette';
 import type { PageSection } from '../../types/rows';
 
-const KIND: Record<string, { icon: string; label: string; color: string }> = {
-  building:  { icon: '🛠', label: 'Building',  color: '#6366f1' },
-  learning:  { icon: '📚', label: 'Learning',  color: '#22c55e' },
-  reading:   { icon: '📖', label: 'Reading',   color: '#f59e0b' },
-  exploring: { icon: '🧭', label: 'Exploring', color: '#3b82f6' },
-  writing:   { icon: '✍️', label: 'Writing',   color: '#ec4899' },
+const KIND: Record<string, { icon: LucideIcon; label: string; hue: Hue | Tone }> = {
+  building:  { icon: Hammer,     label: 'Building',  hue: 'indigo' },
+  learning:  { icon: BookOpen,   label: 'Learning',  hue: 'green' },
+  reading:   { icon: BookMarked, label: 'Reading',   hue: 'amber' },
+  exploring: { icon: Compass,    label: 'Exploring', hue: 'blue' },
+  writing:   { icon: PenLine,    label: 'Writing',   hue: 'pink' },
 };
 
 /**
@@ -41,24 +43,24 @@ export default async function NowSection({ section }: { section: PageSection }) 
     >
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 list-none m-0 p-0">
         {entries.map((e, i) => {
-          const kind = KIND[e.kind] ?? { icon: '◈', label: e.kind, color: 'var(--accent)' };
+          const kind = KIND[e.kind] ?? { icon: Activity, label: e.kind, hue: 'accent' as const };
           const projectSlug = e.project_id ? slugById.get(e.project_id) : undefined;
           const href = projectSlug ? `/projects/${projectSlug}` : e.url ?? null;
           const title = (
-            <span className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{e.title}</span>
+            <span className="font-semibold text-primary">{e.title}</span>
           );
           return (
             <li key={e.id} className="enter" style={enterAt(i * 70)}>
               <Card className="p-5 h-full flex flex-col gap-2" hover={Boolean(href)}>
                 <div className="flex items-center justify-between gap-3">
                   <span
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
-                    style={{ backgroundColor: `${kind.color}18`, color: kind.color }}
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider hue-chip"
+                    style={hueStyle(kind.hue)}
                   >
-                    <span aria-hidden="true">{kind.icon}</span> {kind.label}
+                    <kind.icon size={11} aria-hidden /> {kind.label}
                   </span>
                   {e.progress && (
-                    <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{e.progress}</span>
+                    <span className="text-[11px] font-mono text-muted">{e.progress}</span>
                   )}
                 </div>
                 {href ? (
@@ -69,10 +71,10 @@ export default async function NowSection({ section }: { section: PageSection }) 
                   )
                 ) : title}
                 {e.description && (
-                  <p className="text-sm leading-relaxed m-0" style={{ color: 'var(--text-secondary)' }}>{e.description}</p>
+                  <p className="text-sm leading-relaxed m-0 text-secondary">{e.description}</p>
                 )}
                 {e.started_on && (
-                  <p className="text-[11px] font-mono mt-auto pt-1 m-0" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[11px] font-mono mt-auto pt-1 m-0 text-muted">
                     since {new Date(e.started_on).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
                   </p>
                 )}

@@ -12,9 +12,9 @@ export interface CardProps extends ComponentPropsWithoutRef<'div'> {
 export default function Card({ children, className = '', hover = true, glow = false, style, ...props }: CardProps) {
   return (
     <div
-      className={`rounded-2xl bg-[var(--bg-card)] transition-all duration-200 ${
+      className={`rounded-2xl bg-card transition-all duration-200 ${
         hover ? 'hover:translate-y-[-1px]' : ''
-      } ${glow ? 'hover:shadow-[var(--glow)]' : ''} ${className}`}
+      } ${glow ? 'hover:shadow-glow' : ''} ${className}`}
       style={{
         boxShadow: 'var(--shadow-card)',
         ...style,

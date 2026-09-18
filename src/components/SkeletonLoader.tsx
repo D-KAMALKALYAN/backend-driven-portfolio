@@ -5,8 +5,7 @@ export function SkeletonLine({ width = '100%', height = '1rem', className = '' }
 export function SkeletonCard({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`p-6 rounded-2xl bg-[var(--bg-card)] space-y-4 ${className}`}
-      style={{ boxShadow: 'var(--shadow-card)' }}
+      className={`p-6 rounded-2xl bg-card space-y-4 ${className} shadow-card`}
     >
       <SkeletonLine width="55%" height="1.25rem" />
       <SkeletonLine width="35%" height="0.75rem" />

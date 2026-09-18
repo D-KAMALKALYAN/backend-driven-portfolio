@@ -2,7 +2,45 @@
 
 /* =========================================================
    DESIGN TOKENS — Elite Portfolio
+
+   The :root / [data-theme] blocks below are the source of truth. The
+   @theme block maps them onto Tailwind's namespaces so the utilities ARE
+   the tokens: `text-muted` is `color: var(--text-muted)`, `bg-card` is
+   `background: var(--bg-card)`, and a theme change is one edit here.
+   `inline` keeps the utilities pointing at the variable rather than its
+   value, so [data-theme="light"] still switches them. (ADR-044)
    ========================================================= */
+@theme inline {
+  --color-*: initial;
+  --color-base:         var(--bg-base);
+  --color-surface:      var(--bg-surface);
+  --color-subtle:       var(--bg-subtle);
+  --color-card:         var(--bg-card);
+  --color-line:         var(--border);
+  --color-line-hover:   var(--border-hover);
+  --color-primary:      var(--text-primary);
+  --color-secondary:    var(--text-secondary);
+  --color-muted:        var(--text-muted);
+  --color-accent:       var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-glow:  var(--accent-glow);
+  --color-accent-glow2: var(--accent-glow2);
+  --color-on-accent:    var(--on-accent);
+  --color-success:      var(--success);
+  --color-warning:      var(--warning);
+  --color-danger:       var(--danger);
+  --color-info:         var(--info);
+  --color-transparent:  transparent;
+  --color-current:      currentColor;
+
+  --shadow-card:   var(--shadow-card);
+  --shadow-hover:  var(--shadow-hover);
+  --shadow-glow:   var(--glow);
+  --shadow-glow2:  var(--glow2);
+  --shadow-bar:    var(--shadow-bar);
+  --shadow-drawer: var(--shadow-drawer);
+  --shadow-modal:  var(--shadow-modal);
+}
 
 /* ── Dark theme (default) ── */
 :root {
@@ -31,6 +69,29 @@
   --danger:  #ef4444;
   --info:    #3b82f6;
 
+  /* Categorical hues: one per kind of thing (skill category, event type,
+     achievement type, ...). Components name a hue; every tint derives from
+     it in CSS (see .hue-* below). Nothing in src/ writes a hex colour. */
+  --hue-indigo: #6366f1;
+  --hue-violet: #8b5cf6;
+  --hue-purple: #a78bfa;
+  --hue-green:  #22c55e;
+  --hue-amber:  #f59e0b;
+  --hue-blue:   #3b82f6;
+  --hue-pink:   #ec4899;
+  --hue-teal:   #14b8a6;
+  --hue-red:    #ef4444;
+  --hue-cyan:   #06b6d4;
+  --hue-orange: #fb923c;
+  --hue-slate:  #9898b0;
+
+  /* Text on a solid accent surface; overlays and highlights. */
+  --on-accent: #ffffff;
+  --overlay:   rgba(0,0,0,0.6);
+  --sheen:     rgba(255,255,255,0.04);
+  --ring-accent:      color-mix(in srgb, var(--accent) 40%, transparent);
+  --ring-accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+
   /* next/font sets --font-inter / --font-jetbrains on <html>: self-hosted,
      no request to Google, so font-src can stay 'self'. */
   --font:      var(--font-inter, "Inter"), system-ui, -apple-system, sans-serif;
@@ -45,6 +106,9 @@
   --shadow-hover: 0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
   --glow:  0 0 20px rgba(99,102,241,0.20);
   --glow2: 0 0 40px rgba(99,102,241,0.35);
+  --shadow-bar:    0 2px 12px rgba(0,0,0,0.25);
+  --shadow-drawer: -4px 0 40px rgba(0,0,0,0.5), -1px 0 0 var(--border);
+  --shadow-modal:  0 25px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.07);
 
   color-scheme: dark;
 }
@@ -157,6 +221,50 @@ body {
   background-image:
     linear-gradient(rgba(79,70,229,0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(79,70,229,0.05) 1px, transparent 1px);
+}
+
+/* An element coloured by one categorical hue. The component sets --c
+   (see lib/palette.ts: hueStyle('amber')) and every tint follows in CSS -
+   the `${hex}18` string tricks this replaced could not take a variable.
+   Percentages match the old alpha bytes: 18→10%, 15→8%, 10→6%, 1e→12%,
+   28→16%, 55→33%, 33→20%, 0d→5%, 80→50%. */
+@layer components {
+  .hue-chip {
+    background-color: color-mix(in srgb, var(--c) 10%, transparent);
+    color: var(--c);
+  }
+  .hue-chip-soft {
+    background-color: color-mix(in srgb, var(--c) 8%, transparent);
+    color: var(--c);
+  }
+  .hue-badge {
+    color: var(--c);
+    background-color: color-mix(in srgb, var(--c) 5%, transparent);
+    border-color: color-mix(in srgb, var(--c) 20%, transparent);
+  }
+  .hue-tag {
+    background-color: color-mix(in srgb, var(--c) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c) 16%, transparent);
+  }
+  .hue-tag:hover {
+    background-color: color-mix(in srgb, var(--c) 12%, transparent);
+    border-color: color-mix(in srgb, var(--c) 33%, transparent);
+  }
+  .hue-dot {
+    background-color: var(--c);
+    box-shadow: 0 0 var(--dot-glow, 4px) color-mix(in srgb, var(--c) 50%, transparent);
+  }
+  .hue-pill {
+    background-color: color-mix(in srgb, var(--c) 8%, transparent);
+    color: var(--c);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 20%, transparent);
+  }
+  .hue-panel {
+    background-color: color-mix(in srgb, var(--c) 5%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 15%, transparent);
+  }
+  .hue-text { color: var(--c); }
+  .hue-edge { border-left: 3px solid var(--c); }
 }
 
 /* Gradient text */

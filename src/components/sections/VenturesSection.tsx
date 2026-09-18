@@ -5,13 +5,14 @@ import VentureLink from './VentureLink';
 import { getVentures } from '../../lib/content';
 import { RELATIONSHIP_LABEL, STATUS_LABEL, splitVentures } from '../../utils/ventures';
 import { enterAt } from '../../utils/enter';
+import { hueStyle, type Hue } from '../../lib/palette';
 import type { PageSection, Venture } from '../../types/rows';
 
-const STATUS_COLOR: Record<string, string> = {
-  stealth: '#9898b0',
-  active: '#22c55e',
-  acquired: '#6366f1',
-  'wound-down': '#82829c',
+const STATUS_HUE: Record<string, Hue> = {
+  stealth: 'slate',
+  active: 'green',
+  acquired: 'indigo',
+  'wound-down': 'slate',
 };
 
 function fmtDates(v: Venture): string | null {
@@ -22,8 +23,8 @@ function fmtDates(v: Venture): string | null {
 
 function VentureCard({ v, i, light }: { v: Venture; i: number; light: boolean }) {
   const dates = fmtDates(v);
-  const statusColor = STATUS_COLOR[v.status] ?? 'var(--text-muted)';
-  const name = <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{v.name}</span>;
+  const statusHue = STATUS_HUE[v.status] ?? 'slate';
+  const name = <span className="text-lg font-semibold text-primary">{v.name}</span>;
   return (
     <li className="enter" style={enterAt(i * 70)}>
       <Card className={`${light ? 'p-4' : 'p-6'} h-full flex flex-col gap-3`} hover={Boolean(v.website_url)} glow={!light && v.is_featured}>
@@ -36,27 +37,27 @@ function VentureCard({ v, i, light }: { v: Venture; i: number; light: boolean })
               {v.website_url ? (
                 <VentureLink href={v.website_url} slug={v.slug} className="no-underline hover:underline">{name} ↗</VentureLink>
               ) : name}
-              <p className="text-xs m-0 mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs m-0 mt-0.5 text-muted">
                 {[v.role, RELATIONSHIP_LABEL[v.relationship] ?? v.relationship].filter(Boolean).join(' · ')}
                 {dates && <> · {dates}</>}
               </p>
             </div>
           </div>
           <span
-            className="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
-            style={{ backgroundColor: `${statusColor}18`, color: statusColor }}
+            className="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider hue-chip"
+            style={hueStyle(statusHue)}
           >
             {STATUS_LABEL[v.status] ?? v.status}
           </span>
         </div>
-        {v.tagline && <p className="text-sm font-medium m-0" style={{ color: 'var(--text-secondary)' }}>{v.tagline}</p>}
+        {v.tagline && <p className="text-sm font-medium m-0 text-secondary">{v.tagline}</p>}
         {!light && v.description && (
-          <p className="text-sm leading-relaxed m-0" style={{ color: 'var(--text-secondary)' }}>{v.description}</p>
+          <p className="text-sm leading-relaxed m-0 text-secondary">{v.description}</p>
         )}
         {(v.industry.length > 0 || v.tech_stack.length > 0) && (
           <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
             {v.industry.map((t) => <Badge key={`i-${t}`}>{t}</Badge>)}
-            {!light && v.tech_stack.map((t) => <Badge key={`t-${t}`} color="#6366f1">{t}</Badge>)}
+            {!light && v.tech_stack.map((t) => <Badge key={`t-${t}`} hue="indigo">{t}</Badge>)}
           </div>
         )}
       </Card>

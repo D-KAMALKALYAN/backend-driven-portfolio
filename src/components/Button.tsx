@@ -8,13 +8,13 @@ const SIZES = {
 
 const VARIANTS = {
   primary:
-    'bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-hover)] active:scale-[0.97]',
+    'bg-accent text-on-accent font-semibold hover:bg-accent-hover active:scale-[0.97]',
   secondary:
-    'border border-[var(--border-hover)] text-[var(--text-secondary)] font-semibold hover:border-[var(--border-hover)] hover:text-[var(--text-primary)] bg-transparent active:scale-[0.97]',
+    'border border-line-hover text-secondary font-semibold hover:border-line-hover hover:text-primary bg-transparent active:scale-[0.97]',
   ghost:
-    'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]',
+    'text-secondary hover:bg-subtle hover:text-primary',
   danger:
-    'bg-[var(--danger)] text-white font-semibold hover:opacity-90 active:scale-[0.97]',
+    'bg-danger text-on-accent font-semibold hover:opacity-90 active:scale-[0.97]',
 } as const;
 
 export type ButtonSize = keyof typeof SIZES;

@@ -2,57 +2,41 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Cloud, Cog, Database, FlaskConical, Layers, Lock, MessageSquare, Monitor, Package, Rocket, Wrench, type LucideIcon,
+} from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { enterAt } from '../utils/enter';
+import { hue, hueStyle, type Hue } from '../lib/palette';
 import type { Skill } from '../types/rows';
 
-/* ── Category colour map ───────────────────────────────────────── */
-const COLORS: Record<string, string> = {
-  frontend:  '#3b82f6',
-  backend:   '#22c55e',
-  database:  '#f59e0b',
-  devops:    '#8b5cf6',
-  security:  '#ef4444',
-  tools:     '#6366f1',
-  tool:      '#6366f1',
-  language:  '#ec4899',
-  framework: '#14b8a6',
-  platform:  '#14b8a6',
-  cloud:     '#06b6d4',
-  testing:   '#fb923c',
-  other:     '#9898b0',
+/* ── Category → hue + glyph ────────────────────────────────────── */
+const CATEGORY: Record<string, { hue: Hue; icon: LucideIcon }> = {
+  frontend:  { hue: 'blue',   icon: Monitor },
+  backend:   { hue: 'green',  icon: Cog },
+  database:  { hue: 'amber',  icon: Database },
+  devops:    { hue: 'violet', icon: Rocket },
+  security:  { hue: 'red',    icon: Lock },
+  tools:     { hue: 'indigo', icon: Wrench },
+  tool:      { hue: 'indigo', icon: Wrench },
+  language:  { hue: 'pink',   icon: MessageSquare },
+  framework: { hue: 'teal',   icon: Package },
+  platform:  { hue: 'teal',   icon: Cloud },
+  cloud:     { hue: 'cyan',   icon: Cloud },
+  testing:   { hue: 'orange', icon: FlaskConical },
+  other:     { hue: 'slate',  icon: Layers },
 };
+const OTHER = CATEGORY.other!;
 
-const CATEGORY_ICONS: Record<string, string> = {
-  frontend:  '🖥',
-  backend:   '⚙️',
-  database:  '🗄',
-  devops:    '🚀',
-  security:  '🔒',
-  tools:     '🛠',
-  tool:      '🛠',
-  language:  '💬',
-  framework: '📦',
-  platform:  '☁️',
-  cloud:     '☁️',
-  testing:   '🧪',
-  other:     '◈',
-};
-
-function catColor(cat: string | null | undefined): string {
-  if (!cat) return '#9898b0';
+/** Exact key first, then a category that contains a known word ("Backend Frameworks" → framework). */
+function catMeta(cat: string | null | undefined): { hue: Hue; icon: LucideIcon } {
+  if (!cat) return OTHER;
   const k = cat.toLowerCase();
-  return COLORS[k] ?? Object.entries(COLORS).find(([key]) => k.includes(key))?.[1] ?? '#9898b0';
-}
-
-function catIcon(cat: string | null | undefined): string {
-  if (!cat) return '◈';
-  const k = cat.toLowerCase();
-  return CATEGORY_ICONS[k] ?? Object.entries(CATEGORY_ICONS).find(([key]) => k.includes(key))?.[1] ?? '◈';
+  return CATEGORY[k] ?? Object.entries(CATEGORY).find(([key]) => k.includes(key))?.[1] ?? OTHER;
 }
 
 /* ── Skill tag visual ──────────────────────────────────────────── */
@@ -75,45 +59,33 @@ function getLevel(proficiency: number | null | undefined) {
   return LEVEL_LABELS.find((l) => proficiency >= l.min) ?? LEVEL_LABELS[LEVEL_LABELS.length - 1] ?? null;
 }
 
-function SkillTag({ skill, color, delayMs }: { skill: Skill; color: string; delayMs: number }) {
+function SkillTag({ skill, hue: h, delayMs }: { skill: Skill; hue: Hue; delayMs: number }) {
   const level = getLevel(skill?.proficiency);
+  // The tag's tints (rest and hover) live in .hue-tag; motion only scales.
   return (
     <motion.div
-      className="enter group flex items-center gap-2 px-3 py-2 rounded-xl cursor-default select-none transition-all"
-      style={{
-        ...enterAt(delayMs),
-        backgroundColor: `${color}10`,
-        border: `1px solid ${color}28`,
-      }}
-      whileHover={{
-        backgroundColor: `${color}1e`,
-        borderColor: `${color}55`,
-        scale: 1.03,
-      }}
+      className="enter group flex items-center gap-2 px-3 py-2 rounded-xl cursor-default select-none transition-colors duration-150 hue-tag"
+      style={hueStyle(h, enterAt(delayMs))}
+      whileHover={{ scale: 1.03 }}
       transition={{ duration: 0.15 }}
     >
-      {/* Animated dot — size reflects level */}
+      {/* Dot — size and glow reflect level */}
       <span
-        className="shrink-0 rounded-full transition-all duration-300 group-hover:scale-125"
+        className="shrink-0 rounded-full transition-all duration-300 group-hover:scale-125 hue-dot"
         style={{
           width: level?.dot === 3 ? '7px' : level?.dot === 2 ? '6px' : '5px',
           height: level?.dot === 3 ? '7px' : level?.dot === 2 ? '6px' : '5px',
-          backgroundColor: color,
-          boxShadow: `0 0 ${level?.dot === 3 ? '6px' : '4px'} ${color}80`,
+          ['--dot-glow' as string]: level?.dot === 3 ? '6px' : '4px',
         }}
       />
       <span
-        className="text-xs font-medium leading-none"
-        style={{ color: 'var(--text-primary)' }}
+        className="text-xs font-medium leading-none text-primary"
       >
         {skill?.name || 'Skill'}
       </span>
       {/* Level label shown only if proficiency data is available */}
       {level && (
-        <span
-          className="ml-auto pl-2 text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          style={{ color }}
-        >
+        <span className="ml-auto pl-2 text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-200 hue-text">
           {level.label}
         </span>
       )}
@@ -125,12 +97,12 @@ function SkillTag({ skill, color, delayMs }: { skill: Skill; color: string; dela
 interface CategoryCardProps {
   category: string;
   skills: Skill[];
-  color: string;
-  icon: string;
+  hue: Hue;
+  icon: LucideIcon;
   index: number;
 }
 
-function CategoryCard({ category, skills, color, icon, index }: CategoryCardProps) {
+function CategoryCard({ category, skills, hue: h, icon: Glyph, index }: CategoryCardProps) {
   return (
     <motion.div
       className="enter rounded-2xl p-5 flex flex-col gap-4 h-full transition-all duration-200"
@@ -144,20 +116,18 @@ function CategoryCard({ category, skills, color, icon, index }: CategoryCardProp
       {/* Header */}
       <div className="flex items-center gap-2.5">
         <span
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
-          style={{ backgroundColor: `${color}18`, color }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hue-chip"
+          style={hueStyle(h)}
         >
-          {icon}
+          <Glyph size={16} aria-hidden />
         </span>
         <h3
-          className="text-sm font-semibold capitalize flex-1"
-          style={{ color: 'var(--text-primary)' }}
+          className="text-sm font-semibold capitalize flex-1 text-primary"
         >
           {category}
         </h3>
         <span
-          className="text-[10px] font-mono px-2 py-0.5 rounded-full"
-          style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
+          className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted"
         >
           {skills.length}
         </span>
@@ -166,7 +136,7 @@ function CategoryCard({ category, skills, color, icon, index }: CategoryCardProp
       {/* Skill tags — staggered by CSS delay */}
       <div className="flex flex-col gap-2">
         {skills.map((skill, i) => (
-          <SkillTag key={skill.id} skill={skill} color={color} delayMs={index * 60 + 150 + i * 50} />
+          <SkillTag key={skill.id} skill={skill} hue={h} delayMs={index * 60 + 150 + i * 50} />
         ))}
       </div>
     </motion.div>
@@ -202,17 +172,16 @@ export default function Skills({ skills }: { skills: Skill[] }) {
           {/* Stats row */}
           <div className="flex flex-wrap items-center gap-4 mb-8">
             <div
-              className="flex items-center gap-4 px-4 py-2 rounded-xl text-xs font-mono"
-              style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}
+              className="flex items-center gap-4 px-4 py-2 rounded-xl text-xs font-mono bg-card shadow-card"
             >
-              <span style={{ color: 'var(--text-muted)' }}>
+              <span className="text-muted">
                 Total:{' '}
-                <strong style={{ color: 'var(--accent)' }}>{totalCount}</strong>
+                <strong className="text-accent">{totalCount}</strong>
               </span>
-              <span style={{ color: 'var(--border)' }}>|</span>
-              <span style={{ color: 'var(--text-muted)' }}>
+              <span className="text-line">|</span>
+              <span className="text-muted">
                 Categories:{' '}
-                <strong style={{ color: 'var(--accent)' }}>{Object.keys(grouped).length}</strong>
+                <strong className="text-accent">{Object.keys(grouped).length}</strong>
               </span>
             </div>
           </div>
@@ -222,7 +191,7 @@ export default function Skills({ skills }: { skills: Skill[] }) {
             <div className="flex flex-wrap gap-2 mb-6">
               {categories.map((cat) => {
                 const isActive = cat === activeFilter;
-                const color    = cat === 'All' ? 'var(--accent)' : catColor(cat);
+                const color    = cat === 'All' ? 'var(--accent)' : hue(catMeta(cat).hue);
                 return (
                   <button
                     key={cat}
@@ -230,7 +199,7 @@ export default function Skills({ skills }: { skills: Skill[] }) {
                     className="px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all border-none cursor-pointer"
                     style={{
                       backgroundColor: isActive ? color : 'var(--bg-card)',
-                      color:           isActive ? '#fff' : 'var(--text-secondary)',
+                      color:           isActive ? 'var(--on-accent)' : 'var(--text-secondary)',
                       boxShadow:       'var(--shadow-card)',
                     }}
                   >
@@ -256,15 +225,15 @@ export default function Skills({ skills }: { skills: Skill[] }) {
                     key={cat}
                     category={cat}
                     skills={catSkills}
-                    color={catColor(cat)}
-                    icon={catIcon(cat)}
+                    hue={catMeta(cat).hue}
+                    icon={catMeta(cat).icon}
                     index={i}
                   />
                 ))}
               </motion.div>
             </AnimatePresence>
           ) : (
-            <EmptyState icon="🛠" title="No skills listed" description="Add skills via Supabase." />
+            <EmptyState icon={<Wrench size={24} aria-hidden />} title="No skills listed" description="Add skills via Supabase." />
           )}
         </Container>
       </Section>

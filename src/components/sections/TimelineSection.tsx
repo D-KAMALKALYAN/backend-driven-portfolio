@@ -1,14 +1,16 @@
 import Link from 'next/link';
+import { Briefcase, FolderOpen, Trophy, type LucideIcon } from 'lucide-react';
 import SectionBlock from './SectionBlock';
 import { getAchievements, getExperience, getProjects } from '../../lib/content';
 import { buildTimeline, formatSpan, groupByYear, type TimelineKind } from '../../utils/timeline';
 import { enterAt } from '../../utils/enter';
+import { hueStyle, type Hue } from '../../lib/palette';
 import type { PageSection } from '../../types/rows';
 
-const KIND: Record<TimelineKind, { icon: string; label: string; color: string }> = {
-  role:        { icon: '💼', label: 'Role',       color: '#6366f1' },
-  project:     { icon: '📂', label: 'Project',    color: '#22c55e' },
-  achievement: { icon: '🏆', label: 'Credential', color: '#f59e0b' },
+const KIND: Record<TimelineKind, { icon: LucideIcon; label: string; hue: Hue }> = {
+  role:        { icon: Briefcase,  label: 'Role',       hue: 'indigo' },
+  project:     { icon: FolderOpen, label: 'Project',    hue: 'green' },
+  achievement: { icon: Trophy,     label: 'Credential', hue: 'amber' },
 };
 
 /**
@@ -25,7 +27,7 @@ export default async function TimelineSection({ section }: { section: PageSectio
   let i = 0;
   return (
     <SectionBlock heading={section.heading ?? 'The story so far'} description={section.description}>
-      <ol className="relative list-none m-0 p-0 pl-6 sm:pl-8" style={{ borderLeft: '1px solid var(--border)' }}>
+      <ol className="relative list-none m-0 p-0 pl-6 sm:pl-8 border-l border-line">
         {years.map(({ year, items: list }) => (
           <li key={year} className="mb-8 last:mb-0">
             <div className="relative mb-4">
@@ -34,12 +36,12 @@ export default async function TimelineSection({ section }: { section: PageSectio
                 style={{ backgroundColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--bg-base)' }}
                 aria-hidden="true"
               />
-              <h3 className="text-sm font-mono font-semibold tracking-widest m-0" style={{ color: 'var(--text-muted)' }}>{year}</h3>
+              <h3 className="text-sm font-mono font-semibold tracking-widest m-0 text-muted">{year}</h3>
             </div>
             <ul className="list-none m-0 p-0 space-y-3">
               {list.map((it) => {
                 const kind = KIND[it.kind];
-                const title = <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{it.title}</span>;
+                const title = <span className="text-sm font-semibold text-primary">{it.title}</span>;
                 const link = it.href
                   ? it.external
                     ? <a href={it.href} target="_blank" rel="noopener noreferrer" className="no-underline hover:underline">{title} ↗</a>
@@ -48,15 +50,15 @@ export default async function TimelineSection({ section }: { section: PageSectio
                 return (
                   <li key={it.id} className="enter flex flex-wrap items-baseline gap-x-3 gap-y-1" style={enterAt(Math.min(i++, 12) * 50)}>
                     <span
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0"
-                      style={{ backgroundColor: `${kind.color}18`, color: kind.color }}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0 hue-chip"
+                      style={hueStyle(kind.hue)}
                       title={kind.label}
                     >
-                      <span aria-hidden="true">{kind.icon}</span> {kind.label}
+                      <kind.icon size={11} aria-hidden /> {kind.label}
                     </span>
                     <span className="min-w-0">
                       {link}
-                      {it.subtitle && <span className="text-sm" style={{ color: 'var(--text-secondary)' }}> · {it.subtitle}</span>}
+                      {it.subtitle && <span className="text-sm text-secondary"> · {it.subtitle}</span>}
                     </span>
                     <span className="text-[11px] font-mono ml-auto shrink-0" style={{ color: it.ongoing ? 'var(--success)' : 'var(--text-muted)' }}>
                       {formatSpan(it)}

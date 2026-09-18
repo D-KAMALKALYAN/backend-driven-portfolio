@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import Link from 'next/link';
+import {
+  Activity, Braces, Building2, ChartLine, Code2, Construction, Database, Eye, FileText, Image as ImageIcon, Layers,
+  Lightbulb, Puzzle, Scale, Shield, TrendingUp, TriangleAlert, type LucideIcon,
+} from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Card from '../components/Card';
@@ -9,6 +13,7 @@ import Badge from '../components/Badge';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import { trackEvent } from '../services/analytics';
+import { hueStyle, type Hue, type Tone } from '../lib/palette';
 import { formatViews } from '../utils/format';
 import { isInProgress } from '../utils/popularity';
 import { asObject, asObjectArray, asString } from '../utils/json';
@@ -22,18 +27,18 @@ export interface ProjectDetailProps {
 }
 
 interface StoryMeta {
-  icon: string;
+  icon: LucideIcon;
   label: string;
-  color: string;
+  hue: Hue | Tone;
 }
 
 /* ─── Storytelling section meta ─── */
 const STORY_META: Record<string, StoryMeta> = {
-  why_this_project: { icon: '💡', label: 'Why This Was Built',       color: '#f59e0b' },
-  problem_statement: { icon: '⚠️', label: 'The Problem',              color: '#ef4444' },
-  solution_approach: { icon: '🏗',  label: 'Solution & Architecture', color: '#6366f1' },
-  tradeoffs:         { icon: '⚖️', label: 'Deliberate Tradeoffs',    color: '#8b5cf6' },
-  impact:            { icon: '📈', label: 'Measurable Impact',        color: '#22c55e' },
+  why_this_project:  { icon: Lightbulb,     label: 'Why This Was Built',       hue: 'amber' },
+  problem_statement: { icon: TriangleAlert, label: 'The Problem',              hue: 'red' },
+  solution_approach: { icon: Building2,     label: 'Solution & Architecture', hue: 'indigo' },
+  tradeoffs:         { icon: Scale,         label: 'Deliberate Tradeoffs',    hue: 'violet' },
+  impact:            { icon: TrendingUp,    label: 'Measurable Impact',        hue: 'green' },
 };
 
 /* Order storytelling sections by the canonical order above */
@@ -55,39 +60,31 @@ function StorytellingSection({ rows }: { rows: ProjectStorytelling[] | null | un
       {/* Section divider */}
       <div className="flex items-center gap-3 mb-6">
         <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }} />
-        <span className="text-xs font-semibold uppercase tracking-widest px-3"
-          style={{ color: 'var(--text-muted)' }}>Case Study</span>
+        <span className="text-xs font-semibold uppercase tracking-widest px-3 text-muted">Case Study</span>
         <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }} />
       </div>
 
       <div className="space-y-4">
         {sorted.map((row, i) => {
-          const meta: StoryMeta = STORY_META[row.section_type] ?? { icon: '◈', label: row.section_type, color: 'var(--accent)' };
+          const meta: StoryMeta = STORY_META[row.section_type] ?? { icon: Activity, label: row.section_type, hue: 'accent' };
           const displayTitle = row.title || meta.label;
           return (
             <div key={row.id} className="enter" style={enterAt(i * 80)}>
               <div
-                className="rounded-2xl p-5 sm:p-6"
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  boxShadow: 'var(--shadow-card)',
-                  borderLeft: `3px solid ${meta.color}`,
-                }}
+                className="rounded-2xl p-5 sm:p-6 bg-card shadow-card hue-edge"
+                style={hueStyle(meta.hue)}
               >
                 {/* Header */}
                 <div className="flex items-center gap-2.5 mb-3">
-                  <span
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
-                    style={{ backgroundColor: `${meta.color}15`, color: meta.color }}
-                  >
-                    {meta.icon}
+                  <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hue-chip-soft">
+                    <meta.icon size={16} aria-hidden />
                   </span>
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  <h3 className="text-sm font-semibold text-primary">
                     {displayTitle}
                   </h3>
                 </div>
                 {/* Body */}
-                <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm leading-relaxed whitespace-pre-line text-secondary">
                   {row.body}
                 </p>
               </div>
@@ -108,12 +105,12 @@ function renderContent(section: ProjectSection): ReactNode {
   switch (section.type) {
     case 'text': {
       const body = asString(c['body']);
-      return <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>{body || JSON.stringify(c)}</p>;
+      return <p className="text-sm leading-relaxed whitespace-pre-line text-secondary">{body || JSON.stringify(c)}</p>;
     }
     case 'code': {
       const snippet = asString(c['snippet']);
       return (
-        <pre className="overflow-x-auto text-xs p-4 rounded-xl font-mono" style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-primary)' }}>
+        <pre className="overflow-x-auto text-xs p-4 rounded-xl font-mono bg-subtle text-primary">
           <code>{snippet || JSON.stringify(c, null, 2)}</code>
         </pre>
       );
@@ -124,7 +121,7 @@ function renderContent(section: ProjectSection): ReactNode {
       return (
         <figure className="space-y-2">
           {url && <img src={url} alt={caption || section.title || 'Screenshot'} className="w-full rounded-xl object-cover" style={{ maxHeight: 400 }} />}
-          {caption && <figcaption className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>{caption}</figcaption>}
+          {caption && <figcaption className="text-xs text-center text-muted">{caption}</figcaption>}
         </figure>
       );
     }
@@ -133,9 +130,9 @@ function renderContent(section: ProjectSection): ReactNode {
       return items.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {items.map((m, i) => (
-            <div key={i} className="text-center p-4 rounded-xl" style={{ backgroundColor: 'var(--bg-subtle)' }}>
-              <p className="text-2xl font-bold font-mono" style={{ color: 'var(--accent)' }}>{asString(m['value'], '—')}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>{asString(m['label'])}</p>
+            <div key={i} className="text-center p-4 rounded-xl bg-subtle">
+              <p className="text-2xl font-bold font-mono text-accent">{asString(m['value'], '—')}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mt-1 text-muted">{asString(m['label'])}</p>
             </div>
           ))}
         </div>
@@ -160,12 +157,15 @@ function renderContent(section: ProjectSection): ReactNode {
     default: {
       const body = asString(c['body']);
       const text = body || Object.values(c).filter((v): v is string => typeof v === 'string').join('\n') || JSON.stringify(c);
-      return <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{text}</p>;
+      return <p className="text-sm leading-relaxed text-secondary">{text}</p>;
     }
   }
 }
 
-const SECTION_ICONS: Record<string, string> = { overview: '◎', architecture: '▣', 'api design': '◆', 'api-design': '◆', 'database design': '▥', 'database-design': '▥', security: '◇', challenges: '▦', text: '◎', code: '⌥', image: '▣', metrics: '◈' };
+const SECTION_ICONS: Record<string, LucideIcon> = {
+  overview: Eye, architecture: Layers, 'api design': Braces, 'api-design': Braces, 'database design': Database, 'database-design': Database,
+  security: Shield, challenges: Puzzle, text: FileText, code: Code2, image: ImageIcon, metrics: ChartLine,
+};
 
 function parseTechs(t: string[] | string | null | undefined): string[] {
   if (!t) return [];
@@ -190,7 +190,7 @@ function ProjectLink({ href, icon, label, primary = false }: { href: string | nu
       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold no-underline transition-all"
       style={primary ? {
         backgroundColor: 'var(--accent)',
-        color: '#fff',
+        color: 'var(--on-accent)',
         boxShadow: '0 0 24px var(--accent-glow)',
       } : {
         backgroundColor: 'var(--bg-subtle)',
@@ -233,22 +233,21 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
         <Container>
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'var(--text-muted)' }} aria-label="Breadcrumb">
-            <Link href="/projects" className="no-underline transition-colors" style={{ color: 'var(--text-muted)' }}
+          <nav className="flex items-center gap-2 mb-6 text-xs text-muted" aria-label="Breadcrumb">
+            <Link href="/projects" className="no-underline transition-colors text-muted"
               onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
             >
               Projects
             </Link>
             <span>/</span>
-            <span className="truncate max-w-xs" style={{ color: 'var(--text-secondary)' }}>{project.title || 'Untitled'}</span>
+            <span className="truncate max-w-xs text-secondary">{project.title || 'Untitled'}</span>
           </nav>
 
           {/* Cover image hero */}
           {project.cover_image_url && (
             <div
-              className="enter mb-8 rounded-2xl overflow-hidden"
-              style={{ boxShadow: 'var(--shadow-card)' }}
+              className="enter mb-8 rounded-2xl overflow-hidden shadow-card"
             >
               <img
                 src={project.cover_image_url}
@@ -268,8 +267,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
               <div className="flex items-center gap-2 flex-wrap mb-3">
                 {project.status && (
                   <span
-                    className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: 'var(--accent-glow2)', color: 'var(--accent)' }}
+                    className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-accent-glow2 text-accent"
                   >
                     {project.status}
                   </span>
@@ -278,29 +276,29 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                     relative to the other projects, and this page holds one.
                     The absolute view count below is the honest signal. */}
                 {inProgress && (
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }} title="Currently in development">
-                    🚧 In progress
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full hue-chip" style={hueStyle('amber')} title="Currently in development">
+                    <Construction size={11} aria-hidden /> In progress
                   </span>
                 )}
                 {viewLabel && (
-                  <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
-                    👁 {viewLabel}
+                  <span className="text-[10px] font-mono text-muted">
+                    <Eye size={11} className="inline -mt-px" aria-hidden /> {viewLabel}
                   </span>
                 )}
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 text-primary">
                 {project.title || 'Untitled Project'}
               </h1>
 
               {project.tagline && (
-                <p className="text-base font-medium mb-3" style={{ color: 'var(--accent)' }}>
+                <p className="font-medium mb-3 text-accent">
                   {project.tagline}
                 </p>
               )}
 
               {project.description && (
-                <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm leading-relaxed mb-4 text-secondary">
                   {project.description}
                 </p>
               )}
@@ -308,7 +306,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
               {/* Tech stack + tags */}
               {techs.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
-                  {techs.map((t) => <Badge key={t} color="var(--accent)">{t}</Badge>)}
+                  {techs.map((t) => <Badge key={t} hue="accent">{t}</Badge>)}
                 </div>
               )}
               {tags.length > 0 && (
@@ -316,8 +314,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                   {tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
+                      className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted"
                     >
                       #{tag}
                     </span>
@@ -328,7 +325,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
 
             {/* Right: sidebar info card */}
             <div className="lg:col-span-1">
-              <div className="rounded-2xl p-5 space-y-4" style={{ boxShadow: 'var(--shadow-card)', backgroundColor: 'var(--bg-card)' }}>
+              <div className="rounded-2xl p-5 space-y-4 shadow-card bg-card">
 
                 {/* CTA links */}
                 <div className="flex flex-col gap-2">
@@ -367,20 +364,20 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
                     {hasDates && (
                       <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)' }}>
+                        <svg className="w-3.5 h-3.5 shrink-0 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-xs font-mono text-secondary">
                           {startDate}{startDate && ' — '}{endDate}
                         </span>
                       </div>
                     )}
                     {viewCount > 0 && (
                       <div className="flex items-center gap-2">
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)' }}>
+                        <svg className="w-3.5 h-3.5 shrink-0 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-xs font-mono text-secondary">
                           {viewCount.toLocaleString()} views
                         </span>
                       </div>
@@ -406,11 +403,10 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                     <Card className="p-5 sm:p-6" hover={false}>
                       {s?.title && (
                         <div className="flex items-center gap-2 mb-4">
-                          <span className="text-sm" style={{ color: 'var(--accent)' }}>{SECTION_ICONS[iconKey] ?? '◈'}</span>
-                          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{s.title}</h2>
+                          {(() => { const Glyph = SECTION_ICONS[iconKey] ?? Activity; return <Glyph size={14} className="text-accent shrink-0" aria-hidden />; })()}
+                          <h2 className="font-semibold text-primary">{s.title}</h2>
                           {s?.type && s.type !== 'text' && (
-                            <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>
+                            <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-subtle text-muted">
                               {s.type}
                             </span>
                           )}

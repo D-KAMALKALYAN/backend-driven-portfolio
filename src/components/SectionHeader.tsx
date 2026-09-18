@@ -25,17 +25,17 @@ export default function SectionHeader({ label, title, description, as: Heading =
   return (
     <div className={compact ? 'mb-5' : 'mb-10 md:mb-12'}>
       {label && (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest bg-[var(--accent-glow)] text-[var(--accent)] mb-3">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest bg-accent-glow text-accent mb-3">
           {label}
         </span>
       )}
       {title && (
-        <Heading className={`${compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'} font-bold text-[var(--text-primary)] leading-tight tracking-tight`}>
+        <Heading className={`${compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'} font-bold text-primary leading-tight tracking-tight`}>
           {title}
         </Heading>
       )}
       {description && (
-        <p className={`${compact ? 'mt-2 text-sm' : 'mt-3 text-base'} text-[var(--text-secondary)] max-w-2xl leading-relaxed`}>
+        <p className={`${compact ? 'mt-2 text-sm' : 'mt-3 text-base'} text-secondary max-w-2xl leading-relaxed`}>
           {description}
         </p>
       )}

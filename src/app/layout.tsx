@@ -56,6 +56,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: [
+    // Literal on purpose: a <meta name="theme-color"> cannot read a CSS
+    // variable. These mirror --bg-base in each theme.
     { media: '(prefers-color-scheme: dark)', color: '#0a0a0f' },
     { media: '(prefers-color-scheme: light)', color: '#f6f7fb' },
   ],
