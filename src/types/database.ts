@@ -956,6 +956,7 @@ export type Database = {
       get_analytics_summary: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       refresh_project_view_counts: { Args: never; Returns: undefined }
+      revalidate_diagnostics: { Args: never; Returns: Json }
       rollup_analytics: { Args: { retain_days?: number }; Returns: Json }
       search_content: {
         Args: { max_results?: number; q: string }
