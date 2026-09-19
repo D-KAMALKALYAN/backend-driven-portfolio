@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 /** True when the primary pointer is coarse (touch/mobile). */
 function useIsTouchDevice() {
@@ -69,10 +70,14 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
   // to walk into the timeline behind it, and dropped focus on close.
   useFocusTrap(panelRef, true, { onEscape: onClose });
 
-  return (
+  // Portaled to <body>: PageWrapper's entrance animation gives the page its
+  // own stacking context, which kept this "fixed" drawer underneath the
+  // navbar (z-50) - the header with the close button was covered. Outside
+  // the page and above the bar, as the command palette already is.
+  return createPortal(
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-stretch justify-end"
+        className="fixed inset-0 z-[100] flex items-stretch justify-end"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -268,7 +273,8 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

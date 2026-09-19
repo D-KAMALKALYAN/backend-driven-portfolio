@@ -90,7 +90,8 @@ describe('systemStatusFrom', () => {
   it('reports the server-measured round trip with the same colour bands as before', () => {
     expect(systemStatusFrom({ ok: true, db: true, dbMs: 42 })).toMatchObject({ system: 'Online', latency: '42ms', latencyColor: 'var(--success)' });
     expect(systemStatusFrom({ ok: true, db: true, dbMs: 350 }).latencyColor).toBe('var(--accent)');
-    expect(systemStatusFrom({ ok: true, db: true, dbMs: 900 }).latencyColor).toBe('var(--danger)');
+    // a cold instance is slow, not broken: never red
+    expect(systemStatusFrom({ ok: true, db: true, dbMs: 900 }).latencyColor).toBe('var(--accent)');
   });
 
   it('is Online without a number when the ping succeeded but carried no timing', () => {

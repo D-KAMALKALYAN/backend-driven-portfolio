@@ -78,13 +78,15 @@ function normalizeUrl(url: string | null | undefined): string | null {
    still derives in CSS (.hue-chip), so the old `${hex}18` string trick is
    gone, and with it the broken `var(--accent)18` an unknown platform produced. */
 const PLATFORM_COLORS: Record<string, string> = {
-  github: '#e5e7eb',
+  // GitHub and Medium are black-on-white brands: a literal here is invisible
+  // in one of the two themes, so they take the theme's own text colour.
+  github: 'var(--text-primary)',
   linkedin: '#0a66c2',
   twitter: '#1d9bf0',
   leetcode: '#ffa116',
   hackerrank: '#00ea64',
   geeksforgeeks: '#2f8d46',
-  medium: '#000000',
+  medium: 'var(--text-primary)',
   portfolio: '#6366f1',
 };
 

@@ -381,7 +381,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
 
           {/* ── Keyboard hint ── */}
           <p
-            className="enter flex items-center justify-center gap-2 mt-10 text-xs"
+            className="enter hidden sm:flex items-center justify-center gap-2 mt-10 text-xs"
             style={{ ...enterAt(750), color: 'var(--text-muted)' }}
           >
             Press{' '}

@@ -45,8 +45,17 @@ describe('palette', () => {
     }
   });
 
+  it('no colour name is also a font-size name (text-base would become a colour)', () => {
+    // Tailwind's `text-*` utility serves both namespaces. A colour called
+    // `base` made every inheriting `text-base` element the page background
+    // colour - found by the 2026-09-19 UI check on /how-it-works.
+    const sizes = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl', '8xl', '9xl'];
+    const colours = [...css.matchAll(/--color-([a-z0-9-]+):/g)].map((m) => m[1] ?? '');
+    expect(colours.filter((c) => sizes.includes(c))).toEqual([]);
+  });
+
   it('the theme bridge maps every semantic token a utility relies on', () => {
-    for (const name of ['base', 'surface', 'subtle', 'card', 'line', 'line-hover', 'primary', 'secondary', 'muted', 'accent', 'accent-hover', 'on-accent', 'success', 'warning', 'danger', 'info']) {
+    for (const name of ['canvas', 'surface', 'subtle', 'card', 'line', 'line-hover', 'primary', 'secondary', 'muted', 'accent', 'accent-hover', 'on-accent', 'success', 'warning', 'danger', 'info']) {
       expect(css, name).toMatch(new RegExp(`--color-${name}:\\s+var\\(--`));
     }
     // and resets Tailwind's own palette, so text-gray-400 is not an option
