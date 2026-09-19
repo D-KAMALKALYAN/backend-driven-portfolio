@@ -43,7 +43,10 @@ export function systemStatusFrom(reading: HealthReading | null): SystemStatus {
     system: 'Online',
     latency: `${Math.max(0, Math.round(ms))}ms`,
     systemColor: 'var(--success)',
-    latencyColor: ms < 200 ? 'var(--success)' : ms < 500 ? 'var(--accent)' : 'var(--danger)',
+    // Below 200 ms is the number a warm function next to the database
+    // gives; anything else is usually a cold instance's TLS handshake. That
+    // is a reading, not a fault - red is reserved for Degraded.
+    latencyColor: ms < 200 ? 'var(--success)' : 'var(--accent)',
   };
 }
 

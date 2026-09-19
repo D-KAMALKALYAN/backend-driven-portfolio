@@ -40,7 +40,7 @@ export function buildPaletteItems(commands: ReadonlyArray<Command>, results: Rea
   const fromCommands: PaletteItem[] = commands.map((c) => ({
     id: c.id,
     label: c.label,
-    hint: c.shortcut,
+    hint: c.path,
     path: c.path,
     group: c.group,
   }));

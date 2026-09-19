@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, type ChangeEvent, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import { Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -350,9 +351,7 @@ export default function Contact() {
                   {status === 'submitting' ? 'Sending…' : (
                     <>
                       Send Message
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
+                      <Send size={16} aria-hidden />
                     </>
                   )}
                 </Button>

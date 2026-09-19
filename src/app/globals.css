@@ -12,7 +12,13 @@
    ========================================================= */
 @theme inline {
   --color-*: initial;
-  --color-base:         var(--bg-base);
+  /* Named `canvas`, not `base`: a colour called `base` makes `text-base`
+     (Tailwind's 1rem font size) also set `color: var(--bg-base)`, which
+     turned every inheriting `text-base` element the page's own background
+     colour - the bullet lists on /how-it-works vanished. Colour names must
+     never be a font-size name (xs, sm, base, lg, xl ...); the design-token
+     test enforces it. */
+  --color-canvas:       var(--bg-base);
   --color-surface:      var(--bg-surface);
   --color-subtle:       var(--bg-subtle);
   --color-card:         var(--bg-card);
