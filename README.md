@@ -359,7 +359,10 @@ select vault.create_secret('https://<your-domain>/api/revalidate', 'revalidate_u
 ```
 
 Until the secret exists the trigger logs a warning and the edit simply waits for the
-hourly refresh; a write is never blocked by the notification. The handler reads `table`
+hourly refresh; a write is never blocked by the notification. `GET /api/health` reports
+whether the chain delivers - `revalidation: { secretSet, triggers, last: { status, at,
+error } }` - read through a service-role-only SQL function, so the answer is a boolean
+and a status code, never a value. The handler reads `table`
 from the payload and expires that table's tag. (The dashboard's "Database Webhooks"
 feature is the same mechanism configured by hand, one table at a time; the migration
 retires any it finds.)
