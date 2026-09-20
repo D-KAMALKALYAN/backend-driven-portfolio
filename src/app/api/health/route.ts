@@ -74,11 +74,27 @@ async function revalidationDiagnostics(): Promise<RevalidationDiagnostics | null
   };
 }
 
+/** What /api/ask has cost this calendar month, in whole cents, and how many answers. Service role only. */
+async function askSpendThisMonth(): Promise<{ monthCents: number; capCents: number; answered: number; failed: number } | null> {
+  const service = createServiceSupabase();
+  if (!service) return null;
+  const { data, error } = await service.rpc('ask_spend');
+  if (error || !data || typeof data !== 'object') return null;
+  const d = data as Record<string, unknown>;
+  return {
+    monthCents: Math.round((typeof d.month_micro_usd === 'number' ? d.month_micro_usd : 0) / 10000),
+    capCents: Number(process.env.ASK_MONTHLY_CAP_CENTS ?? 300),
+    answered: typeof d.month_questions === 'number' ? d.month_questions : 0,
+    failed: typeof d.month_failed === 'number' ? d.month_failed : 0,
+  };
+}
+
 export async function GET() {
   const { url, key, configured } = getPublicSupabaseConfig();
-  const [ping, revalidation] = await Promise.all([
+  const [ping, revalidation, askSpend] = await Promise.all([
     configured ? pingDatabase(url, key) : Promise.resolve({ db: false, dbMs: null }),
     configured ? revalidationDiagnostics() : Promise.resolve(null),
+    configured ? askSpendThisMonth() : Promise.resolve(null),
   ]);
 
   return NextResponse.json(
@@ -93,6 +109,8 @@ export async function GET() {
       revalidateSecret: Boolean(process.env.REVALIDATE_SECRET),
       sentry: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
       cronSecret: Boolean(process.env.CRON_SECRET),
+      anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+      ask: askSpend,
       env: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'unknown',
     },
     { headers: { 'Cache-Control': 'no-store' } },

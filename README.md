@@ -308,6 +308,9 @@ variables:
 | `RESEND_FROM`, `CONTACT_NOTIFY_TO` | optional | sender identity; defaults to `onboarding@resend.dev` and `profiles.email` |
 | `NEXT_PUBLIC_SITE_URL` | optional | canonical origin for sitemap/OG when not the Vercel production URL |
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | error reporting (errors only, tunnelled through `/monitoring`); no-op when absent |
+| `ANTHROPIC_API_KEY` | for Ask | server-only key for `POST /api/ask`; the palette's Ask row appears only when set |
+| `ASK_MONTHLY_CAP_CENTS` | optional | the app's own monthly cap for Ask, default `300` |
+| `ASK_MODEL` | optional | `claude-opus-5` (default), `claude-sonnet-5` or `claude-haiku-4-5` |
 | `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily`; the route refuses without it |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
@@ -342,6 +345,35 @@ no rows renders nothing. Adding a new *type* is one component plus one line in
 runs Postgres full-text search over projects, posts (including their body blocks),
 skills and experience, weighted and ranked. It runs as the caller, so RLS decides what
 is searchable - a draft post cannot be found. Exposed as `GET /api/search?q=`.
+
+### Ask this site (grounded Q&A)
+
+Type a question into the command palette (`Ctrl+K`) - "how is content cached here?" -
+and the first row is **Ask**. Enter posts it to `POST /api/ask`, which answers from
+the site's own database content with numbered citations that link to the project, note
+or page they came from. Nothing else is consulted, and the model is told to say so when
+the sources do not cover a question.
+
+How it is kept honest and cheap:
+
+- **Retrieval runs as the anon role.** `ask_context()` is `SECURITY INVOKER` over the
+  same full-text search the palette uses; Row Level Security decides what can be quoted.
+  A draft post cannot be cited by anyone who could not read it.
+- **Every question is a ledger row** (`ask_log`: salted hash of the address, question,
+  tokens, cost in micro-dollars). `ask_begin()` is the gate: identical questions within
+  seven days are answered from the ledger for free; past **10 questions/hour/address**
+  or past the **monthly cap** (`ASK_MONTHLY_CAP_CENTS`, default 300) it refuses with a
+  plain message. The browser never touches the table; the functions are service-role only.
+- **Cost is what was billed, not estimated**: `ask_finish()` records the response's usage
+  at first-party rates, cache reads and writes included. `GET /api/health` shows the
+  month's spend and count under `ask`.
+- The model is `claude-opus-5` by default (`ASK_MODEL` may name `claude-sonnet-5` or
+  `claude-haiku-4-5`; anything else is refused). The system prompt is cached; effort is
+  `low`; a refusal falls back server-side. Typical question: ~3 cents.
+
+Env: `ANTHROPIC_API_KEY` (server only), optional `ASK_MODEL`, `ASK_MONTHLY_CAP_CENTS`,
+`ASK_IP_SALT`. Without the key the Ask row does not appear and the route answers 503.
+Set a hard spend limit in the Anthropic console too - the app's cap is the soft one.
 
 ### Content updates without a deploy
 

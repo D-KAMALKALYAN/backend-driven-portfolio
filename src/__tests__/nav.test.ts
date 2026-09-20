@@ -10,24 +10,24 @@ const label = (key: string, fallback: string) => (key === 'nav.projects' ? 'Work
 
 describe('navigation tiers', () => {
   it('keeps the top bar to at most five items', () => {
-    const { primary } = visibleNav(NAV_LINKS, { writing: true }, label);
+    const { primary } = visibleNav(NAV_LINKS, { writing: true, ask: false }, label);
     expect(primary.length).toBeLessThanOrEqual(5);
     expect(primary.map((l) => l.path)).toEqual(['/', '/projects', '/writing', '/about', '/contact']);
   });
 
   it('hides gated items until their content exists', () => {
-    const { primary } = visibleNav(NAV_LINKS, { writing: false }, label);
+    const { primary } = visibleNav(NAV_LINKS, { writing: false, ask: false }, label);
     expect(primary.map((l) => l.path)).not.toContain('/writing');
     expect(primary).toHaveLength(4);
   });
 
   it('puts the detail pages one level down, resume included', () => {
-    const { secondary } = visibleNav(NAV_LINKS, { writing: true }, label);
+    const { secondary } = visibleNav(NAV_LINKS, { writing: true, ask: false }, label);
     expect(secondary.map((l) => l.path)).toEqual(['/skills', '/experience', '/profiles', '/resume']);
   });
 
   it('resolves labels from site_content with the code label as fallback', () => {
-    const { primary } = visibleNav(NAV_LINKS, { writing: true }, label);
+    const { primary } = visibleNav(NAV_LINKS, { writing: true, ask: false }, label);
     expect(primary.find((l) => l.path === '/projects')?.label).toBe('Work');
     expect(primary.find((l) => l.path === '/about')?.label).toBe('About');
   });

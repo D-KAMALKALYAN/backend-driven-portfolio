@@ -18,7 +18,7 @@ function PageTracker() {
  * Pages themselves are server-rendered and arrive as `children`.
  */
 export default function AppShell({ children }: { children: ReactNode }) {
-  const { isOpen, query, setQuery, items, searching, executeCommand, open, close } = useCommandPalette();
+  const { isOpen, query, setQuery, items, searching, ask, executeCommand, open, close } = useCommandPalette();
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
@@ -42,6 +42,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         setQuery={setQuery}
         items={items}
         searching={searching}
+        ask={ask}
         executeCommand={executeCommand}
         close={close}
       />

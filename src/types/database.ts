@@ -195,6 +195,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ask_log: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          asked_at: string
+          citations: Json
+          cost_micro_usd: number
+          id: string
+          input_tokens: number | null
+          ip_hash: string | null
+          model: string | null
+          output_tokens: number | null
+          question: string
+          question_norm: string
+          status: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          asked_at?: string
+          citations?: Json
+          cost_micro_usd?: number
+          id?: string
+          input_tokens?: number | null
+          ip_hash?: string | null
+          model?: string | null
+          output_tokens?: number | null
+          question: string
+          question_norm: string
+          status?: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          asked_at?: string
+          citations?: Json
+          cost_micro_usd?: number
+          id?: string
+          input_tokens?: number | null
+          ip_hash?: string | null
+          model?: string | null
+          output_tokens?: number | null
+          question?: string
+          question_norm?: string
+          status?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string | null
@@ -953,8 +1001,43 @@ export type Database = {
       }
     }
     Functions: {
+      ask_begin: {
+        Args: {
+          p_cache_days?: number
+          p_cap_cents?: number
+          p_ip_hash: string
+          p_per_ip_hour?: number
+          p_question: string
+          p_question_norm: string
+        }
+        Returns: Json
+      }
+      ask_context: {
+        Args: { max_docs?: number; q: string }
+        Returns: {
+          body: string
+          href: string
+          kind: string
+          title: string
+        }[]
+      }
+      ask_finish: {
+        Args: {
+          p_answer: string
+          p_citations: Json
+          p_cost_micro_usd: number
+          p_id: string
+          p_input_tokens: number
+          p_model: string
+          p_output_tokens: number
+          p_status: string
+        }
+        Returns: undefined
+      }
+      ask_spend: { Args: never; Returns: Json }
       get_analytics_summary: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      jsonb_strings: { Args: { doc: Json }; Returns: string }
       refresh_project_view_counts: { Args: never; Returns: undefined }
       revalidate_diagnostics: { Args: never; Returns: Json }
       rollup_analytics: { Args: { retain_days?: number }; Returns: Json }

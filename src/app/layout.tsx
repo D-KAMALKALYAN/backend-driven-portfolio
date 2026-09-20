@@ -5,6 +5,7 @@ import localFont from 'next/font/local';
 import { Providers } from './providers';
 import AppShell from '../components/AppShell';
 import { getPosts, getSiteContent } from '../lib/content';
+import { createServiceSupabase } from '../lib/supabase/server';
 import { getVal } from '../utils/siteContent';
 import { THEME_BOOTSTRAP_SCRIPT } from '../lib/themeScript';
 import { siteUrl } from '../lib/site';
@@ -69,7 +70,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const nonce = (await headers()).get('x-nonce') ?? undefined;
   const [content, posts] = await Promise.all([getSiteContent(), getPosts()]);
   // Nav items that lead to content render only when the content exists.
-  const features = { writing: posts.length > 0 };
+  const features = {
+    writing: posts.length > 0,
+    ask: Boolean(process.env.ANTHROPIC_API_KEY) && createServiceSupabase() !== null,
+  };
 
   return (
     // suppressHydrationWarning: the bootstrap script sets data-theme before
