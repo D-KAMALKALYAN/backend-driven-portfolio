@@ -1,9 +1,11 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent, type ReactNode } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import type { PaletteItem } from '../utils/palette';
+import { ASK_IDLE, type AskState, type PaletteItem } from '../utils/palette';
 
 export interface CommandPaletteProps {
   isOpen: boolean;
@@ -11,8 +13,60 @@ export interface CommandPaletteProps {
   setQuery: (query: string) => void;
   items: PaletteItem[];
   searching: boolean;
+  /** The question in flight or answered for the current query (ADR-047). */
+  ask?: AskState;
   executeCommand: (item: PaletteItem) => void;
   close: () => void;
+}
+
+/** The answer text with each `[n]` marker turned into a link to its source. */
+function AnswerText({ answer, citations, onNavigate }: { answer: string; citations: AskState['citations']; onNavigate: () => void }) {
+  const byN = new Map(citations.map((c) => [c.n, c]));
+  const parts = answer.split(/(\[\d{1,2}\])/g);
+  const nodes: ReactNode[] = parts.map((part, i) => {
+    const m = /^\[(\d{1,2})\]$/.exec(part);
+    const c = m ? byN.get(Number(m[1])) : undefined;
+    if (!c) return <span key={i}>{part}</span>;
+    return (
+      <Link key={i} href={c.href} onClick={onNavigate} className="no-underline hover:underline text-accent font-mono text-[0.8em] align-super" title={c.title}>
+        [{c.n}]
+      </Link>
+    );
+  });
+  return <p className="text-sm leading-relaxed m-0 text-primary">{nodes}</p>;
+}
+
+function AskPanel({ ask, close }: { ask: AskState; close: () => void }) {
+  if (ask.status === 'idle') return null;
+  return (
+    <div className="px-4 py-3 border-b border-line" aria-live="polite">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles size={13} className="text-accent" aria-hidden />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+          {ask.status === 'asking' ? 'Reading the site…' : ask.status === 'error' ? 'No answer' : ask.cached ? 'Answer · from an earlier ask' : 'Answer'}
+        </span>
+      </div>
+      {ask.status === 'asking' && <p className="text-sm m-0 text-secondary">Finding the sources and writing a short answer.</p>}
+      {ask.status === 'error' && <p className="text-sm m-0 text-secondary">{ask.message}</p>}
+      {ask.status === 'done' && (
+        <>
+          <AnswerText answer={ask.answer} citations={ask.citations} onNavigate={close} />
+          {ask.citations.length > 0 && (
+            <ol className="mt-2 m-0 pl-0 list-none flex flex-col gap-1">
+              {ask.citations.map((c) => (
+                <li key={c.n} className="text-xs flex gap-2 items-baseline">
+                  <span className="font-mono text-muted shrink-0">[{c.n}]</span>
+                  <Link href={c.href} onClick={close} className="no-underline hover:underline text-secondary truncate">{c.title}</Link>
+                  <span className="text-muted shrink-0">· {c.kind}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          <p className="mt-2 m-0 text-[11px] text-muted">Written by a model from the site&apos;s own content, with the sources it used. Check the source when it matters.</p>
+        </>
+      )}
+    </div>
+  );
 }
 
 interface IndexedCommand {
@@ -20,7 +74,7 @@ interface IndexedCommand {
   idx: number;
 }
 
-export default function CommandPalette({ isOpen, query, setQuery, items, searching, executeCommand, close }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, executeCommand, close }: CommandPaletteProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const listRef   = useRef<HTMLDivElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
@@ -132,6 +186,8 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                 />
                 <kbd className="px-2 py-0.5 rounded-lg text-xs font-mono bg-subtle text-muted">ESC</kbd>
               </div>
+
+              <AskPanel ask={ask} close={close} />
 
               {/* Results */}
               <div ref={listRef} className="max-h-72 overflow-y-auto py-1.5" role="listbox">

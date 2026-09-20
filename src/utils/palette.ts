@@ -1,4 +1,19 @@
 import type { Command } from '../constants/commands';
+import type { AskCitation } from '../lib/ask';
+
+/** The state of one question asked from the palette (ADR-047). */
+export interface AskState {
+  status: 'idle' | 'asking' | 'done' | 'error';
+  /** The question this state belongs to; the panel shows only while the query still matches. */
+  question: string;
+  answer: string;
+  citations: AskCitation[];
+  message?: string;
+  cached?: boolean;
+}
+
+export const ASK_IDLE: AskState = { status: 'idle', question: '', answer: '', citations: [] };
+export const ASK_ITEM_ID = 'ask';
 
 /** One row of search_content(). Mirrors the SQL function's return type. */
 export interface SearchResult {
@@ -28,8 +43,15 @@ const KIND_GROUP: Record<string, string> = {
   experience: 'Experience',
 };
 
-/** Search results first (they answer the query), then the commands that match. */
-export function buildPaletteItems(commands: ReadonlyArray<Command>, results: ReadonlyArray<SearchResult>): PaletteItem[] {
+/**
+ * Search results first (they answer the query), then the commands that
+ * match. When the query reads as a question, an "Ask" row leads: Enter
+ * sends it to /api/ask instead of navigating.
+ */
+export function buildPaletteItems(commands: ReadonlyArray<Command>, results: ReadonlyArray<SearchResult>, askable = false, query = ''): PaletteItem[] {
+  const ask: PaletteItem[] = askable
+    ? [{ id: ASK_ITEM_ID, label: `Ask: ${query.trim()}`, hint: 'answer with sources', path: '#ask', group: 'Ask this site' }]
+    : [];
   const fromSearch: PaletteItem[] = results.map((r) => ({
     id: `search:${r.kind}:${r.href}:${r.title}`,
     label: r.title,
@@ -46,7 +68,7 @@ export function buildPaletteItems(commands: ReadonlyArray<Command>, results: Rea
   }));
   // A command that points where a result already points is noise.
   const seen = new Set(fromSearch.map((i) => i.path));
-  return [...fromSearch, ...fromCommands.filter((c) => !seen.has(c.path))];
+  return [...ask, ...fromSearch, ...fromCommands.filter((c) => !seen.has(c.path))];
 }
 
 /** Search only for something a person could mean; the function has the same floor. */
