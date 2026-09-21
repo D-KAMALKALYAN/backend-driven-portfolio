@@ -7,7 +7,7 @@ import { trackContextFrom } from '../../../lib/track';
 import { createProvider, classifyProviderError } from '../../../ai/provider';
 import { beginAsk, finishAsk, hashIp, REFUSAL_MESSAGES, type FinishInput } from '../../../ai/ledger';
 import { resolveContext, retrieveSources, sourceHrefs, sourceRefs } from '../../../ai/retrieval';
-import { ASK_MAX_OUTPUT_TOKENS, ASK_SYSTEM_PROMPT, EMPTY_ANSWER, NO_SOURCES_ANSWER, buildUserPrompt, extractCitations, filterAnswer } from '../../../ai/prompt';
+import { ASK_MAX_OUTPUT_TOKENS, ASK_SYSTEM_PROMPT, EMPTY_ANSWER, NO_SOURCES_ANSWER, buildUserPrompt, extractCitations, filterAnswer, isNonAnswer } from '../../../ai/prompt';
 import { createAskStream } from '../../../ai/stream';
 import type { AskSource } from '../../../ai/types';
 
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     // A context that scoped nothing (a draft, an unknown slug) gets no
     // "the visitor is reading" line: the model is told only what is a source.
     try {
-      const { text, usage, model } = await provider.stream(
+      const { text, usage, model, incomplete } = await provider.stream(
         {
           instructions: ASK_SYSTEM_PROMPT,
           input: buildUserPrompt(question, sources, resolved?.title ? resolved : null),
@@ -130,16 +130,27 @@ export async function POST(request: NextRequest) {
         { onDelta: (piece) => stream.send({ event: 'delta', text: piece }) },
       );
       const answer = filterAnswer(text, sources);
-      if (!answer) {
+      if (!answer || incomplete === 'content_filter') {
         // A refusal or an empty completion: say so, bill it, do not cache it.
         await finish({ status: 'failed', answer: EMPTY_ANSWER, citations: [], usage });
         stream.send({ event: 'done', answer: EMPTY_ANSWER, citations: [], cached: false, model });
         return stream.close();
       }
       const citations = extractCitations(answer, sources);
+      if (incomplete) {
+        // The model stopped mid-thought (the budget counts its reasoning). The
+        // visitor keeps what was written, marked as cut; the ledger keeps it
+        // as 'failed' so the stub is never served to the next asker.
+        console.warn('[ask] incomplete answer:', incomplete, `${usage.output_tokens} output tokens`);
+        await finish({ status: 'failed', answer, citations, usage });
+        stream.send({ event: 'done', answer, citations, cached: false, model, truncated: true });
+        return stream.close();
+      }
 
-      // 4. The ledger, then the finished answer.
-      await finish({ status: 'answered', answer, citations, usage });
+      // 4. The ledger, then the finished answer. "The sources do not cover
+      // this" is true today and stale the day the content exists: shown, but
+      // recorded as 'failed' so it is never served from the ledger.
+      await finish({ status: isNonAnswer(answer) ? 'failed' : 'answered', answer, citations, usage });
       stream.send({ event: 'done', answer, citations, cached: false, model });
       return stream.close();
     } catch (err) {

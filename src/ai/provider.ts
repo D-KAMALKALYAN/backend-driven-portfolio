@@ -71,6 +71,12 @@ export interface Completion {
   usage: AskUsage;
   /** The exact model version that answered, for the ledger and the response. */
   model: string;
+  /**
+   * Why the model stopped early, or null when it finished. `max_output_tokens`
+   * means the text is cut mid-thought - the budget counts reasoning tokens
+   * too - and must be shown as such and never cached (ADR-051 addendum).
+   */
+  incomplete: 'max_output_tokens' | 'content_filter' | 'other' | null;
 }
 
 export interface StreamOptions {
@@ -112,15 +118,20 @@ export function createProvider(env: Record<string, string | undefined> = process
     ...(price.reasoning ? { reasoning: { effort: 'low' as const } } : {}),
     store: false,
   });
-  const completion = (response: OpenAI.Responses.Response): Completion => ({
-    text: response.output_text.trim(),
-    usage: {
-      input_tokens: response.usage?.input_tokens ?? 0,
-      output_tokens: response.usage?.output_tokens ?? 0,
-      cached_tokens: response.usage?.input_tokens_details?.cached_tokens ?? 0,
-    },
-    model: response.model,
-  });
+  const completion = (response: OpenAI.Responses.Response): Completion => {
+    const reason = response.incomplete_details?.reason;
+    return {
+      text: response.output_text.trim(),
+      usage: {
+        input_tokens: response.usage?.input_tokens ?? 0,
+        output_tokens: response.usage?.output_tokens ?? 0,
+        cached_tokens: response.usage?.input_tokens_details?.cached_tokens ?? 0,
+      },
+      model: response.model,
+      incomplete: response.status !== 'incomplete' ? null
+        : reason === 'max_output_tokens' || reason === 'content_filter' ? reason : 'other',
+    };
+  };
   return {
     model,
     price,

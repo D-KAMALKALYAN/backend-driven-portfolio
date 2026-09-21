@@ -7,6 +7,7 @@ import { Sparkles, X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ASK_IDLE, type AskState, type PaletteItem } from '../utils/palette';
 import type { AskContextChip } from '../hooks/useCommandPalette';
+import { TRUNCATED_NOTE } from '../ai/prompt';
 
 export interface CommandPaletteProps {
   isOpen: boolean;
@@ -88,6 +89,9 @@ function AskPanel({ ask, close }: { ask: AskState; close: () => void }) {
             </li>
           ))}
         </ol>
+      )}
+      {ask.status === 'done' && ask.truncated && (
+        <p className="mt-2 m-0 text-xs text-secondary">{TRUNCATED_NOTE}</p>
       )}
       {ask.status === 'done' && (
         <p className="mt-2 m-0 text-[11px] text-muted">Written by a model from the site&apos;s own content, with the sources it used. Check the source when it matters.</p>

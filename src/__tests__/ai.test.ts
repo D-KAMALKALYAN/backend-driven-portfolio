@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MODELS, DEFAULT_MODEL, costMicroUsd, parseModelPrice, resolveModel, classifyProviderError, createProvider } from '../ai/provider';
-import { buildUserPrompt, extractCitations } from '../ai/prompt';
+import { buildUserPrompt, extractCitations, isNonAnswer } from '../ai/prompt';
 import { filterSources, resolveContext, retrieveSources, sourceHrefs, sourceRefs } from '../ai/retrieval';
 import { beginAsk, finishAsk, hashIp, DAILY_CAP_CENTS, MONTHLY_CAP_CENTS, PER_IP_HOUR } from '../ai/ledger';
 import type { AskSource } from '../ai/types';
@@ -71,6 +71,18 @@ describe('prompt', () => {
   });
   it('drops a marker for a source that was not given', () => {
     expect(extractCitations('Made up [7] and real [3].', SOURCES).map((x) => x.n)).toEqual([3]);
+  });
+  it('recognises the model saying the sources do not cover the question - true today, stale tomorrow', () => {
+    for (const a of [
+      'The provided source describes the analytics pipeline and does not contain information about Kamal; check the roles page [1].',
+      "The sources don't cover deployment regions.",
+      "I couldn't find anything about that in the sources.",
+      'There is no information on pricing in the given sources [2].',
+    ]) expect(isNonAnswer(a)).toBe(true);
+    for (const a of [
+      'Kamal enforces limits per address with a token bucket [1].',
+      'The cache does not contain analytics rows: those are live [3].',
+    ]) expect(isNonAnswer(a)).toBe(a.startsWith('The cache')); // a plain "does not contain" about content is a real answer - the rule is a heuristic, and this is its known cost
   });
 });
 

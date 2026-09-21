@@ -414,8 +414,14 @@ How it is kept honest and cheap:
 - The model is OpenAI's `gpt-5-mini` by default through the Responses API (`ASK_MODEL`
   may name `gpt-5`, `gpt-5-nano` or `gpt-4.1-mini`; any other model needs its price in
   `ASK_MODEL_PRICE` as `input,cached,output` USD per MTok, or it is not run - an unknown
-  price is an unknown bill). Reasoning effort `low`; `max_output_tokens` 700. A typical
-  question is 2-3k input tokens and costs about **0.1 cent**.
+  price is an unknown bill). Reasoning effort `low`; `max_output_tokens` 1800 - the
+  budget counts the model's reasoning as well as the visible text, and an answer the
+  model did not finish is shown as cut short and never cached. A typical question is
+  2-3k input tokens and costs about **0.1 cent**.
+- **What is cached is what was answered.** Repeats within seven days come from the
+  ledger only when the model finished and found something: a cut-off answer, an empty one,
+  and "the sources do not cover this" are recorded as `failed` and asked again next time -
+  the content they lacked may exist by then.
 
 Type `/ask <question>` to force the row for any wording. Env: `OPENAI_API_KEY` (server
 only), optional `ASK_MODEL`, `ASK_MODEL_PRICE`, `ASK_MONTHLY_CAP_CENTS`,

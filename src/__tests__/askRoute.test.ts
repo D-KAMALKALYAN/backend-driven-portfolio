@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { NO_SOURCES_ANSWER, EMPTY_ANSWER, LINK_REMOVED } from '../ai/prompt';
+import { NO_SOURCES_ANSWER, EMPTY_ANSWER, LINK_REMOVED, ASK_MAX_OUTPUT_TOKENS } from '../ai/prompt';
 import { createSseParser } from '../lib/sse';
 
 /**
@@ -18,7 +18,7 @@ const anonRpc = vi.fn<Rpc>((fn) => { calls.push(fn); return Promise.resolve(anon
 const argsOf = (fn: string, mock = serviceRpc) => mock.mock.calls.find((c) => c[0] === fn)![1] ?? {};
 let serviceResults: Record<string, unknown> = {};
 let anonResult: unknown = { data: [], error: null };
-type Complete = { text: string; usage: { input_tokens: number; output_tokens: number; cached_tokens: number }; model: string };
+type Complete = { text: string; usage: { input_tokens: number; output_tokens: number; cached_tokens: number }; model: string; incomplete?: 'max_output_tokens' | 'content_filter' | 'other' | null };
 let completion: () => Promise<Complete>;
 const stream = vi.fn(async (_req: { input: string }, { onDelta }: { onDelta: (t: string) => void }) => {
   calls.push('stream');
@@ -71,7 +71,7 @@ beforeEach(() => {
   features.writing = true; features.ask = true;
   serviceResults = { ask_begin: { data: { cached: false, id: 'row-1' }, error: null }, ask_finish: { data: null, error: null } };
   anonResult = { data: SOURCES, error: null };
-  completion = async () => ({ text: 'Buckets are per tenant [1]. RLS bounds it [3].', usage: { input_tokens: 3000, output_tokens: 40, cached_tokens: 1000 }, model: 'gpt-5-mini-2025-08-07' });
+  completion = async () => ({ text: 'Buckets are per tenant [1]. RLS bounds it [3].', usage: { input_tokens: 3000, output_tokens: 40, cached_tokens: 1000 }, model: 'gpt-5-mini-2025-08-07', incomplete: null });
 });
 afterEach(() => { delete process.env.OPENAI_API_KEY; delete process.env.SUPABASE_SERVICE_ROLE_KEY; });
 
@@ -193,6 +193,31 @@ describe('POST /api/ask', () => {
     const ev = await events(await post({ question: 'How do rate limits work?' }));
     expect(ev.at(-1)).toMatchObject({ event: 'done', answer: `Buckets [1]. See ${LINK_REMOVED} for more.` });
     expect(argsOf('ask_finish').p_answer).toBe(`Buckets [1]. See ${LINK_REMOVED} for more.`);
+  });
+
+  it('an answer the model did not finish is shown as cut, billed, and never cached - the budget counts reasoning tokens', async () => {
+    completion = async () => ({ text: 'Kamal is not', usage: { input_tokens: 3000, output_tokens: 697, cached_tokens: 0 }, model: 'gpt-5-mini-2025-08-07', incomplete: 'max_output_tokens' });
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const ev = await events(await post({ question: 'Tell me about Kamal' }));
+    expect(ev.at(-1)).toMatchObject({ event: 'done', answer: 'Kamal is not', truncated: true, cached: false });
+    expect(argsOf('ask_finish')).toMatchObject({ p_status: 'failed', p_answer: 'Kamal is not', p_output_tokens: 697 });
+    expect((stream.mock.calls[0] as unknown as [{ maxOutputTokens: number }])[0].maxOutputTokens).toBe(ASK_MAX_OUTPUT_TOKENS);
+    expect(ASK_MAX_OUTPUT_TOKENS).toBeGreaterThanOrEqual(1500);
+    spy.mockRestore();
+  });
+
+  it('an answer that says the sources do not cover the question is shown but recorded as failed - never served from the ledger', async () => {
+    completion = async () => ({ text: 'The sources do not contain information about Kamal himself; the About page might [1].', usage: { input_tokens: 3000, output_tokens: 30, cached_tokens: 0 }, model: 'm', incomplete: null });
+    const ev = await events(await post({ question: 'Tell me about Kamal' }));
+    expect(ev.at(-1)).toMatchObject({ event: 'done', cached: false, answer: expect.stringContaining('do not contain') });
+    expect(argsOf('ask_finish')).toMatchObject({ p_status: 'failed', p_output_tokens: 30 });
+  });
+
+  it('a content-filter stop is the empty answer, billed, not cached', async () => {
+    completion = async () => ({ text: 'Some partial', usage: { input_tokens: 3000, output_tokens: 5, cached_tokens: 0 }, model: 'm', incomplete: 'content_filter' });
+    const ev = await events(await post({ question: 'How do rate limits work?' }));
+    expect(ev.at(-1)).toMatchObject({ event: 'done', answer: EMPTY_ANSWER });
+    expect(argsOf('ask_finish')).toMatchObject({ p_status: 'failed', p_answer: EMPTY_ANSWER });
   });
 
   it('an empty completion is billed, said plainly, and not cached', async () => {

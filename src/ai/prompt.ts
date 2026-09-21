@@ -26,8 +26,17 @@ Rules:
 - When told what the visitor is reading, "this" refers to it; prefer that source, but use the others when they answer better.
 - No preamble, no marketing tone, no bullet lists, no links or URLs - the [n] markers are the links.`;
 
-/** The answer's length ceiling, in output tokens: five sentences with citations, and room to say "the sources don't cover this". */
-export const ASK_MAX_OUTPUT_TOKENS = 700;
+/**
+ * The model's output budget. It counts reasoning tokens as well as the
+ * visible text: at 700, a broad question over six long sources left room for
+ * three words after the model had thought ("Kamal is not" - cached for a
+ * week). Reasoning at 'low' has run 200-900 tokens; the answer itself is
+ * 100-250. Whatever the budget, an incomplete response is never cached.
+ */
+export const ASK_MAX_OUTPUT_TOKENS = 1800;
+
+/** Shown under an answer the model did not get to finish. Recorded as 'failed', so it is not cached. */
+export const TRUNCATED_NOTE = 'The answer was cut short before it finished; a narrower question may fit.';
 
 /**
  * A source body as the model sees it: its own `[n]` markers become `⟦n⟧`
@@ -100,6 +109,17 @@ export function filterAnswer(answer: string, sources: AskSource[]): string {
     .replace(URL_RE, (u) => { const [core, tail] = split(u); return (allowed.has(core) ? core : LINK_REMOVED) + tail; })
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
+}
+
+/**
+ * The model saying, as instructed, that the sources do not cover the question.
+ * A true answer today and a stale one tomorrow, when the content exists - so
+ * such a row is recorded as 'failed' and never served from the ledger. The
+ * same pattern retires the rows already recorded (migration 20260922130000).
+ */
+export const NON_ANSWER_RE = /\b(do(es)? not (contain|cover|mention|include|describe)|don'?t (contain|cover|mention)|couldn'?t find|could not find|no information|not (contain|cover)ed in the sources|nothing (about|on) (this|that))\b/i;
+export function isNonAnswer(answer: string): boolean {
+  return NON_ANSWER_RE.test(answer);
 }
 
 /** What the visitor sees when the sources have nothing. Recorded as 'failed', so it is not cached: the content it lacks may be written tomorrow. */
