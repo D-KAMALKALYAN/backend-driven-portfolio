@@ -6,7 +6,8 @@ import { COMMANDS } from '../constants/commands';
 import { useSiteFeatures } from './useSiteFeatures';
 import { useDebounce } from './useDebounce';
 import { ASK_IDLE, ASK_ITEM_ID, buildPaletteItems, isSearchable, type AskState, type PaletteItem, type SearchResult } from '../utils/palette';
-import { isAskable, stripAskPrefix, type AskCitation } from '../lib/ask';
+import { isAskable, stripAskPrefix } from '../lib/ask';
+import type { AskCitation } from '../ai/types';
 
 /**
  * Command palette state: open/close, the query, the items to show, and

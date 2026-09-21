@@ -90,39 +90,6 @@ export type Database = {
         }
         Relationships: []
       }
-      activity_logs: {
-        Row: {
-          action: string
-          actor: string
-          created_at: string | null
-          diff: Json | null
-          id: string
-          ip_address: string | null
-          record_id: string | null
-          table_name: string
-        }
-        Insert: {
-          action: string
-          actor?: string
-          created_at?: string | null
-          diff?: Json | null
-          id?: string
-          ip_address?: string | null
-          record_id?: string | null
-          table_name: string
-        }
-        Update: {
-          action?: string
-          actor?: string
-          created_at?: string | null
-          diff?: Json | null
-          id?: string
-          ip_address?: string | null
-          record_id?: string | null
-          table_name?: string
-        }
-        Relationships: []
-      }
       analytics: {
         Row: {
           country: string | null

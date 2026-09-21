@@ -1,0 +1,16 @@
+-- ============================================================
+-- activity_logs goes (ADR-050, closing the item held open since ADR-048)
+--
+-- The V1 "admin audit trail". The owner looked before it was dropped: one
+-- row, actor 'system', INSERT on resume, 2026-03-28 - written by the V1
+-- resume trigger six months before the schema baseline. The trigger that
+-- runs today (handle_resume_upload) writes only to resume; no function,
+-- route or component reads or writes this table.
+--
+-- It was also a hole: "Allow public insert activity logs" WITH CHECK (true)
+-- let the anon role append rows at will. The policies and indexes go with
+-- the table.
+--
+-- SAFE TO RE-RUN.
+-- ============================================================
+DROP TABLE IF EXISTS public.activity_logs;
