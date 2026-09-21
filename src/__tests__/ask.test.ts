@@ -37,6 +37,14 @@ describe('isAskable (palette heuristic)', () => {
     expect(isAskable('rate limit')).toBe(false);
     expect(isAskable('spring boot rls')).toBe(false);
   });
+  it('takes an imperative of two or more words as a question - how a visitor talks to the page they are on', () => {
+    expect(isAskable('summarize this')).toBe(true);
+    expect(isAskable('explain the trade-offs')).toBe(true);
+    expect(isAskable('compare this with the SaaS platform')).toBe(true);
+    expect(isAskable('summarize')).toBe(false);
+    expect(isAskable('describe')).toBe(false);
+    expect(isAskable('is postgres')).toBe(false); // two words, a question word: still a search
+  });
 });
 
 describe('stripAskPrefix', () => {

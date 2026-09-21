@@ -1,18 +1,26 @@
 import type { Command } from '../constants/commands';
-import type { AskCitation } from '../ai/types';
+import type { AskCitation, AskContextInfo, AskSourceRef } from '../ai/types';
 
-/** The state of one question asked from the palette (ADR-047). */
+/**
+ * The state of one question asked from the palette (ADR-047), as the
+ * stream fills it in (ADR-051): `asking` until the sources arrive,
+ * `streaming` while the answer is written, `done` when the citations settle.
+ */
 export interface AskState {
-  status: 'idle' | 'asking' | 'done' | 'error';
+  status: 'idle' | 'asking' | 'streaming' | 'done' | 'error';
   /** The question this state belongs to; the panel shows only while the query still matches. */
   question: string;
   answer: string;
   citations: AskCitation[];
+  /** What is being read, numbered as the answer's markers will number them. */
+  sources: AskSourceRef[];
+  /** The page the answer was scoped to, as the server resolved it. */
+  context: AskContextInfo | null;
   message?: string;
   cached?: boolean;
 }
 
-export const ASK_IDLE: AskState = { status: 'idle', question: '', answer: '', citations: [] };
+export const ASK_IDLE: AskState = { status: 'idle', question: '', answer: '', citations: [], sources: [], context: null };
 export const ASK_ITEM_ID = 'ask';
 
 /** One row of search_content(). Mirrors the SQL function's return type. */
