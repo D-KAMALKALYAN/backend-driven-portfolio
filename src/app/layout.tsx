@@ -72,7 +72,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // Nav items that lead to content render only when the content exists.
   const features = {
     writing: posts.length > 0,
-    ask: Boolean(process.env.ANTHROPIC_API_KEY) && createServiceSupabase() !== null,
+    ask: Boolean(process.env.OPENAI_API_KEY) && createServiceSupabase() !== null,
   };
 
   return (

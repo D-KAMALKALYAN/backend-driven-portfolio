@@ -27,21 +27,41 @@ export const ASK_MIN_CHARS = 3;
 export const ASK_MAX_CHARS = 300;
 
 /**
- * Models this route may run, with first-party prices in micro-dollars per
- * token (USD per MTok = micro-USD per token). The default is Opus 5 - the
- * best answers; the owner can set ASK_MODEL to a cheaper one. Anything else
- * is refused rather than guessed at, because an unknown price means an
- * unknown bill.
+ * Models this route may run, with prices in micro-dollars per token (USD per
+ * MTok = micro-USD per token) as published on 2026-09-21: input, cached
+ * input, output. The ledger bills at these rates, so an unknown model is
+ * refused rather than guessed at - an unknown price is an unknown bill. The
+ * owner can run any other model by naming it in ASK_MODEL *and* giving its
+ * price in ASK_MODEL_PRICE ("input,cached,output" in USD per MTok).
+ *
+ * Default is gpt-5-mini: a grounded four-sentence answer costs about a tenth
+ * of a cent, so the $5 credit is thousands of questions.
  */
-export const ASK_MODELS: Record<string, { input: number; output: number; effort: boolean }> = {
-  'claude-opus-5':    { input: 5,  output: 25, effort: true },
-  'claude-sonnet-5':  { input: 2,  output: 10, effort: true },
-  'claude-haiku-4-5': { input: 1,  output: 5,  effort: false },
-};
-export const ASK_DEFAULT_MODEL = 'claude-opus-5';
+export interface AskModelPrice { input: number; cached: number; output: number; reasoning: boolean }
 
-export function resolveAskModel(requested: string | undefined): string {
-  return requested && requested in ASK_MODELS ? requested : ASK_DEFAULT_MODEL;
+export const ASK_MODELS: Record<string, AskModelPrice> = {
+  'gpt-5-mini':   { input: 0.25, cached: 0.025, output: 2.0,  reasoning: true },
+  'gpt-5-nano':   { input: 0.05, cached: 0.005, output: 0.4,  reasoning: true },
+  'gpt-5':        { input: 1.25, cached: 0.125, output: 10.0, reasoning: true },
+  'gpt-4.1-mini': { input: 0.4,  cached: 0.1,   output: 1.6,  reasoning: false },
+};
+export const ASK_DEFAULT_MODEL = 'gpt-5-mini';
+
+/** "input,cached,output" in USD per MTok → a price entry, or null when malformed. */
+export function parseModelPrice(spec: string | undefined, reasoning = true): AskModelPrice | null {
+  if (!spec) return null;
+  const parts = spec.split(',').map((x) => Number(x.trim()));
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n) || n < 0)) return null;
+  const [input, cached, output] = parts as [number, number, number];
+  return { input, cached, output, reasoning };
+}
+
+/** The model to run and what to bill it at. A named model without a known or given price falls back to the default. */
+export function resolveAskModel(requested: string | undefined, priceSpec?: string): { model: string; price: AskModelPrice } {
+  if (requested && requested in ASK_MODELS) return { model: requested, price: ASK_MODELS[requested]! };
+  const custom = requested ? parseModelPrice(priceSpec, /^(gpt-5|o\d)/.test(requested)) : null;
+  if (requested && custom) return { model: requested, price: custom };
+  return { model: ASK_DEFAULT_MODEL, price: ASK_MODELS[ASK_DEFAULT_MODEL]! };
 }
 
 /** A question worth asking: not empty, not a novel, and not just punctuation. */
@@ -68,6 +88,8 @@ export function normalizeQuestion(question: string): string {
 
 /** Palette heuristic: a question, not a command or a search term. */
 export function isAskable(query: string): boolean {
+  const prefixed = stripAskPrefix(query);
+  if (prefixed !== null) return prefixed.length >= ASK_MIN_CHARS;
   const q = query.trim();
   if (q.length < 8 || q.length > ASK_MAX_CHARS) return false;
   if (q.endsWith('?')) return true;
@@ -80,6 +102,7 @@ export const ASK_SYSTEM_PROMPT = `You answer visitors' questions about Kamal Kal
 Rules:
 - Answer in two to five sentences, plainly, in the third person about Kamal, second person to the visitor.
 - Cite every factual claim with the source number in square brackets, like [2]. Cite only sources you were given.
+- State only what the sources say. Do not infer how something behaves, or why, beyond what is written; if a source says "evicted", say evicted, not what eviction might imply.
 - If the sources do not contain the answer, say so in one sentence and suggest which page might - do not guess or use outside knowledge.
 - No preamble, no marketing tone, no bullet lists.`;
 
@@ -113,26 +136,31 @@ export function extractCitations(answer: string, sources: AskSource[]): AskCitat
 export interface AskUsage {
   input_tokens: number;
   output_tokens: number;
-  cache_read_input_tokens?: number | null;
-  cache_creation_input_tokens?: number | null;
+  /** Prompt tokens served from OpenAI's prompt cache (input_tokens_details.cached_tokens). */
+  cached_tokens?: number | null;
 }
 
 /**
- * Cost in micro-dollars, integer, from the response's usage. Cache reads
- * bill at a tenth of the input price, cache writes at 1.25x; both are folded
- * in so the ledger matches the invoice, not an estimate of it.
+ * Cost in micro-dollars, integer, from the response's usage. Cached prompt
+ * tokens are part of input_tokens and bill at the cached rate; the rest of
+ * the input at the full rate. Integers, so a month of rows adds up exactly.
  */
-export function costMicroUsd(model: string, usage: AskUsage): number {
-  const p = ASK_MODELS[model];
-  if (!p) return 0;
-  const read = usage.cache_read_input_tokens ?? 0;
-  const write = usage.cache_creation_input_tokens ?? 0;
-  const micro =
-    usage.input_tokens * p.input +
-    read * p.input * 0.1 +
-    write * p.input * 1.25 +
-    usage.output_tokens * p.output;
+export function costMicroUsd(price: AskModelPrice | undefined, usage: AskUsage): number {
+  if (!price) return 0;
+  const cached = Math.min(usage.cached_tokens ?? 0, usage.input_tokens);
+  const fresh = usage.input_tokens - cached;
+  const micro = fresh * price.input + cached * price.cached + usage.output_tokens * price.output;
   return Math.max(0, Math.round(micro));
+}
+
+/**
+ * The palette's explicit trigger: "/ask how does caching work" or "ask how
+ * does caching work" is always a question, whatever the wording after it.
+ * Returns the question without the prefix, or null when there is no prefix.
+ */
+export function stripAskPrefix(query: string): string | null {
+  const m = /^\/?ask\s+(.+)$/i.exec(query.trim());
+  return m ? m[1]!.trim() : null;
 }
 
 /** What the visitor sees when the sources have nothing. Recorded like any answer, so repeats are free. */

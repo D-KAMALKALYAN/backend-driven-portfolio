@@ -308,9 +308,9 @@ variables:
 | `RESEND_FROM`, `CONTACT_NOTIFY_TO` | optional | sender identity; defaults to `onboarding@resend.dev` and `profiles.email` |
 | `NEXT_PUBLIC_SITE_URL` | optional | canonical origin for sitemap/OG when not the Vercel production URL |
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | error reporting (errors only, tunnelled through `/monitoring`); no-op when absent |
-| `ANTHROPIC_API_KEY` | for Ask | server-only key for `POST /api/ask`; the palette's Ask row appears only when set |
+| `OPENAI_API_KEY` | for Ask | server-only key for `POST /api/ask`; the palette's Ask row appears only when set |
 | `ASK_MONTHLY_CAP_CENTS` | optional | the app's own monthly cap for Ask, default `300` |
-| `ASK_MODEL` | optional | `claude-opus-5` (default), `claude-sonnet-5` or `claude-haiku-4-5` |
+| `ASK_MODEL` / `ASK_MODEL_PRICE` | optional | `gpt-5-mini` (default), `gpt-5`, `gpt-5-nano`, `gpt-4.1-mini`; another model only with its price `input,cached,output` in USD/MTok |
 | `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily`; the route refuses without it |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
@@ -367,13 +367,16 @@ How it is kept honest and cheap:
 - **Cost is what was billed, not estimated**: `ask_finish()` records the response's usage
   at first-party rates, cache reads and writes included. `GET /api/health` shows the
   month's spend and count under `ask`.
-- The model is `claude-opus-5` by default (`ASK_MODEL` may name `claude-sonnet-5` or
-  `claude-haiku-4-5`; anything else is refused). The system prompt is cached; effort is
-  `low`; a refusal falls back server-side. Typical question: ~3 cents.
+- The model is OpenAI's `gpt-5-mini` by default through the Responses API (`ASK_MODEL`
+  may name `gpt-5`, `gpt-5-nano` or `gpt-4.1-mini`; any other model needs its price in
+  `ASK_MODEL_PRICE` as `input,cached,output` USD per MTok, or it is not run - an unknown
+  price is an unknown bill). Reasoning effort `low`; `max_output_tokens` 700. A typical
+  question is 2-3k input tokens and costs about **0.1 cent**.
 
-Env: `ANTHROPIC_API_KEY` (server only), optional `ASK_MODEL`, `ASK_MONTHLY_CAP_CENTS`,
-`ASK_IP_SALT`. Without the key the Ask row does not appear and the route answers 503.
-Set a hard spend limit in the Anthropic console too - the app's cap is the soft one.
+Type `/ask <question>` to force the row for any wording. Env: `OPENAI_API_KEY` (server
+only), optional `ASK_MODEL`, `ASK_MODEL_PRICE`, `ASK_MONTHLY_CAP_CENTS`, `ASK_IP_SALT`.
+Without the key the Ask row does not appear and the route answers 503. Set a hard usage
+limit in the OpenAI dashboard too - the app's cap is the soft one.
 
 ### Content updates without a deploy
 

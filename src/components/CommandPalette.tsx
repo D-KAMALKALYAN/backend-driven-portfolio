@@ -15,6 +15,8 @@ export interface CommandPaletteProps {
   searching: boolean;
   /** The question in flight or answered for the current query (ADR-047). */
   ask?: AskState;
+  /** Whether this deployment can answer questions at all (features.ask). */
+  askEnabled?: boolean;
   executeCommand: (item: PaletteItem) => void;
   close: () => void;
 }
@@ -74,7 +76,7 @@ interface IndexedCommand {
   idx: number;
 }
 
-export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, executeCommand, close }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, askEnabled = false, executeCommand, close }: CommandPaletteProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const listRef   = useRef<HTMLDivElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
@@ -175,7 +177,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
                   onKeyDown={handleKeyDown}      /* ← single source of key events */
-                  placeholder="Search projects, notes, skills - or type a command"
+                  placeholder={askEnabled ? 'Search, run a command, or ask a question (/ask …)' : 'Search projects, notes, skills - or type a command'}
                   className="flex-1 bg-transparent border-none outline-none text-sm text-primary"
                   id="command-palette-input"
                   role="combobox"
