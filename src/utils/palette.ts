@@ -1,5 +1,5 @@
 import type { Command } from '../constants/commands';
-import type { AskCitation } from '../lib/ask';
+import type { AskCitation } from '../ai/types';
 
 /** The state of one question asked from the palette (ADR-047). */
 export interface AskState {

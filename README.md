@@ -130,7 +130,6 @@ Two rows in `feature_flags` are the owner's switches: `writing` (the Writing nav
 | `analytics` | Event stream — page views, clicks, downloads |
 | `resume` | Version history of uploaded resume PDFs |
 | `site_content` | CMS key-value store for all editable copy |
-| `activity_logs` | Admin audit trail for all write operations |
 | `feature_flags` | The owner's switches: `writing`, `ask` |
 | `ask_log` | The Ask ledger: one row per question, with feature, tokens and cost (service role only) |
 
@@ -189,9 +188,17 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   ├── components/            # Pure UI; data arrives as typed props
 │   │   └── Icon.tsx           # lucide icons by name, for the places an icon name is data
 │   ├── hooks/                 # useSiteContent (context), useResource (the one browser fetch), useRealtimeEvents, useFocusTrap, ...
+│   ├── ai/                    # The AI module (ADR-050): one file per concern, the route is wiring
+│   │   ├── provider.ts        # the model behind one interface; price table; error → status
+│   │   ├── retrieval.ts       # ask_context() as anon; the feature filter on sources
+│   │   ├── prompt.ts          # system prompt, source numbering, [n] → citations
+│   │   ├── ledger.ts          # ask_begin/ask_finish as outcomes; caps; the address hash
+│   │   └── types.ts           # AskSource, AskCitation, AskUsage, AskFeature (browser-safe)
 │   ├── lib/
 │   │   ├── supabase/server.ts # per-request client whose fetch is cached + tagged by table
 │   │   ├── content.ts         # server reads, deduplicated per request
+│   │   ├── features.ts        # SiteFeatures from feature_flags + what the deployment can deliver
+│   │   ├── ask.ts             # the shape of a question (shared with the palette)
 │   │   ├── contact.ts         # the contact write path as testable functions
 │   │   ├── csp.ts             # the policy as a pure function
 │   │   ├── palette.ts         # named hues; hueStyle() sets --c, the .hue-* classes derive tints
@@ -355,6 +362,10 @@ the site's own database content with numbered citations that link to the project
 or page they came from - projects and case studies, notes, skills, roles, credentials
 and the How-it-works page. Nothing else is consulted, and the model is told to say so
 when the sources do not cover a question.
+
+The route is wiring over `src/ai/` - `ledger` (the gate), `retrieval` (as anon),
+`provider` (the model), `prompt` (sources in, citations out) - so the next AI feature is
+a new caller of the same four files, not a second copy of them.
 
 How it is kept honest and cheap:
 

@@ -96,7 +96,7 @@ looks symmetric and harmless:
 SET LOCAL ROLE anon;
 SELECT is_admin();                      -- expect FALSE
 SELECT count(*) FROM contact_messages;  -- expect 0
-SELECT count(*) FROM activity_logs;     -- expect 0
+SELECT count(*) FROM ask_log;           -- expect 0
 RESET ROLE;
 ```
 
