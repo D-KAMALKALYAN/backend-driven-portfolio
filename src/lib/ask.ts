@@ -30,7 +30,12 @@ export function normalizeQuestion(question: string): string {
     .trim();
 }
 
-/** Palette heuristic: a question, not a command or a search term. */
+/**
+ * Palette heuristic: a question, not a command or a search term. A question
+ * mark settles it; so does a question word leading three or more words, or
+ * an imperative leading two - "summarize this", "explain the trade-offs" -
+ * which is how a visitor talks to the page they are on (ADR-051).
+ */
 export function isAskable(query: string): boolean {
   const prefixed = stripAskPrefix(query);
   if (prefixed !== null) return prefixed.length >= ASK_MIN_CHARS;
@@ -38,7 +43,8 @@ export function isAskable(query: string): boolean {
   if (q.length < 8 || q.length > ASK_MAX_CHARS) return false;
   if (q.endsWith('?')) return true;
   const words = q.split(/\s+/);
-  return words.length >= 3 && /^(how|why|what|when|where|which|who|does|is|are|can|did|do|explain|tell)\b/i.test(q);
+  if (/^(summarize|summarise|describe|explain|outline|compare|list)\b/i.test(q)) return words.length >= 2;
+  return words.length >= 3 && /^(how|why|what|when|where|which|who|does|is|are|can|did|do|tell)\b/i.test(q);
 }
 
 /**

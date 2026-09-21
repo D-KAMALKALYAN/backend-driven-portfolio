@@ -73,11 +73,18 @@ export interface Completion {
   model: string;
 }
 
+export interface StreamOptions {
+  /** Called with each piece of output text as it arrives. */
+  onDelta: (text: string) => void;
+}
+
 export interface Provider {
   /** The model name requested (the price table key), not the dated version. */
   model: string;
   price: ModelPrice;
   complete(req: CompletionRequest): Promise<Completion>;
+  /** The same completion, delivered as it is written; resolves with the whole of it and the usage, like complete(). */
+  stream(req: CompletionRequest, opts: StreamOptions): Promise<Completion>;
 }
 
 const TIMEOUT_MS = 35_000;
@@ -93,31 +100,40 @@ export function createProvider(env: Record<string, string | undefined> = process
   if (!apiKey) return null;
   const { model, price } = resolveModel(env.ASK_MODEL, env.ASK_MODEL_PRICE);
   let client: OpenAI | null = null;
+  const sdk = () => (client ??= new OpenAI({ apiKey, timeout: TIMEOUT_MS, maxRetries: 1 }));
+  const params = ({ instructions, input, maxOutputTokens }: CompletionRequest) => ({
+    model,
+    instructions,
+    input,
+    max_output_tokens: maxOutputTokens,
+    // A short grounded answer needs a little deliberation to stay inside
+    // the sources - 'minimal' paraphrased a project's behaviour into
+    // something it did not say; 'low' did not. Non-reasoning models reject it.
+    ...(price.reasoning ? { reasoning: { effort: 'low' as const } } : {}),
+    store: false,
+  });
+  const completion = (response: OpenAI.Responses.Response): Completion => ({
+    text: response.output_text.trim(),
+    usage: {
+      input_tokens: response.usage?.input_tokens ?? 0,
+      output_tokens: response.usage?.output_tokens ?? 0,
+      cached_tokens: response.usage?.input_tokens_details?.cached_tokens ?? 0,
+    },
+    model: response.model,
+  });
   return {
     model,
     price,
-    async complete({ instructions, input, maxOutputTokens }) {
-      client ??= new OpenAI({ apiKey, timeout: TIMEOUT_MS, maxRetries: 1 });
-      const response = await client.responses.create({
-        model,
-        instructions,
-        input,
-        max_output_tokens: maxOutputTokens,
-        // A short grounded answer needs a little deliberation to stay inside
-        // the sources - 'minimal' paraphrased a project's behaviour into
-        // something it did not say; 'low' did not. Non-reasoning models reject it.
-        ...(price.reasoning ? { reasoning: { effort: 'low' as const } } : {}),
-        store: false,
-      });
-      return {
-        text: response.output_text.trim(),
-        usage: {
-          input_tokens: response.usage?.input_tokens ?? 0,
-          output_tokens: response.usage?.output_tokens ?? 0,
-          cached_tokens: response.usage?.input_tokens_details?.cached_tokens ?? 0,
-        },
-        model: response.model,
-      };
+    async complete(req) {
+      return completion(await sdk().responses.create(params(req)));
+    },
+    async stream(req, { onDelta }) {
+      const events = sdk().responses.stream(params(req));
+      for await (const event of events) {
+        if (event.type === 'response.output_text.delta' && event.delta) onDelta(event.delta);
+      }
+      // The accumulated response: usage and the exact model, as create() would return them.
+      return completion(await events.finalResponse());
     },
   };
 }

@@ -1,31 +1,41 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest, after } from 'next/server';
 import { createServerSupabase, createServiceSupabase } from '../../../lib/supabase/server';
 import { getSiteFeatures } from '../../../lib/features';
 import { normalizeQuestion, validateQuestion } from '../../../lib/ask';
+import { contextFromPath } from '../../../lib/context';
 import { trackContextFrom } from '../../../lib/track';
 import { createProvider, classifyProviderError } from '../../../ai/provider';
 import { beginAsk, finishAsk, hashIp, REFUSAL_MESSAGES, type FinishInput } from '../../../ai/ledger';
-import { retrieveSources, sourceHrefs } from '../../../ai/retrieval';
-import { ASK_MAX_OUTPUT_TOKENS, ASK_SYSTEM_PROMPT, EMPTY_ANSWER, NO_SOURCES_ANSWER, buildUserPrompt, extractCitations } from '../../../ai/prompt';
+import { resolveContext, retrieveSources, sourceHrefs, sourceRefs } from '../../../ai/retrieval';
+import { ASK_MAX_OUTPUT_TOKENS, ASK_SYSTEM_PROMPT, EMPTY_ANSWER, NO_SOURCES_ANSWER, buildUserPrompt, extractCitations, filterAnswer } from '../../../ai/prompt';
+import { createAskStream } from '../../../ai/stream';
 import type { AskSource } from '../../../ai/types';
 
 /**
- * POST /api/ask  { question }
+ * POST /api/ask  { question, context?: { href } }
  *
- * Grounded Q&A over the site's own content (ADR-047). This file is the
- * wiring; the parts live in src/ai (ADR-050). The order of operations is
- * the design:
+ * Grounded Q&A over the site's own content (ADR-047), scoped to the page
+ * the visitor is reading and streamed (ADR-051). This file is the wiring;
+ * the parts live in src/ai (ADR-050). The order of operations is the design:
  *
  *   1. ledger.beginAsk()    - the gate, service role. A recent identical
- *      question comes back cached and costs nothing. Past 10 questions an
- *      hour from one address, or past the daily or the monthly cap, it
- *      refuses. Only after it says go is anything else spent.
- *   2. retrieval            - ask_context() WITH THE ANON KEY. Row Level
- *      Security decides what the model may quote; this route has no opinion.
- *   3. provider.complete()  - the model, with the sources numbered and the
- *      question last, asked to cite. Markers in the answer become links.
- *   4. ledger.finishAsk()   - tokens and cost into the ledger, so the caps
- *      are enforced against what was actually billed.
+ *      question on the same page comes back cached and costs nothing. Past
+ *      10 questions an hour from one address, or past the daily or the
+ *      monthly cap, it refuses. Only after it says go is anything spent.
+ *      Refusals and bad requests are JSON with a status; from here on the
+ *      response is a stream of events (src/ai/types.ts AskEvent).
+ *   2. retrieval            - ask_context() WITH THE ANON KEY, boosted to the
+ *      context href the route validated itself (lib/context.ts). Row Level
+ *      Security decides what the model may quote. The numbered sources are
+ *      the first event: the visitor sees what is being read within half a
+ *      second.
+ *   3. provider.stream()    - the model, sources delimited as data and the
+ *      question last, asked to cite; each piece of text is an event as it
+ *      arrives. The finished answer is filtered (no link the sources did not
+ *      contain) and its markers become citations.
+ *   4. ledger.finishAsk()   - tokens and cost into the ledger, then `done`.
+ *      after() keeps this step alive when the visitor has already gone: the
+ *      model was paid either way, and the answer serves the next asker.
  *
  * The visitor's address is hashed with a salt before it touches the
  * database; the address itself is never stored. The question is kept for
@@ -53,11 +63,15 @@ export async function POST(request: NextRequest) {
     return json({ ok: false, message: 'Ask is switched off right now.' }, 503);
   }
 
-  let body: unknown;
-  try { body = await request.json(); } catch { body = null; }
-  const q = validateQuestion(body && typeof body === 'object' ? (body as Record<string, unknown>)['question'] : undefined);
+  let body: Record<string, unknown> = {};
+  try { const parsed: unknown = await request.json(); if (parsed && typeof parsed === 'object') body = parsed as Record<string, unknown>; } catch { /* no body */ }
+  const q = validateQuestion(body['question']);
   if (!q.ok) return json({ ok: false, message: q.message }, 400);
   const question = q.question;
+  // The client says which page it is on; the route only accepts a href it
+  // would have produced itself, and RLS decides whether it scopes anything.
+  const ctx = body['context'];
+  const context = contextFromPath(ctx && typeof ctx === 'object' ? (ctx as Record<string, unknown>)['href'] as string | undefined : undefined);
 
   // 1. The gate.
   const gate = await beginAsk(service, {
@@ -65,55 +79,87 @@ export async function POST(request: NextRequest) {
     question,
     questionNorm: normalizeQuestion(question),
     feature: FEATURE,
+    contextHref: context?.href ?? null,
   });
   if (gate.kind === 'refused') return json({ ok: false, message: REFUSAL_MESSAGES[gate.reason] }, 429);
   if (gate.kind === 'error') return unavailable();
+
+  const stream = createAskStream();
   if (gate.kind === 'cached') {
-    return json({ ok: true, answer: gate.answer, citations: gate.citations, cached: true, model: null });
+    stream.send({ event: 'done', answer: gate.answer, citations: gate.citations, cached: true, model: null });
+    stream.close();
+    return stream.response;
   }
 
-  let sources: AskSource[] = [];
-  const finish = (outcome: Pick<FinishInput, 'status' | 'answer' | 'citations' | 'usage'>) =>
-    finishAsk(service, { id: gate.id, model: provider.model, price: provider.price, sources: sourceHrefs(sources), ...outcome });
+  const run = async () => {
+    let sources: AskSource[] = [];
+    const finish = (outcome: Pick<FinishInput, 'status' | 'answer' | 'citations' | 'usage'>) =>
+      finishAsk(service, { id: gate.id, model: provider.model, price: provider.price, sources: sourceHrefs(sources), ...outcome });
 
-  // 2. Retrieval, as the anon role.
-  try {
-    sources = await retrieveSources(createServerSupabase(), question, { features });
-  } catch (err) {
-    const e = err as { code?: string; message?: string };
-    console.error('[ask] ask_context failed:', e.code, e.message);
-    await finish({ status: 'failed', answer: null, citations: [], usage: null });
-    return unavailable();
-  }
-  if (sources.length === 0) {
-    // Recorded as 'failed', not 'answered': a no-sources answer must not be
-    // cached for a week - the content it lacks may be written tomorrow.
-    await finish({ status: 'failed', answer: NO_SOURCES_ANSWER, citations: [], usage: null });
-    return json({ ok: true, answer: NO_SOURCES_ANSWER, citations: [], cached: false, model: null });
-  }
-
-  // 3. The model. The instructions never change and lead the prompt, so
-  // the provider's prompt cache can serve them; the sources vary and follow.
-  try {
-    const { text: answer, usage, model } = await provider.complete({
-      instructions: ASK_SYSTEM_PROMPT,
-      input: buildUserPrompt(question, sources),
-      maxOutputTokens: ASK_MAX_OUTPUT_TOKENS,
-    });
-    if (!answer) {
-      // A refusal or an empty completion: say so, bill it, do not cache it.
-      await finish({ status: 'failed', answer: EMPTY_ANSWER, citations: [], usage });
-      return json({ ok: true, answer: EMPTY_ANSWER, citations: [], cached: false, model });
+    // 2. Retrieval, as the anon role; the sources are the first thing the visitor sees.
+    try {
+      sources = await retrieveSources(createServerSupabase(), question, { features, context });
+    } catch (err) {
+      const e = err as { code?: string; message?: string };
+      console.error('[ask] ask_context failed:', e.code, e.message);
+      await finish({ status: 'failed', answer: null, citations: [], usage: null });
+      stream.send({ event: 'error', message: 'Ask is unavailable right now.' });
+      return stream.close();
     }
-    const citations = extractCitations(answer, sources);
+    const resolved = resolveContext(context, sources);
+    stream.send({ event: 'sources', sources: sourceRefs(sources), context: resolved });
+    if (sources.length === 0) {
+      // Recorded as 'failed', not 'answered': a no-sources answer must not be
+      // cached for a week - the content it lacks may be written tomorrow.
+      await finish({ status: 'failed', answer: NO_SOURCES_ANSWER, citations: [], usage: null });
+      stream.send({ event: 'done', answer: NO_SOURCES_ANSWER, citations: [], cached: false, model: null });
+      return stream.close();
+    }
 
-    // 4. The ledger.
-    await finish({ status: 'answered', answer, citations, usage });
-    return json({ ok: true, answer, citations, cached: false, model });
-  } catch (err) {
-    const { status, message, detail } = classifyProviderError(err);
-    if (status !== 503) console.error('[ask] model call failed:', detail);
-    await finish({ status: 'failed', answer: null, citations: [], usage: null });
-    return json({ ok: false, message }, status);
-  }
+    // 3. The model. The instructions never change and lead the prompt, so
+    // the provider's prompt cache can serve them; the sources vary and follow.
+    // A context that scoped nothing (a draft, an unknown slug) gets no
+    // "the visitor is reading" line: the model is told only what is a source.
+    try {
+      const { text, usage, model } = await provider.stream(
+        {
+          instructions: ASK_SYSTEM_PROMPT,
+          input: buildUserPrompt(question, sources, resolved?.title ? resolved : null),
+          maxOutputTokens: ASK_MAX_OUTPUT_TOKENS,
+        },
+        { onDelta: (piece) => stream.send({ event: 'delta', text: piece }) },
+      );
+      const answer = filterAnswer(text, sources);
+      if (!answer) {
+        // A refusal or an empty completion: say so, bill it, do not cache it.
+        await finish({ status: 'failed', answer: EMPTY_ANSWER, citations: [], usage });
+        stream.send({ event: 'done', answer: EMPTY_ANSWER, citations: [], cached: false, model });
+        return stream.close();
+      }
+      const citations = extractCitations(answer, sources);
+
+      // 4. The ledger, then the finished answer.
+      await finish({ status: 'answered', answer, citations, usage });
+      stream.send({ event: 'done', answer, citations, cached: false, model });
+      return stream.close();
+    } catch (err) {
+      const { status, message, detail } = classifyProviderError(err);
+      if (status !== 503) console.error('[ask] model call failed:', detail);
+      await finish({ status: 'failed', answer: null, citations: [], usage: null });
+      stream.send({ event: 'error', message });
+      return stream.close();
+    }
+  };
+  // The ledger row is closed even when the visitor disconnects mid-answer.
+  keepAlive(run());
+  return stream.response;
+}
+
+/**
+ * after(): the platform waits for the work before freezing the function,
+ * response or no response. Outside a request scope (unit tests) there is no
+ * platform to tell; the promise runs on its own.
+ */
+function keepAlive(work: Promise<unknown>) {
+  try { after(work); } catch { /* not in a request scope */ }
 }

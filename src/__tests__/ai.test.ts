@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MODELS, DEFAULT_MODEL, costMicroUsd, parseModelPrice, resolveModel, classifyProviderError, createProvider } from '../ai/provider';
 import { buildUserPrompt, extractCitations } from '../ai/prompt';
-import { filterSources, retrieveSources, sourceHrefs } from '../ai/retrieval';
+import { filterSources, resolveContext, retrieveSources, sourceHrefs, sourceRefs } from '../ai/retrieval';
 import { beginAsk, finishAsk, hashIp, DAILY_CAP_CENTS, MONTHLY_CAP_CENTS, PER_IP_HOUR } from '../ai/ledger';
 import type { AskSource } from '../ai/types';
 import type { Db } from '../types/rows';
@@ -58,10 +58,11 @@ describe('provider: price table', () => {
 });
 
 describe('prompt', () => {
-  it('numbers the sources from 1 and puts the question last', () => {
+  it('numbers the sources from 1 inside <source> elements and puts the question last', () => {
     const p = buildUserPrompt('What failed?', SOURCES);
-    expect(p.indexOf('[1] post: The rate limit that never fired (/writing/rate-limit)')).toBeGreaterThan(-1);
-    expect(p.indexOf('[3] page: Security model')).toBeGreaterThan(p.indexOf('[2] project: SaaS Core'));
+    expect(p).toContain('<source n="1" kind="post" title="The rate limit that never fired" href="/writing/rate-limit">');
+    expect(p.indexOf('<source n="3" kind="page" title="Security model"')).toBeGreaterThan(p.indexOf('<source n="2" kind="project"'));
+    expect(p.match(/<\/source>/g)).toHaveLength(SOURCES.length);
     expect(p.trim().endsWith('Question: What failed?')).toBe(true);
   });
   it('maps markers to sources, first use only, in order of appearance', () => {
@@ -88,6 +89,26 @@ describe('retrieval', () => {
     expect(rows).toHaveLength(3);
     rpc.mockResolvedValue({ data: null, error: { code: '42883', message: 'no such function' } });
     await expect(retrieveSources(fakeDb(rpc), 'x', { features: { writing: true } })).rejects.toMatchObject({ code: '42883' });
+  });
+  it('passes the validated context href as the scope, and only then', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    await retrieveSources(fakeDb(rpc), 'summarize this', { features: { writing: true }, context: { kind: 'project', href: '/projects/saas' } });
+    expect(rpc).toHaveBeenLastCalledWith('ask_context', { q: 'summarize this', max_docs: 6, scope_href: '/projects/saas' });
+    await retrieveSources(fakeDb(rpc), 'summarize this', { features: { writing: true }, context: null });
+    expect(rpc).toHaveBeenLastCalledWith('ask_context', { q: 'summarize this', max_docs: 6 });
+  });
+  it('numbers the refs as the prompt numbers the sources, without bodies', () => {
+    expect(sourceRefs(SOURCES.slice(0, 2))).toEqual([
+      { n: 1, kind: 'post', title: 'The rate limit that never fired', href: '/writing/rate-limit' },
+      { n: 2, kind: 'project', title: 'SaaS Core', href: '/projects/saas' },
+    ]);
+  });
+  it('resolves the context title from the scoped source row, never from the client', () => {
+    expect(resolveContext({ kind: 'project', href: '/projects/saas' }, SOURCES)).toEqual({ kind: 'project', href: '/projects/saas', title: 'SaaS Core' });
+    expect(resolveContext({ kind: 'page', href: '/how-it-works' }, SOURCES)).toEqual({ kind: 'page', href: '/how-it-works', title: 'How this site works' });
+    // a href that scoped nothing (a draft, an unknown slug): known, but untitled
+    expect(resolveContext({ kind: 'post', href: '/writing/secret-draft' }, SOURCES)).toEqual({ kind: 'post', href: '/writing/secret-draft', title: null });
+    expect(resolveContext(null, SOURCES)).toBeNull();
   });
 });
 

@@ -189,16 +189,19 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   │   └── Icon.tsx           # lucide icons by name, for the places an icon name is data
 │   ├── hooks/                 # useSiteContent (context), useResource (the one browser fetch), useRealtimeEvents, useFocusTrap, ...
 │   ├── ai/                    # The AI module (ADR-050): one file per concern, the route is wiring
-│   │   ├── provider.ts        # the model behind one interface; price table; error → status
-│   │   ├── retrieval.ts       # ask_context() as anon; the feature filter on sources
-│   │   ├── prompt.ts          # system prompt, source numbering, [n] → citations
+│   │   ├── provider.ts        # the model behind one interface (complete + stream); price table; error → status
+│   │   ├── retrieval.ts       # ask_context() as anon, scoped to the page being read; the feature filter
+│   │   ├── prompt.ts          # system prompt, <source> delimiting, [n] → citations, the answer filter
 │   │   ├── ledger.ts          # ask_begin/ask_finish as outcomes; caps; the address hash
-│   │   └── types.ts           # AskSource, AskCitation, AskUsage, AskFeature (browser-safe)
+│   │   ├── stream.ts          # the answer as server-sent events
+│   │   └── types.ts           # AskSource, AskCitation, AskEvent, ... (browser-safe)
 │   ├── lib/
 │   │   ├── supabase/server.ts # per-request client whose fetch is cached + tagged by table
 │   │   ├── content.ts         # server reads, deduplicated per request
 │   │   ├── features.ts        # SiteFeatures from feature_flags + what the deployment can deliver
 │   │   ├── ask.ts             # the shape of a question (shared with the palette)
+│   │   ├── context.ts         # pathname → the page Ask is scoped to; the same function on both sides
+│   │   ├── sse.ts             # server-sent events: the parser the palette reads with, the encoder
 │   │   ├── contact.ts         # the contact write path as testable functions
 │   │   ├── csp.ts             # the policy as a pure function
 │   │   ├── palette.ts         # named hues; hueStyle() sets --c, the .hue-* classes derive tints
@@ -363,15 +366,38 @@ or page they came from - projects and case studies, notes, skills, roles, creden
 and the How-it-works page. Nothing else is consulted, and the model is told to say so
 when the sources do not cover a question.
 
-The route is wiring over `src/ai/` - `ledger` (the gate), `retrieval` (as anon),
-`provider` (the model), `prompt` (sources in, citations out) - so the next AI feature is
-a new caller of the same four files, not a second copy of them.
+**It knows where you are.** On a project page, a note or the How-it-works page the
+palette shows a chip - *Asking about this project · SaaS Core* - and "summarize this",
+"what were the trade-offs?" resolve to that page: retrieval fetches it by href and lifts
+it to the top, without shutting the other pages out. The × on the chip asks site-wide.
+The client sends only the path; the server re-derives the context with the same strict
+function (`lib/context.ts`) and RLS decides whether it scopes anything - a draft's path
+scopes nothing.
+
+**The answer streams.** The response is server-sent events: the numbered sources first
+(within half a second - what is being read, while the model writes), then the text as it
+arrives, then the finished answer with its citations. A cached answer is one event.
+Refusals and bad requests stay ordinary JSON with a status. If you close the palette
+mid-answer the server still finishes and records the row - the model was paid either
+way, and the answer serves the next asker.
+
+The route is wiring over `src/ai/` - `ledger` (the gate), `retrieval` (as anon, with
+the scope), `provider` (the model, streaming), `prompt` (sources in, citations out),
+`stream` (the events) - so the next AI feature is a new caller of the same files, not a
+second copy of them.
 
 How it is kept honest and cheap:
 
 - **Retrieval runs as the anon role.** `ask_context()` is `SECURITY INVOKER` over the
   same full-text search the palette uses; Row Level Security decides what can be quoted.
   A draft post cannot be cited by anyone who could not read it.
+- **Sources are data.** Each source is wrapped in a `<source n=…>` element with its own
+  `[n]` markers neutralised, so a note that quotes "ignore the rules above" or "[3]"
+  cannot instruct the model or forge a citation; the system prompt says so in as many
+  words; and the finished answer is filtered - a URL the sources did not contain is
+  replaced with `[link removed]`, so neither a poisoned source nor the model's memory can
+  hand a visitor a link this site never published. `askInjection.test.ts` holds these
+  rules against a fixed set of poisoned sources.
 - **Every question is a ledger row** (`ask_log`: salted hash of the address, question,
   the feature that asked, tokens, cost in micro-dollars, the sources used). `ask_begin()`
   is the gate: identical questions within seven days are answered from the ledger for

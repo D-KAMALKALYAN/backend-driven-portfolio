@@ -995,7 +995,7 @@ export type Database = {
         Returns: Json
       }
       ask_context: {
-        Args: { max_docs?: number; q: string }
+        Args: { max_docs?: number; q: string; scope_href?: string }
         Returns: {
           body: string
           href: string

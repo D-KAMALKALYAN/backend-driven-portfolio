@@ -3,9 +3,10 @@
 import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ASK_IDLE, type AskState, type PaletteItem } from '../utils/palette';
+import type { AskContextChip } from '../hooks/useCommandPalette';
 
 export interface CommandPaletteProps {
   isOpen: boolean;
@@ -17,13 +18,22 @@ export interface CommandPaletteProps {
   ask?: AskState;
   /** Whether this deployment can answer questions at all (features.ask). */
   askEnabled?: boolean;
+  /** The page a question would be about, while one could be asked (ADR-051). */
+  askContext?: AskContextChip | null;
+  /** Ask site-wide instead: the chip's ×. */
+  clearContext?: () => void;
   executeCommand: (item: PaletteItem) => void;
   close: () => void;
 }
 
-/** The answer text with each `[n]` marker turned into a link to its source. */
-function AnswerText({ answer, citations, onNavigate }: { answer: string; citations: AskState['citations']; onNavigate: () => void }) {
-  const byN = new Map(citations.map((c) => [c.n, c]));
+/**
+ * The answer text with each `[n]` marker turned into a link to its source.
+ * While the answer streams, the markers resolve against the numbered
+ * sources; once it is done, against the citations the answer actually used
+ * - the same numbers, so nothing moves.
+ */
+function AnswerText({ answer, refs, onNavigate }: { answer: string; refs: ReadonlyArray<{ n: number; href: string; title: string }>; onNavigate: () => void }) {
+  const byN = new Map(refs.map((c) => [c.n, c]));
   const parts = answer.split(/(\[\d{1,2}\])/g);
   const nodes: ReactNode[] = parts.map((part, i) => {
     const m = /^\[(\d{1,2})\]$/.exec(part);
@@ -38,35 +48,71 @@ function AnswerText({ answer, citations, onNavigate }: { answer: string; citatio
   return <p className="text-sm leading-relaxed m-0 text-primary">{nodes}</p>;
 }
 
+/**
+ * Sources first, then the answer as it is written, then the citations
+ * settle (ADR-051). The sources list is what the visitor reads while the
+ * model writes - a half-second wait instead of an eight-second one.
+ */
 function AskPanel({ ask, close }: { ask: AskState; close: () => void }) {
   if (ask.status === 'idle') return null;
+  const heading =
+    ask.status === 'asking' ? 'Reading the site…'
+    : ask.status === 'streaming' ? (ask.answer ? 'Answer' : 'Writing…')
+    : ask.status === 'error' ? 'No answer'
+    : ask.cached ? 'Answer · from an earlier ask' : 'Answer';
+  const settled = ask.status === 'done' && ask.citations.length > 0;
+  // Once done, list only what the answer cited; while writing, everything being read.
+  const list = settled ? ask.citations : ask.sources;
+  const refs = ask.citations.length > 0 ? ask.citations : ask.sources;
   return (
     <div className="px-4 py-3 border-b border-line" aria-live="polite">
       <div className="flex items-center gap-2 mb-2">
-        <Sparkles size={13} className="text-accent" aria-hidden />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
-          {ask.status === 'asking' ? 'Reading the site…' : ask.status === 'error' ? 'No answer' : ask.cached ? 'Answer · from an earlier ask' : 'Answer'}
-        </span>
+        <Sparkles size={13} className={`text-accent ${ask.status === 'asking' || ask.status === 'streaming' ? 'animate-pulse' : ''}`} aria-hidden />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">{heading}</span>
       </div>
-      {ask.status === 'asking' && <p className="text-sm m-0 text-secondary">Finding the sources and writing a short answer.</p>}
+      {ask.status === 'asking' && <p className="text-sm m-0 text-secondary">Finding the sources.</p>}
       {ask.status === 'error' && <p className="text-sm m-0 text-secondary">{ask.message}</p>}
-      {ask.status === 'done' && (
-        <>
-          <AnswerText answer={ask.answer} citations={ask.citations} onNavigate={close} />
-          {ask.citations.length > 0 && (
-            <ol className="mt-2 m-0 pl-0 list-none flex flex-col gap-1">
-              {ask.citations.map((c) => (
-                <li key={c.n} className="text-xs flex gap-2 items-baseline">
-                  <span className="font-mono text-muted shrink-0">[{c.n}]</span>
-                  <Link href={c.href} onClick={close} className="no-underline hover:underline text-secondary truncate">{c.title}</Link>
-                  <span className="text-muted shrink-0">· {c.kind}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-          <p className="mt-2 m-0 text-[11px] text-muted">Written by a model from the site&apos;s own content, with the sources it used. Check the source when it matters.</p>
-        </>
+      {(ask.status === 'streaming' || ask.status === 'done') && ask.answer && (
+        <AnswerText answer={ask.answer} refs={refs} onNavigate={close} />
       )}
+      {ask.status === 'streaming' && !ask.answer && ask.sources.length > 0 && (
+        <p className="text-sm m-0 text-secondary">Reading {ask.sources.length === 1 ? 'one source' : `${ask.sources.length} sources`}, writing a short answer.</p>
+      )}
+      {list.length > 0 && (
+        <ol className="mt-2 m-0 pl-0 list-none flex flex-col gap-1" aria-label={settled ? 'Sources cited' : 'Sources being read'}>
+          {list.map((c) => (
+            <li key={c.n} className="text-xs flex gap-2 items-baseline">
+              <span className="font-mono text-muted shrink-0">[{c.n}]</span>
+              <Link href={c.href} onClick={close} className="no-underline hover:underline text-secondary truncate">{c.title}</Link>
+              <span className="text-muted shrink-0">· {c.kind}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {ask.status === 'done' && (
+        <p className="mt-2 m-0 text-[11px] text-muted">Written by a model from the site&apos;s own content, with the sources it used. Check the source when it matters.</p>
+      )}
+    </div>
+  );
+}
+
+/** "Asking about this project · <title>  ×" - the × asks site-wide instead. */
+function ContextChip({ context, onClear }: { context: AskContextChip; onClear: () => void }) {
+  return (
+    <div className="px-4 py-2 border-b border-line flex items-center gap-2 text-xs text-secondary">
+      <span className="text-muted shrink-0">Asking about</span>
+      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-full bg-subtle text-primary min-w-0">
+        <span className="truncate">{context.label}</span>
+        <button
+          type="button"
+          onClick={onClear}
+          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-transparent border-none cursor-pointer text-muted hover:text-primary hover:bg-card"
+          aria-label="Ask about the whole site instead"
+          title="Ask about the whole site instead"
+        >
+          <X size={12} aria-hidden />
+        </button>
+      </span>
     </div>
   );
 }
@@ -76,7 +122,7 @@ interface IndexedCommand {
   idx: number;
 }
 
-export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, askEnabled = false, executeCommand, close }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, askEnabled = false, askContext = null, clearContext, executeCommand, close }: CommandPaletteProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const listRef   = useRef<HTMLDivElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
@@ -189,14 +235,18 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                 <kbd className="px-2 py-0.5 rounded-lg text-xs font-mono bg-subtle text-muted">ESC</kbd>
               </div>
 
+              {askContext && clearContext && <ContextChip context={askContext} onClear={clearContext} />}
               <AskPanel ask={ask} close={close} />
 
               {/* Results */}
-              <div ref={listRef} className="max-h-72 overflow-y-auto py-1.5" role="listbox">
+              <div ref={listRef} className={`max-h-72 overflow-y-auto ${grouped.size === 0 && ask.status !== 'idle' ? '' : 'py-1.5'}`} role="listbox">
                 {grouped.size === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-muted">
-                    {searching ? 'Searching…' : 'Nothing found'}
-                  </p>
+                  // While an answer is on its way or on show, the panel above is the content; "Nothing found" under it would be about the wrong thing.
+                  ask.status !== 'idle' ? null : (
+                    <p className="px-4 py-8 text-center text-sm text-muted">
+                      {searching ? 'Searching…' : 'Nothing found'}
+                    </p>
+                  )
                 ) : (
                   [...grouped.entries()].map(([group, items]) => (
                     <div key={group}>
