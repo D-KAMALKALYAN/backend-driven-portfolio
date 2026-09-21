@@ -41,6 +41,7 @@ const KIND_GROUP: Record<string, string> = {
   post: 'Writing',
   skill: 'Skills',
   experience: 'Experience',
+  credential: 'Credentials',
 };
 
 /**

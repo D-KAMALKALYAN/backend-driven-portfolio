@@ -74,16 +74,16 @@ async function revalidationDiagnostics(): Promise<RevalidationDiagnostics | null
   };
 }
 
-/** What /api/ask has cost this calendar month, in whole cents, and how many answers. Service role only. */
-async function askSpendThisMonth(): Promise<{ monthCents: number; capCents: number; answered: number; failed: number } | null> {
+/** What /api/ask has cost this calendar month and how many answers. Service role only. Dollars as strings: a question costs a tenth of a cent, and whole cents rounded every real month to zero. */
+async function askSpendThisMonth(): Promise<{ monthUsd: string; capUsd: string; answered: number; failed: number } | null> {
   const service = createServiceSupabase();
   if (!service) return null;
   const { data, error } = await service.rpc('ask_spend');
   if (error || !data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;
   return {
-    monthCents: Math.round((typeof d.month_micro_usd === 'number' ? d.month_micro_usd : 0) / 10000),
-    capCents: Number(process.env.ASK_MONTHLY_CAP_CENTS ?? 300),
+    monthUsd: ((typeof d.month_micro_usd === 'number' ? d.month_micro_usd : 0) / 1_000_000).toFixed(4),
+    capUsd: (Number(process.env.ASK_MONTHLY_CAP_CENTS ?? 300) / 100).toFixed(2),
     answered: typeof d.month_questions === 'number' ? d.month_questions : 0,
     failed: typeof d.month_failed === 'number' ? d.month_failed : 0,
   };

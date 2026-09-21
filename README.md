@@ -351,8 +351,9 @@ is searchable - a draft post cannot be found. Exposed as `GET /api/search?q=`.
 Type a question into the command palette (`Ctrl+K`) - "how is content cached here?" -
 and the first row is **Ask**. Enter posts it to `POST /api/ask`, which answers from
 the site's own database content with numbered citations that link to the project, note
-or page they came from. Nothing else is consulted, and the model is told to say so when
-the sources do not cover a question.
+or page they came from - projects and case studies, notes, skills, roles, credentials
+and the How-it-works page. Nothing else is consulted, and the model is told to say so
+when the sources do not cover a question.
 
 How it is kept honest and cheap:
 
@@ -365,8 +366,8 @@ How it is kept honest and cheap:
   or past the **monthly cap** (`ASK_MONTHLY_CAP_CENTS`, default 300) it refuses with a
   plain message. The browser never touches the table; the functions are service-role only.
 - **Cost is what was billed, not estimated**: `ask_finish()` records the response's usage
-  at first-party rates, cache reads and writes included. `GET /api/health` shows the
-  month's spend and count under `ask`.
+  at the published rates, cached prompt tokens included. `GET /api/health` shows the
+  month's spend (`monthUsd`), the cap and the counts under `ask`.
 - The model is OpenAI's `gpt-5-mini` by default through the Responses API (`ASK_MODEL`
   may name `gpt-5`, `gpt-5-nano` or `gpt-4.1-mini`; any other model needs its price in
   `ASK_MODEL_PRICE` as `input,cached,output` USD per MTok, or it is not run - an unknown
