@@ -6,7 +6,7 @@ import { COMMANDS } from '../constants/commands';
 import { useSiteFeatures } from './useSiteFeatures';
 import { useDebounce } from './useDebounce';
 import { ASK_IDLE, ASK_ITEM_ID, buildPaletteItems, isSearchable, type AskState, type PaletteItem, type SearchResult } from '../utils/palette';
-import { isAskable, type AskCitation } from '../lib/ask';
+import { isAskable, stripAskPrefix, type AskCitation } from '../lib/ask';
 
 /**
  * Command palette state: open/close, the query, the items to show, and
@@ -87,22 +87,24 @@ export function useCommandPalette() {
       cmd.shortcut?.toLowerCase().includes(query.toLowerCase()))
   ), [features, query]);
 
+  // "/ask <question>" is the explicit form; a bare question is recognised too.
+  const askText = stripAskPrefix(query) ?? query.trim();
   const askable = isOpen && features.ask && isAskable(query) && ask.status !== 'asking';
-  const items = useMemo(() => buildPaletteItems(filteredCommands, results, askable, query), [filteredCommands, results, askable, query]);
+  const items = useMemo(() => buildPaletteItems(filteredCommands, results, askable, askText), [filteredCommands, results, askable, askText]);
   // The answer panel shows only for the question the visitor can still see.
-  const askVisible = ask.status !== 'idle' && ask.question === query.trim() ? ask : ASK_IDLE;
+  const askVisible = ask.status !== 'idle' && ask.question === askText ? ask : ASK_IDLE;
 
   const executeCommand = useCallback(
     (item: PaletteItem) => {
       if (item.id === ASK_ITEM_ID) {
-        askQuestion(query);
+        askQuestion(askText);
         return;
       }
       // Every other item navigates - a command to its route, a result to its page.
       router.push(item.path);
       close();
     },
-    [router, close, askQuestion, query]
+    [router, close, askQuestion, askText]
   );
 
   useEffect(() => {

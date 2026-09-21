@@ -109,7 +109,7 @@ export async function GET() {
       revalidateSecret: Boolean(process.env.REVALIDATE_SECRET),
       sentry: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
       cronSecret: Boolean(process.env.CRON_SECRET),
-      anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+      openai: Boolean(process.env.OPENAI_API_KEY),
       ask: askSpend,
       env: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'unknown',
     },

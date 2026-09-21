@@ -6,6 +6,7 @@ import Footer from './Footer';
 import CommandPalette from './CommandPalette';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { usePageTracking } from '../hooks/usePageTracking';
+import { useSiteFeatures } from '../hooks/useSiteFeatures';
 
 /** Fires page_view on route changes. Isolated so useSearchParams has its own boundary. */
 function PageTracker() {
@@ -19,6 +20,7 @@ function PageTracker() {
  */
 export default function AppShell({ children }: { children: ReactNode }) {
   const { isOpen, query, setQuery, items, searching, ask, executeCommand, open, close } = useCommandPalette();
+  const features = useSiteFeatures();
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
@@ -43,6 +45,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         items={items}
         searching={searching}
         ask={ask}
+        askEnabled={features.ask}
         executeCommand={executeCommand}
         close={close}
       />

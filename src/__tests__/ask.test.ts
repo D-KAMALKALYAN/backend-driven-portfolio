@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ASK_MODELS, ASK_DEFAULT_MODEL, buildUserPrompt, costMicroUsd, extractCitations, isAskable,
-  normalizeQuestion, resolveAskModel, validateQuestion, type AskSource,
+  normalizeQuestion, parseModelPrice, resolveAskModel, stripAskPrefix, validateQuestion, type AskSource,
 } from '../lib/ask';
 import { buildPaletteItems, ASK_ITEM_ID } from '../utils/palette';
 import { COMMANDS } from '../constants/commands';
@@ -69,22 +69,39 @@ describe('extractCitations', () => {
 });
 
 describe('cost', () => {
-  it('bills at first-party rates, cache reads at a tenth, writes at 1.25x, rounded to whole micro-dollars', () => {
-    const usage = { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 500, cache_creation_input_tokens: 100 };
-    // opus-5: 1000*5 + 500*0.5 + 100*6.25 + 200*25 = 5000 + 250 + 625 + 5000
-    expect(costMicroUsd('claude-opus-5', usage)).toBe(10875);
-    expect(costMicroUsd('claude-haiku-4-5', { input_tokens: 1000, output_tokens: 200 })).toBe(2000);
-    expect(costMicroUsd('not-a-model', usage)).toBe(0);
+  it('bills fresh input, cached input and output at the model rates, rounded to whole micro-dollars', () => {
+    const price = ASK_MODELS['gpt-5-mini']!;
+    // 3000 fresh × 0.25 + 1000 cached × 0.025 + 250 out × 2.0 = 750 + 25 + 500
+    expect(costMicroUsd(price, { input_tokens: 4000, output_tokens: 250, cached_tokens: 1000 })).toBe(1275);
+    expect(costMicroUsd(undefined, { input_tokens: 4000, output_tokens: 250 })).toBe(0);
+    // cached tokens can never exceed input tokens
+    expect(costMicroUsd(price, { input_tokens: 100, output_tokens: 0, cached_tokens: 500 })).toBe(Math.round(100 * 0.025));
   });
-  it('a typical question on the default model stays under three cents', () => {
-    const micro = costMicroUsd(ASK_DEFAULT_MODEL, { input_tokens: 3500, output_tokens: 250 });
-    expect(micro).toBeLessThan(30_000);
+  it('a typical question on the default model costs well under a cent', () => {
+    const micro = costMicroUsd(ASK_MODELS[ASK_DEFAULT_MODEL], { input_tokens: 3500, output_tokens: 250 });
+    expect(micro).toBeLessThan(2_000);
   });
-  it('only known models are allowed, and the default is Opus 5', () => {
-    expect(resolveAskModel(undefined)).toBe('claude-opus-5');
-    expect(resolveAskModel('claude-haiku-4-5')).toBe('claude-haiku-4-5');
-    expect(resolveAskModel('gpt-x')).toBe('claude-opus-5');
-    expect(Object.keys(ASK_MODELS)).toContain(ASK_DEFAULT_MODEL);
+  it('known models resolve; an unknown one needs a price or falls back to the default', () => {
+    expect(resolveAskModel(undefined).model).toBe('gpt-5-mini');
+    expect(resolveAskModel('gpt-5').model).toBe('gpt-5');
+    expect(resolveAskModel('gpt-5.4-mini').model).toBe('gpt-5-mini');
+    expect(resolveAskModel('gpt-5.4-mini', '0.5,0.05,3')).toEqual({ model: 'gpt-5.4-mini', price: { input: 0.5, cached: 0.05, output: 3, reasoning: true } });
+    expect(resolveAskModel('gpt-4.1-nano', '0.1,0.025,0.4').price.reasoning).toBe(false);
+    expect(parseModelPrice('1,2')).toBeNull();
+    expect(parseModelPrice('a,b,c')).toBeNull();
+  });
+});
+
+describe('stripAskPrefix', () => {
+  it('recognises the explicit trigger with or without the slash and returns the bare question', () => {
+    expect(stripAskPrefix('/ask how does caching work')).toBe('how does caching work');
+    expect(stripAskPrefix('Ask   what is RLS?')).toBe('what is RLS?');
+    expect(stripAskPrefix('asking about caching')).toBeNull();
+    expect(stripAskPrefix('postgres')).toBeNull();
+  });
+  it('makes any prefixed text askable', () => {
+    expect(isAskable('/ask rls')).toBe(true);
+    expect(isAskable('/ask')).toBe(false);
   });
 });
 

@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { createServerSupabase, createServiceSupabase } from '../../../lib/supabase/server';
 import {
-  ASK_MODELS, ASK_SYSTEM_PROMPT, NO_SOURCES_ANSWER,
+  ASK_SYSTEM_PROMPT, NO_SOURCES_ANSWER,
   buildUserPrompt, costMicroUsd, extractCitations, normalizeQuestion, resolveAskModel, validateQuestion,
-  type AskCitation, type AskSource,
+  type AskCitation, type AskSource, type AskUsage,
 } from '../../../lib/ask';
 import { trackContextFrom } from '../../../lib/track';
 import type { Json } from '../../../types/database';
@@ -22,8 +22,8 @@ import type { Json } from '../../../types/database';
  *      after it says go is anything else spent.
  *   2. ask_context() - retrieval, WITH THE ANON KEY. Row Level Security
  *      decides what the model may quote; this route has no opinion.
- *   3. The model, with the sources numbered and the question last, asked
- *      to cite. Markers in the answer become links.
+ *   3. The model (OpenAI Responses API), with the sources numbered and the
+ *      question last, asked to cite. Markers in the answer become links.
  *   4. ask_finish() - tokens and cost into the ledger, so the cap is
  *      enforced against what was actually billed.
  *
@@ -52,7 +52,7 @@ function hashIp(ip: string | null): string {
 interface BeginResult { cached: boolean; id?: string; answer?: string; citations?: AskCitation[] }
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   const service = createServiceSupabase();
   if (!apiKey || !service) {
     return json({ ok: false, message: 'Ask is not configured on this deployment.' }, 503);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   if (!q.ok) return json({ ok: false, message: q.message }, 400);
   const question = q.question;
   const norm = normalizeQuestion(question);
-  const model = resolveAskModel(process.env.ASK_MODEL);
+  const { model, price } = resolveAskModel(process.env.ASK_MODEL, process.env.ASK_MODEL_PRICE);
 
   // 1. The gate.
   const begin = await service.rpc('ask_begin', {
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
   const id = gate.id;
   if (!id) return json({ ok: false, message: 'Ask is unavailable right now.' }, 500);
 
-  const finish = (status: 'answered' | 'failed', answer: string | null, citations: AskCitation[], usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null } | null) =>
+  const finish = (status: 'answered' | 'failed', answer: string | null, citations: AskCitation[], usage: AskUsage | null) =>
     service.rpc('ask_finish', {
       p_id: id,
       p_status: status,
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       p_model: model,
       p_input_tokens: usage?.input_tokens ?? 0,
       p_output_tokens: usage?.output_tokens ?? 0,
-      p_cost_micro_usd: usage ? costMicroUsd(model, usage) : 0,
+      p_cost_micro_usd: usage ? costMicroUsd(price, usage) : 0,
     });
 
   // 2. Retrieval, as the anon role.
@@ -118,45 +118,45 @@ export async function POST(request: NextRequest) {
     return json({ ok: true, answer: NO_SOURCES_ANSWER, citations: [], cached: false, model: null });
   }
 
-  // 3. The model. System prompt is cached (it never changes); the sources
-  // vary per question and sit after it, so the cache still hits.
-  const client = new Anthropic({ apiKey, timeout: MODEL_TIMEOUT_MS, maxRetries: 1 });
+  // 3. The model. The instructions never change and lead the prompt, so
+  // OpenAI's prompt cache can serve them; the sources vary and follow.
+  const client = new OpenAI({ apiKey, timeout: MODEL_TIMEOUT_MS, maxRetries: 1 });
   try {
-    const response = await client.beta.messages.create({
+    const response = await client.responses.create({
       model,
-      max_tokens: 700,
-      // Server-side refusal fallback: if the primary declines, the API reruns
-      // the request on a fallback model inside the same call.
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system: [{ type: 'text', text: ASK_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: buildUserPrompt(question, sources) }],
-      // Short grounded answers do not need deep deliberation; low effort
-      // keeps the cost and the wait down. Haiku rejects the parameter.
-      ...(ASK_MODELS[model]?.effort ? { output_config: { effort: 'low' as const } } : {}),
+      instructions: ASK_SYSTEM_PROMPT,
+      input: buildUserPrompt(question, sources),
+      max_output_tokens: 700,
+      // A short grounded answer needs a little deliberation to stay inside
+      // the sources - 'minimal' paraphrased a project's behaviour into
+      // something it did not say; 'low' did not. Non-reasoning models reject it.
+      ...(price.reasoning ? { reasoning: { effort: 'low' as const } } : {}),
+      store: false,
     });
 
-    if (response.stop_reason === 'refusal') {
-      const answer = "I can't answer that one here.";
-      await finish('answered', answer, [], response.usage);
-      return json({ ok: true, answer, citations: [], cached: false, model: response.model });
+    const usage: AskUsage = {
+      input_tokens: response.usage?.input_tokens ?? 0,
+      output_tokens: response.usage?.output_tokens ?? 0,
+      cached_tokens: response.usage?.input_tokens_details?.cached_tokens ?? 0,
+    };
+    const answer = response.output_text.trim();
+    if (!answer) {
+      // A refusal or an empty completion: say so, bill it, do not cache it.
+      const fallback = "I can't answer that one here.";
+      await finish('failed', fallback, [], usage);
+      return json({ ok: true, answer: fallback, citations: [], cached: false, model: response.model });
     }
-    const answer = response.content
-      .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-      .trim();
     const citations = extractCitations(answer, sources);
 
     // 4. The ledger.
-    await finish('answered', answer, citations, response.usage);
+    await finish('answered', answer, citations, usage);
     return json({ ok: true, answer, citations, cached: false, model: response.model });
   } catch (err) {
-    if (err instanceof Anthropic.RateLimitError) {
+    if (err instanceof OpenAI.RateLimitError) {
       await finish('failed', null, [], null);
       return json({ ok: false, message: 'The model is busy; try again in a minute.' }, 503);
     }
-    const detail = err instanceof Anthropic.APIError ? `${err.status} ${err.message}` : String(err);
+    const detail = err instanceof OpenAI.APIError ? `${err.status} ${err.message}` : String(err);
     console.error('[ask] model call failed:', detail);
     await finish('failed', null, [], null);
     return json({ ok: false, message: 'The answer did not come back. Try again.' }, 502);
