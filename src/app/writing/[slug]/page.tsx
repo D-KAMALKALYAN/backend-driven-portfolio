@@ -5,6 +5,7 @@ import PageWrapper from '../../../components/PageWrapper';
 import { Container } from '../../../components/Layout';
 import Badge from '../../../components/Badge';
 import { findPostBySlug, getPostBlocks, getSiteContent } from '../../../lib/content';
+import { getSiteFeatures } from '../../../lib/features';
 import { renderBlocks } from '../../../lib/sections';
 import { getVal } from '../../../utils/siteContent';
 import { formatPostDate, readingMinutes } from '../../../utils/reading';
@@ -15,8 +16,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const [post, content] = await Promise.all([findPostBySlug(slug), getSiteContent()]);
-  if (!post) return { title: 'Not found' };
+  const [post, content, features] = await Promise.all([findPostBySlug(slug), getSiteContent(), getSiteFeatures()]);
+  if (!post || !features.writing) return { title: 'Not found' };
   const siteTitle = getVal(content, 'seo.title', 'Portfolio');
   return {
     title: post.title,
@@ -36,12 +37,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /**
  * One post: a row for the head, ordered block rows for the body, rendered
  * by the same content-block types as the architecture page. A draft is a
- * 404 here - the server reads as anon, and anon cannot see it.
+ * 404 here - the server reads as anon, and anon cannot see it. So is every
+ * post while the owner's `writing` flag is off.
  */
 export default async function Page({ params }: Props) {
   const { slug } = await params;
-  const post = await findPostBySlug(slug);
-  if (!post) notFound();
+  const [post, features] = await Promise.all([findPostBySlug(slug), getSiteFeatures()]);
+  if (!post || !features.writing) notFound();
   const blocks = await getPostBlocks(post.id);
   const { nodes, unknown } = renderBlocks(blocks);
   if (unknown.length > 0) console.warn(`[writing] ${slug}: no renderer for block_type ${unknown.join(', ')}`);

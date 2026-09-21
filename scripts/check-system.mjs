@@ -20,8 +20,10 @@ const env = Object.fromEntries(
     .filter((l) => l.includes('=') && !l.startsWith('#'))
     .map((l) => { const i = l.indexOf('='); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }),
 );
-const SB = env.NEXT_PUBLIC_SUPABASE_URL;
-const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// The environment wins over .env, so a local stack can be checked too:
+//   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run check:system -- http://localhost:3000
+const SB = process.env.NEXT_PUBLIC_SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL;
+const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 if (!SB || !ANON) { console.error('NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY missing from .env'); process.exit(2); }
 
 const results = [];
@@ -55,6 +57,8 @@ const unescapeHtml = (s) => s.replace(/&amp;/g, '&').replace(/&#x27;/g, "'").rep
   pass(r.status === 200 && h.ok === true, 'deploy', 'GET /api/health', `${r.status} ${r.body.slice(0, 160)}`);
   for (const k of ['supabase', 'db', 'serviceRole', 'resend', 'revalidateSecret', 'sentry', 'cronSecret']) pass(h[k] === true, 'deploy', `capability ${k}`, String(h[k]));
   pass(h.env === 'production' || BASE.includes('localhost'), 'deploy', 'env', String(h.env));
+  pass(h.flags && typeof h.flags.writing === 'boolean' && typeof h.flags.ask === 'boolean', 'deploy', 'health reports the feature flags', JSON.stringify(h.flags));
+  pass(h.ask && typeof h.ask.todayUsd === 'string' && typeof h.ask.dailyCapUsd === 'string' && h.ask.byFeature, 'deploy', 'health reports Ask spend today, this month and per feature', JSON.stringify(h.ask));
   const vid = r.headers.get('x-vercel-id') ?? '';
   if (!BASE.includes('localhost')) pass(vid.includes('hnd1'), 'deploy', 'functions in hnd1 (beside the DB)', vid);
   const samples = [];
@@ -107,6 +111,13 @@ for (const route of ROUTES) {
   pass(/Writing/.test(html['/']), 'ia', 'nav shows Writing (features.writing gate)');
   const r404 = await req(`${BASE}/this-page-does-not-exist`);
   pass(r404.status === 404, 'pages', 'unknown route → 404', String(r404.status));
+  // notFound() inside a page. A loading boundary above the segment streams
+  // a 200 shell first and the status can no longer change (V3 step 2 found
+  // production answering 200 + noindex here); the status is the probe.
+  for (const p of ['/projects/this-slug-does-not-exist', '/writing/this-slug-does-not-exist']) {
+    const r = await req(`${BASE}${p}`);
+    pass(r.status === 404, 'pages', `${p} → 404 (notFound() sets the status)`, String(r.status));
+  }
 }
 
 // ---------------- 3. routes ----------------
@@ -152,6 +163,11 @@ for (const route of ROUTES) {
   pass([401, 403].includes((await sb('analytics', { method: 'POST', body: '{"event":"page_view","path":"/probe","session_id":"probe"}' })).status), 'rls', 'anon INSERT into analytics refused');
   pass([401, 403].includes((await sb('contact_messages', { method: 'POST', body: '{"name":"p","email":"p@p.io","message":"probe"}' })).status), 'rls', 'anon INSERT into contact_messages refused');
   pass([401, 403].includes((await sb('rpc/ask_begin', { method: 'POST', body: '{"p_ip_hash":"x","p_question":"probe","p_question_norm":"probe"}' })).status), 'rls', 'anon may not call ask_begin');
+  pass([401, 403].includes((await sb('rpc/ask_retention', { method: 'POST', body: '{"p_days":90}' })).status), 'rls', 'anon may not call ask_retention');
+  pass([401, 403].includes((await sb('rpc/ask_spend', { method: 'POST', body: '{}' })).status), 'rls', 'anon may not call ask_spend');
+  const flags = (await sb('feature_flags?select=key,enabled&order=key')).json ?? [];
+  pass(flags.map((f) => f.key).join(',') === 'ask,writing', 'flags', 'feature_flags holds exactly the rows the app reads (ask, writing)', flags.map((f) => `${f.key}=${f.enabled}`).join(' '));
+  pass([401, 403, 404].includes((await sb('ask_log?select=id&limit=1')).status) || ((await sb('ask_log?select=id&limit=1')).json ?? []).length === 0, 'rls', 'ask_log invisible to anon');
   pass(((await sb('posts?select=slug&status=neq.published')).json ?? []).length === 0, 'rls', 'draft posts invisible to anon');
   pass(((await sb('projects?select=slug&status=neq.published')).json ?? []).length === 0, 'rls', 'unpublished projects invisible to anon');
   const cutoff = new Date(Date.now() - 91 * 86400e3).toISOString();

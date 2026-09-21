@@ -112,7 +112,7 @@ RLS is enabled on all 12 tables. Public visitors can only read published content
 Upload a new PDF to the `resumes` storage bucket → a database trigger automatically inserts a record, deactivates the previous version, and builds the public URL. The download button always serves the latest version.
 
 ### 🚩 Feature Flags
-Toggle entire sections of the portfolio (blog, hire-me CTA, maintenance mode) by flipping a boolean in the `feature_flags` table. No code changes, no deploys.
+Two rows in `feature_flags` are the owner's switches: `writing` (the Writing nav item, `/writing`, the posts in search and in the sitemap) and `ask` (the palette's Ask row and `POST /api/ask`). Flip `enabled` and the site follows on the next request - the table carries the same revalidation trigger as the content tables. A flag switches a feature off everywhere, not just its link: `/writing` is a 404 while `writing` is off, and `/api/ask` answers 503 while `ask` is off. A flag alone never switches a feature on: Writing also needs a published post, Ask also needs `OPENAI_API_KEY`. `GET /api/health` reports both under `flags`.
 
 ---
 
@@ -131,7 +131,8 @@ Toggle entire sections of the portfolio (blog, hire-me CTA, maintenance mode) by
 | `resume` | Version history of uploaded resume PDFs |
 | `site_content` | CMS key-value store for all editable copy |
 | `activity_logs` | Admin audit trail for all write operations |
-| `feature_flags` | Boolean toggles for site features |
+| `feature_flags` | The owner's switches: `writing`, `ask` |
+| `ask_log` | The Ask ledger: one row per question, with feature, tokens and cost (service role only) |
 
 All tables use UUID primary keys, `created_at` / `updated_at` timestamps, and a `meta JSONB` column for future extensibility without migrations.
 
@@ -309,8 +310,9 @@ variables:
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | error reporting (errors only, tunnelled through `/monitoring`); no-op when absent |
 | `OPENAI_API_KEY` | for Ask | server-only key for `POST /api/ask`; the palette's Ask row appears only when set |
 | `ASK_MONTHLY_CAP_CENTS` | optional | the app's own monthly cap for Ask, default `300` |
+| `ASK_DAILY_CAP_CENTS` | optional | a day's ceiling under the month's, default `50` |
 | `ASK_MODEL` / `ASK_MODEL_PRICE` | optional | `gpt-5-mini` (default), `gpt-5`, `gpt-5-nano`, `gpt-4.1-mini`; another model only with its price `input,cached,output` in USD/MTok |
-| `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily`; the route refuses without it |
+| `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily` and blanks Ask questions older than 90 days; the route refuses without it |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
 ### Sections without a deploy
@@ -360,13 +362,18 @@ How it is kept honest and cheap:
   same full-text search the palette uses; Row Level Security decides what can be quoted.
   A draft post cannot be cited by anyone who could not read it.
 - **Every question is a ledger row** (`ask_log`: salted hash of the address, question,
-  tokens, cost in micro-dollars). `ask_begin()` is the gate: identical questions within
-  seven days are answered from the ledger for free; past **10 questions/hour/address**
-  or past the **monthly cap** (`ASK_MONTHLY_CAP_CENTS`, default 300) it refuses with a
-  plain message. The browser never touches the table; the functions are service-role only.
+  the feature that asked, tokens, cost in micro-dollars, the sources used). `ask_begin()`
+  is the gate: identical questions within seven days are answered from the ledger for
+  free; past **10 questions/hour/address**, past the **daily cap**
+  (`ASK_DAILY_CAP_CENTS`, default 50) or past the **monthly cap**
+  (`ASK_MONTHLY_CAP_CENTS`, default 300) it refuses with a plain message. The browser
+  never touches the table; the functions are service-role only.
 - **Cost is what was billed, not estimated**: `ask_finish()` records the response's usage
   at the published rates, cached prompt tokens included. `GET /api/health` shows the
-  month's spend (`monthUsd`), the cap and the counts under `ask`.
+  spend today and this month, both caps, the counts and the spend per feature under `ask`.
+- **Questions are not kept forever.** The daily cron blanks the question text of rows
+  older than 90 days (`ask_retention()`); tokens, cost and the sources stay, and rows the
+  owner has marked `featured` keep their words.
 - The model is OpenAI's `gpt-5-mini` by default through the Responses API (`ASK_MODEL`
   may name `gpt-5`, `gpt-5-nano` or `gpt-4.1-mini`; any other model needs its price in
   `ASK_MODEL_PRICE` as `input,cached,output` USD per MTok, or it is not run - an unknown
@@ -374,9 +381,10 @@ How it is kept honest and cheap:
   question is 2-3k input tokens and costs about **0.1 cent**.
 
 Type `/ask <question>` to force the row for any wording. Env: `OPENAI_API_KEY` (server
-only), optional `ASK_MODEL`, `ASK_MODEL_PRICE`, `ASK_MONTHLY_CAP_CENTS`, `ASK_IP_SALT`.
-Without the key the Ask row does not appear and the route answers 503. Set a hard usage
-limit in the OpenAI dashboard too - the app's cap is the soft one.
+only), optional `ASK_MODEL`, `ASK_MODEL_PRICE`, `ASK_MONTHLY_CAP_CENTS`,
+`ASK_DAILY_CAP_CENTS`, `ASK_IP_SALT`. Without the key, or with the `ask` flag off, the
+Ask row does not appear and the route answers 503. Set a hard usage limit in the OpenAI
+dashboard too - the app's caps are the soft ones.
 
 ### Content updates without a deploy
 

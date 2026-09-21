@@ -201,14 +201,18 @@ export type Database = {
           answered_at: string | null
           asked_at: string
           citations: Json
+          context_href: string | null
           cost_micro_usd: number
+          feature: string
+          featured: boolean
           id: string
           input_tokens: number | null
           ip_hash: string | null
           model: string | null
           output_tokens: number | null
-          question: string
+          question: string | null
           question_norm: string
+          sources: Json
           status: string
         }
         Insert: {
@@ -216,14 +220,18 @@ export type Database = {
           answered_at?: string | null
           asked_at?: string
           citations?: Json
+          context_href?: string | null
           cost_micro_usd?: number
+          feature?: string
+          featured?: boolean
           id?: string
           input_tokens?: number | null
           ip_hash?: string | null
           model?: string | null
           output_tokens?: number | null
-          question: string
+          question?: string | null
           question_norm: string
+          sources?: Json
           status?: string
         }
         Update: {
@@ -231,14 +239,18 @@ export type Database = {
           answered_at?: string | null
           asked_at?: string
           citations?: Json
+          context_href?: string | null
           cost_micro_usd?: number
+          feature?: string
+          featured?: boolean
           id?: string
           input_tokens?: number | null
           ip_hash?: string | null
           model?: string | null
           output_tokens?: number | null
-          question?: string
+          question?: string | null
           question_norm?: string
+          sources?: Json
           status?: string
         }
         Relationships: []
@@ -1005,6 +1017,9 @@ export type Database = {
         Args: {
           p_cache_days?: number
           p_cap_cents?: number
+          p_context_href?: string
+          p_daily_cap_cents?: number
+          p_feature?: string
           p_ip_hash: string
           p_per_ip_hour?: number
           p_question: string
@@ -1030,10 +1045,13 @@ export type Database = {
           p_input_tokens: number
           p_model: string
           p_output_tokens: number
+          p_sources?: Json
           p_status: string
         }
         Returns: undefined
       }
+      ask_query_terms: { Args: { q: string }; Returns: string }
+      ask_retention: { Args: { p_days?: number }; Returns: Json }
       ask_spend: { Args: never; Returns: Json }
       get_analytics_summary: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }

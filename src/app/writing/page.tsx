@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import PageWrapper from '../../components/PageWrapper';
 import { Section, Container } from '../../components/Layout';
 import SectionHeader from '../../components/SectionHeader';
@@ -7,22 +8,30 @@ import { PenLine } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
 import Badge from '../../components/Badge';
 import { getPostBlocks, getPosts, getSiteContent } from '../../lib/content';
+import { getSiteFeatures } from '../../lib/features';
 import { getVal } from '../../utils/siteContent';
 import { formatPostDate, readingMinutes } from '../../utils/reading';
 import { enterAt } from '../../utils/enter';
 
-export const metadata: Metadata = {
-  title: 'Writing',
-  description: 'Engineering notes: the bugs, the decisions, and what they cost.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const features = await getSiteFeatures();
+  if (!features.writing) return { title: 'Not found' };
+  return {
+    title: 'Writing',
+    description: 'Engineering notes: the bugs, the decisions, and what they cost.',
+  };
+}
 
 /**
  * Published posts, newest first. Drafts never reach this page: RLS hides
  * them from the anon key the server reads with. With nothing published the
  * page says so plainly - and the navigation item that leads here is not
- * rendered at all (see useNavLinks).
+ * rendered at all (see useNavLinks). With the `writing` flag off the page
+ * is a 404: the owner's switch removes the section, not just its link.
  */
 export default async function Page() {
+  const features = await getSiteFeatures();
+  if (!features.writing) notFound();
   const [posts, content] = await Promise.all([getPosts(), getSiteContent()]);
   const minutes = await Promise.all(posts.map(async (p) => readingMinutes(await getPostBlocks(p.id))));
 
