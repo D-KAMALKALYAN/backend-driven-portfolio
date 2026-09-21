@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getPosts, getProjects } from '../lib/content';
+import { getSiteFeatures } from '../lib/features';
 import { siteUrl } from '../lib/site';
 import { NAV_LINKS, ROUTES } from '../constants/routes';
 
@@ -13,11 +14,12 @@ export const dynamic = 'force-dynamic';
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const [projects, posts] = await Promise.all([getProjects(), getPosts()]);
+  const [projects, posts, features] = await Promise.all([getProjects(), getPosts(), getSiteFeatures()]);
 
   const pages: MetadataRoute.Sitemap = [
-    // A gated item (Writing) is listed only when it has something to show.
-    ...NAV_LINKS.filter((l) => !l.requires || (l.requires === 'writing' && posts.length > 0)).map((l) => ({
+    // A gated item (Writing) is listed only when the feature is on - the
+    // same decision the navigation and the page itself make.
+    ...NAV_LINKS.filter((l) => !l.requires || features[l.requires]).map((l) => ({
       url: `${base}${l.path}`,
       changeFrequency: 'monthly' as const,
       priority: l.path === '/' ? 1 : 0.7,
@@ -36,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-  const postPages: MetadataRoute.Sitemap = posts.map((p) => ({
+  const postPages: MetadataRoute.Sitemap = (features.writing ? posts : []).map((p) => ({
     url: `${base}/writing/${p.slug}`,
     lastModified: p.updated_at,
     changeFrequency: 'yearly',

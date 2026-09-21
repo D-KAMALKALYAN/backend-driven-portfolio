@@ -4,8 +4,8 @@ import { headers } from 'next/headers';
 import localFont from 'next/font/local';
 import { Providers } from './providers';
 import AppShell from '../components/AppShell';
-import { getPosts, getSiteContent } from '../lib/content';
-import { createServiceSupabase } from '../lib/supabase/server';
+import { getSiteContent } from '../lib/content';
+import { getSiteFeatures } from '../lib/features';
 import { getVal } from '../utils/siteContent';
 import { THEME_BOOTSTRAP_SCRIPT } from '../lib/themeScript';
 import { siteUrl } from '../lib/site';
@@ -68,12 +68,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // Set by src/proxy.ts. Reading headers() is also what opts every route
   // into per-request rendering, which the nonce requires.
   const nonce = (await headers()).get('x-nonce') ?? undefined;
-  const [content, posts] = await Promise.all([getSiteContent(), getPosts()]);
-  // Nav items that lead to content render only when the content exists.
-  const features = {
-    writing: posts.length > 0,
-    ask: Boolean(process.env.OPENAI_API_KEY) && createServiceSupabase() !== null,
-  };
+  // Features: the owner's flags in feature_flags, and whether this
+  // deployment can deliver them (lib/features.ts). The browser only ever
+  // sees the booleans.
+  const [content, features] = await Promise.all([getSiteContent(), getSiteFeatures()]);
 
   return (
     // suppressHydrationWarning: the bootstrap script sets data-theme before

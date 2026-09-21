@@ -3,10 +3,12 @@ import { NextRequest } from 'next/server';
 
 const rpc = vi.fn();
 vi.mock('../lib/supabase/server', () => ({ createServerSupabase: () => ({ rpc }) }));
+const features = { writing: true, ask: true };
+vi.mock('../lib/features', () => ({ getSiteFeatures: async () => features }));
 const { GET } = await import('../app/api/search/route');
 const get = (qs: string) => GET(new NextRequest(`http://localhost/api/search${qs}`));
 
-beforeEach(() => rpc.mockReset());
+beforeEach(() => { rpc.mockReset(); features.writing = true; });
 
 describe('GET /api/search', () => {
   it('answers an empty result without touching the database for a too-short query', async () => {
@@ -29,6 +31,17 @@ describe('GET /api/search', () => {
     const res = await get('?q=postgres');
     expect((await res.json()).results).toHaveLength(1);
     expect(res.headers.get('cache-control')).toBe('public, max-age=60');
+  });
+
+  it('drops post hits while the writing flag is off - their pages are 404s then', async () => {
+    rpc.mockResolvedValue({ data: [
+      { kind: 'post', title: 'Rate limits', snippet: '', href: '/writing/rate-limits', rank: 2 },
+      { kind: 'project', title: 'Platform', snippet: '', href: '/projects/platform', rank: 1 },
+    ], error: null });
+    expect((await (await get('?q=rate')).json()).results).toHaveLength(2);
+    features.writing = false;
+    const results = (await (await get('?q=rate')).json()).results as { kind: string }[];
+    expect(results.map((r) => r.kind)).toEqual(['project']);
   });
 
   it('hides the database error from the caller', async () => {

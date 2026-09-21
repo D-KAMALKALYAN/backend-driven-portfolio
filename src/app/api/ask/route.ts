@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { createServerSupabase, createServiceSupabase } from '../../../lib/supabase/server';
+import { getSiteFeatures } from '../../../lib/features';
 import {
   ASK_SYSTEM_PROMPT, NO_SOURCES_ANSWER,
   buildUserPrompt, costMicroUsd, extractCitations, normalizeQuestion, resolveAskModel, validateQuestion,
@@ -18,8 +19,8 @@ import type { Json } from '../../../types/database';
  *
  *   1. ask_begin() - the ledger gate, service role. A recent identical
  *      question comes back cached and costs nothing. Past 10 questions an
- *      hour from one address, or past the monthly cap, it refuses. Only
- *      after it says go is anything else spent.
+ *      hour from one address, or past the daily or the monthly cap, it
+ *      refuses. Only after it says go is anything else spent.
  *   2. ask_context() - retrieval, WITH THE ANON KEY. Row Level Security
  *      decides what the model may quote; this route has no opinion.
  *   3. The model (OpenAI Responses API), with the sources numbered and the
@@ -28,13 +29,23 @@ import type { Json } from '../../../types/database';
  *      enforced against what was actually billed.
  *
  * The visitor's address is hashed with a salt before it touches the
- * database; the address itself is never stored.
+ * database; the address itself is never stored. The question is kept for
+ * 90 days (ask_retention, run by the daily cron); the tokens and cost are
+ * kept for good.
+ *
+ * Every row is attributed to a feature (ADR-049): this route is 'ask'.
+ * Explain-this and the digest will write their own rows through the same
+ * gate, so one ledger tells the owner what each surface costs.
  */
 export const dynamic = 'force-dynamic';
 export const maxDuration = 45;
 
 const CAP_CENTS = Number(process.env.ASK_MONTHLY_CAP_CENTS ?? 300);
+// A day's ceiling under the month's: ten an hour per address across many
+// addresses could otherwise spend the month in an afternoon.
+const DAILY_CAP_CENTS = Number(process.env.ASK_DAILY_CAP_CENTS ?? 50);
 const PER_IP_HOUR = 10;
+const FEATURE = 'ask';
 const MAX_SOURCES = 6;
 const MODEL_TIMEOUT_MS = 35_000;
 
@@ -57,6 +68,12 @@ export async function POST(request: NextRequest) {
   if (!apiKey || !service) {
     return json({ ok: false, message: 'Ask is not configured on this deployment.' }, 503);
   }
+  // The owner's switch (feature_flags.ask). Off is off here too, not only
+  // in the palette that stops offering the row.
+  const features = await getSiteFeatures();
+  if (!features.ask) {
+    return json({ ok: false, message: 'Ask is switched off right now.' }, 503);
+  }
 
   let body: unknown;
   try { body = await request.json(); } catch { body = null; }
@@ -73,13 +90,22 @@ export async function POST(request: NextRequest) {
     p_question_norm: norm,
     p_cap_cents: CAP_CENTS,
     p_per_ip_hour: PER_IP_HOUR,
+    p_feature: FEATURE,
+    p_daily_cap_cents: DAILY_CAP_CENTS,
   });
   if (begin.error) {
     if (begin.error.message.includes('ask_rate_limited')) {
       return json({ ok: false, message: 'Too many questions from this address in the last hour. Try again later.' }, 429);
     }
     if (begin.error.message.includes('ask_budget_exhausted')) {
-      return json({ ok: false, message: "This month's question budget is used up. The site itself is still all here to read." }, 429);
+      // The function says which cap in DETAIL ("daily: ..." / "monthly: ...").
+      const daily = (begin.error.details ?? '').startsWith('daily');
+      return json({
+        ok: false,
+        message: daily
+          ? "Today's question budget is used up; it resets at midnight UTC. The site itself is still all here to read."
+          : "This month's question budget is used up. The site itself is still all here to read.",
+      }, 429);
     }
     console.error('[ask] ask_begin failed:', begin.error.code, begin.error.message);
     return json({ ok: false, message: 'Ask is unavailable right now.' }, 500);
@@ -91,6 +117,7 @@ export async function POST(request: NextRequest) {
   const id = gate.id;
   if (!id) return json({ ok: false, message: 'Ask is unavailable right now.' }, 500);
 
+  let sources: AskSource[] = [];
   const finish = (status: 'answered' | 'failed', answer: string | null, citations: AskCitation[], usage: AskUsage | null) =>
     service.rpc('ask_finish', {
       p_id: id,
@@ -101,16 +128,18 @@ export async function POST(request: NextRequest) {
       p_input_tokens: usage?.input_tokens ?? 0,
       p_output_tokens: usage?.output_tokens ?? 0,
       p_cost_micro_usd: usage ? costMicroUsd(price, usage) : 0,
+      p_sources: [...new Set(sources.map((s) => s.href))],
     });
 
-  // 2. Retrieval, as the anon role.
+  // 2. Retrieval, as the anon role. Posts are not sources while Writing is
+  //    switched off: an answer must not cite a page that is a 404.
   const { data: rows, error: ctxError } = await createServerSupabase().rpc('ask_context', { q: question, max_docs: MAX_SOURCES });
   if (ctxError) {
     console.error('[ask] ask_context failed:', ctxError.code, ctxError.message);
     await finish('failed', null, [], null);
     return json({ ok: false, message: 'Ask is unavailable right now.' }, 500);
   }
-  const sources = (rows ?? []) as AskSource[];
+  sources = ((rows ?? []) as AskSource[]).filter((s) => features.writing || !s.href.startsWith('/writing/'));
   if (sources.length === 0) {
     // Recorded as 'failed', not 'answered': a no-sources answer must not be
     // cached for a week - the content it lacks may be written tomorrow.

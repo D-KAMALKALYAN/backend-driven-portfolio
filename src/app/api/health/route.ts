@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceSupabase } from '../../../lib/supabase/server';
+import { getFeatureFlags } from '../../../lib/content';
 import { getPublicSupabaseConfig } from '../../../services/supabaseConfig';
 
 /**
@@ -74,27 +75,59 @@ async function revalidationDiagnostics(): Promise<RevalidationDiagnostics | null
   };
 }
 
-/** What /api/ask has cost this calendar month and how many answers. Service role only. Dollars as strings: a question costs a tenth of a cent, and whole cents rounded every real month to zero. */
-async function askSpendThisMonth(): Promise<{ monthUsd: string; capUsd: string; answered: number; failed: number } | null> {
+/**
+ * What the Ask ledger has cost this calendar month and today, against both
+ * caps, and per feature (ADR-049). Service role only. Dollars as strings: a
+ * question costs a tenth of a cent, and whole cents rounded every real
+ * month to zero.
+ */
+interface AskSpend {
+  monthUsd: string;
+  todayUsd: string;
+  capUsd: string;
+  dailyCapUsd: string;
+  answered: number;
+  failed: number;
+  byFeature: Record<string, string>;
+}
+
+const usd = (micro: unknown) => ((typeof micro === 'number' ? micro : 0) / 1_000_000).toFixed(4);
+
+async function askSpend(): Promise<AskSpend | null> {
   const service = createServiceSupabase();
   if (!service) return null;
   const { data, error } = await service.rpc('ask_spend');
   if (error || !data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;
+  const by = d.by_feature && typeof d.by_feature === 'object' ? (d.by_feature as Record<string, unknown>) : {};
   return {
-    monthUsd: ((typeof d.month_micro_usd === 'number' ? d.month_micro_usd : 0) / 1_000_000).toFixed(4),
+    monthUsd: usd(d.month_micro_usd),
+    todayUsd: usd(d.today_micro_usd),
     capUsd: (Number(process.env.ASK_MONTHLY_CAP_CENTS ?? 300) / 100).toFixed(2),
+    dailyCapUsd: (Number(process.env.ASK_DAILY_CAP_CENTS ?? 50) / 100).toFixed(2),
     answered: typeof d.month_questions === 'number' ? d.month_questions : 0,
     failed: typeof d.month_failed === 'number' ? d.month_failed : 0,
+    byFeature: Object.fromEntries(Object.entries(by).map(([k, v]) => [k, usd(v)])),
   };
+}
+
+/** The owner's switches as the app reads them (utils/features.ts). Null when the read fails; the site would be erroring too. */
+async function features(): Promise<Record<string, boolean> | null> {
+  try {
+    const flags = await getFeatureFlags();
+    return Object.fromEntries(flags.map((f) => [f.key, f.enabled === true]));
+  } catch {
+    return null;
+  }
 }
 
 export async function GET() {
   const { url, key, configured } = getPublicSupabaseConfig();
-  const [ping, revalidation, askSpend] = await Promise.all([
+  const [ping, revalidation, ask, flags] = await Promise.all([
     configured ? pingDatabase(url, key) : Promise.resolve({ db: false, dbMs: null }),
     configured ? revalidationDiagnostics() : Promise.resolve(null),
-    configured ? askSpendThisMonth() : Promise.resolve(null),
+    configured ? askSpend() : Promise.resolve(null),
+    configured ? features() : Promise.resolve(null),
   ]);
 
   return NextResponse.json(
@@ -110,7 +143,8 @@ export async function GET() {
       sentry: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
       cronSecret: Boolean(process.env.CRON_SECRET),
       openai: Boolean(process.env.OPENAI_API_KEY),
-      ask: askSpend,
+      flags,
+      ask,
       env: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'unknown',
     },
     { headers: { 'Cache-Control': 'no-store' } },

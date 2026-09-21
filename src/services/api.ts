@@ -20,6 +20,18 @@ export async function fetchSiteContent(db: Db) {
 }
 
 /**
+ * The owner's switches (utils/features.ts decides what they mean). Two
+ * columns: the row's other fields are for the owner's notes, not the app.
+ */
+export async function fetchFeatureFlags(db: Db) {
+  const { data, error } = await db
+    .from('feature_flags')
+    .select('key, enabled');
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Fetch profile/about data
  */
 export async function fetchProfile(db: Db) {
