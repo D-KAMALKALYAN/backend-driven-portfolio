@@ -135,9 +135,7 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors text-muted"
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors text-muted hover:bg-subtle hover:text-primary"
               aria-label="Close"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,24 +332,12 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
             aria-label={`View details for ${exp?.role ?? 'this role'} at ${exp?.company ?? 'this company'}`}
           >
             <Card
-              className="p-5 sm:p-6 cursor-pointer"
               hover={false}
-              style={{
-                boxShadow: isCurrent
-                  ? 'var(--shadow-card), 0 0 0 1px var(--ring-accent-soft)'
-                  : 'var(--shadow-card)',
-                transition: 'box-shadow 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = isCurrent
-                  ? 'var(--shadow-hover), 0 0 0 1px var(--ring-accent)'
-                  : 'var(--shadow-hover), 0 0 0 1px var(--border-hover)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = isCurrent
-                  ? 'var(--shadow-card), 0 0 0 1px var(--ring-accent-soft)'
-                  : 'var(--shadow-card)';
-              }}
+              className={`p-5 sm:p-6 cursor-pointer transition-shadow duration-200 ${
+                isCurrent
+                  ? 'shadow-[var(--shadow-card),0_0_0_1px_var(--ring-accent-soft)] hover:shadow-[var(--shadow-hover),0_0_0_1px_var(--ring-accent)]'
+                  : 'hover:shadow-[var(--shadow-hover),0_0_0_1px_var(--border-hover)]'
+              }`}
             >
               {/* Date + badge + "details" hint */}
               <div className="flex items-center justify-between gap-3 mb-3">

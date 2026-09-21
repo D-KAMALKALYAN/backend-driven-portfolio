@@ -7,9 +7,9 @@ import { ArrowRight, Briefcase, FolderOpen, MapPin, User, Zap, type LucideIcon }
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
+import { CARD, CARD_HOVER_ACCENT } from '../components/Card';
 import { useSystemStatus } from '../hooks/useSystemStatus';
-import { useQuery } from '@tanstack/react-query';
-import { queries } from '../services/queries';
+import { useResource } from '../hooks/useResource';
 import { buildCareerLine } from '../utils/career';
 import { trackEvent } from '../services/analytics';
 import { NAV_LINKS, type RoutePath } from '../constants/routes';
@@ -18,7 +18,7 @@ import { useSiteContent } from '../hooks/useSiteContent';
 import { asStringArray } from '../utils/json';
 import { enterAt } from '../utils/enter';
 import { hueStyle, tint, type Hue } from '../lib/palette';
-import type { ActiveResume, Experience } from '../types/rows';
+import type { ActiveResume, AnalyticsDashboard, Experience } from '../types/rows';
 
 export interface LandingProps {
   experience: Experience[];
@@ -29,7 +29,7 @@ export interface LandingProps {
 
 // ─── Analytics teaser widget ──────────────────────────────────────────────────
 function AnalyticsTeaser() {
-  const { data, isLoading: loading } = useQuery(queries.analytics());
+  const { data, loading } = useResource<AnalyticsDashboard>('/api/analytics');
   const stats = data?.summary;
 
   const fmt = (v: number | null | undefined) => {
@@ -363,9 +363,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
               <motion.div key={link.path} whileHover={{ y: -4, scale: 1.02 }} transition={{ duration: 0.18 }}>
                 <Link
                   href={link.path}
-                  className="group flex flex-col items-center gap-1.5 p-4 rounded-2xl text-center no-underline block transition-all bg-card shadow-card"
-                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-hover), 0 0 0 1px var(--accent)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
+                  className={`group flex flex-col items-center gap-1.5 p-4 text-center no-underline block ${CARD} ${CARD_HOVER_ACCENT}`}
                 >
                   {(() => { const Glyph = NAV_ICON_MAP[link.path] ?? ArrowRight; return <Glyph size={20} className="text-accent" aria-hidden />; })()}
                   <span className="text-xs font-medium text-secondary">

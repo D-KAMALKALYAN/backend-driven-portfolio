@@ -10,6 +10,13 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
 
+  // Node scripts (the repeatable system check) run in Node 22+: fetch,
+  // WebSocket and process are globals there.
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node, WebSocket: 'readonly' } },
+  },
+
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

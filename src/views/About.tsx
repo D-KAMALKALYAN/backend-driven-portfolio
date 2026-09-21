@@ -9,7 +9,7 @@ import {
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
-import Card from '../components/Card';
+import Card, { CARD, CARD_HOVER } from '../components/Card';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import { useSiteContent } from '../hooks/useSiteContent';
@@ -52,14 +52,7 @@ function AchievementCard({ a, index }: { a: Achievement; index: number }) {
         href={a?.credential_url || undefined}
         target={a?.credential_url ? '_blank' : undefined}
         rel={a?.credential_url ? 'noopener noreferrer' : undefined}
-        className="group block no-underline h-full rounded-2xl transition-all duration-200"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          boxShadow: 'var(--shadow-card)',
-          cursor: a?.credential_url ? 'pointer' : 'default',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
+        className={`group block no-underline h-full ${CARD} ${CARD_HOVER} ${a?.credential_url ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <div className="p-5">
           {/* Type badge + icon */}

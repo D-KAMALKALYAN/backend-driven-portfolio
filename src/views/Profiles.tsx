@@ -7,6 +7,7 @@ import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
 import { Link2 } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
+import { CARD, CARD_HOVER } from '../components/Card';
 import { trackEvent } from '../services/analytics';
 import { colorStyle } from '../lib/palette';
 import { enterAt } from '../utils/enter';
@@ -120,14 +121,7 @@ export default function Profiles({ profiles }: { profiles: ExternalProfile[] }) 
                       target={href ? '_blank' : undefined}
                       rel={href ? 'noopener noreferrer' : undefined}
                       onClick={() => href && trackEvent('profile_click', { platform: p?.platform, url: href })}
-                      className="group flex items-center gap-4 p-4 sm:p-5 rounded-2xl no-underline block transition-all duration-200"
-                      style={{
-                        backgroundColor: 'var(--bg-card)',
-                        boxShadow: 'var(--shadow-card)',
-                        cursor: href ? 'pointer' : 'default',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
+                      className={`group flex items-center gap-4 p-4 sm:p-5 no-underline block ${CARD} ${CARD_HOVER} ${href ? 'cursor-pointer' : 'cursor-default'}`}
                     >
                       {/* Coloured icon bubble */}
                       <div

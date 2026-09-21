@@ -72,9 +72,7 @@ export default function Footer() {
                 <Link
                   key={link.path}
                   href={link.path}
-                  className="text-xs no-underline transition-colors text-muted"
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                  className="text-xs no-underline transition-colors text-muted hover:text-primary"
                 >
                   {link.label}
                 </Link>
