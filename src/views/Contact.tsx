@@ -386,15 +386,7 @@ export default function Contact() {
                         href={s.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono no-underline transition-all bg-subtle text-muted shadow-card"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = 'var(--accent)';
-                          e.currentTarget.style.boxShadow = '0 0 0 1px var(--ring-accent)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'var(--text-muted)';
-                          e.currentTarget.style.boxShadow = 'var(--shadow-card)';
-                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono no-underline transition-[color,box-shadow] bg-subtle text-muted shadow-card hover:text-accent hover:shadow-[0_0_0_1px_var(--ring-accent)]"
                       >
                         {s.char}
                       </a>

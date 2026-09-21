@@ -1,6 +1,5 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -14,11 +13,11 @@ import Card from '../components/Card';
 import CountUp from '../components/CountUp';
 import EmptyState from '../components/EmptyState';
 import { SkeletonSection, SkeletonGrid } from '../components/SkeletonLoader';
-import { queries } from '../services/queries';
+import { useResource } from '../hooks/useResource';
 import { useRealtimeEvents, type FeedEvent } from '../hooks/useRealtimeEvents';
 import { groupEventsByVisit, formatEventTime } from '../utils/eventFeed';
 import { hue, hueStyle, tint, type Hue } from '../lib/palette';
-import type { DailyVisit, TopProject } from '../types/rows';
+import type { AnalyticsDashboard, DailyVisit, TopProject } from '../types/rows';
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -187,9 +186,7 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
           >
             <Link
               href={`/projects/${p.slug}`}
-              className="group flex items-center gap-3 p-3 rounded-xl no-underline transition-all bg-subtle"
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-card)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'; }}
+              className="group flex items-center gap-3 p-3 rounded-xl no-underline transition-colors bg-subtle hover:bg-card"
             >
               {/* Rank */}
               <span
@@ -315,11 +312,11 @@ function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Analytics() {
-  // One request for the whole dashboard, through the same factory as the
-  // landing-page teaser, so both share one cache entry. The four parts are
-  // settled independently on the server (ADR-043).
-  const dashboardQ = useQuery(queries.analytics());
-  const dashboard = dashboardQ.data ?? null;
+  // One request for the whole dashboard, sharing a cache entry with the
+  // landing-page teaser (same URL). The four parts are settled independently
+  // on the server (ADR-043).
+  const dashboardQ = useResource<AnalyticsDashboard>('/api/analytics');
+  const dashboard = dashboardQ.data;
 
   const summary  = dashboard?.summary ?? null;
   const visits   = dashboard?.daily ?? null;
@@ -328,10 +325,10 @@ export default function Analytics() {
   // Realtime takes over the feed once the initial fetch lands.
   const { events: liveEvents, status: liveStatus, liveCount } = useRealtimeEvents(events, 20);
 
-  const loading = dashboardQ.isLoading;
+  const loading = dashboardQ.loading;
   // Each panel degrades on its own; the banner is for the case where nothing
   // at all came back.
-  const nothingCameBack = dashboardQ.isError ||
+  const nothingCameBack = dashboardQ.error != null ||
     (dashboard != null && [summary, visits, projects, events].every((p) => p == null));
   const error = nothingCameBack
     ? 'Analytics data unavailable — the analytics view and summary function may not exist yet.'

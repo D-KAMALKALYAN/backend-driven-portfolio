@@ -19,7 +19,10 @@
     "db:lint": "supabase db lint --linked",
     "db:types": "supabase gen types typescript --linked > src/types/database.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "check:system": "node scripts/check-system.mjs",
+    "check:screens": "node scripts/check-screens.mjs",
+    "check:diff": "node scripts/check-diff.mjs"
   },
   "type": "module",
   "dependencies": {
@@ -28,7 +31,6 @@
     "@sentry/nextjs": "^10.74.0",
     "@supabase/realtime-js": "^2.99.3",
     "@supabase/supabase-js": "^2.99.3",
-    "@tanstack/react-query": "^5.102.8",
     "dompurify": "^3.3.3",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.46.0",

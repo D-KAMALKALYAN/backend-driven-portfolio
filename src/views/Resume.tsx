@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
-import Card from '../components/Card';
+import Card, { CARD } from '../components/Card';
 import CountUp from '../components/CountUp';
 import Button from '../components/Button';
 import Icon, { isIconName } from '../components/Icon';
@@ -195,15 +195,7 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
               <div className="space-y-3">
                 {highlights.map((h, i) => (
                   <motion.div key={h.label} className="enter" style={enterAt(250 + i * 80)} whileHover={{ x: 4 }}>
-                    <div
-                      className="flex items-center gap-4 p-4 rounded-2xl transition-all cursor-default shadow-card bg-card"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = 'var(--shadow-hover), 0 0 0 1px var(--ring-accent-soft)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = 'var(--shadow-card)';
-                      }}
-                    >
+                    <div className={`flex items-center gap-4 p-4 cursor-default ${CARD} transition-shadow duration-200 hover:shadow-[var(--shadow-hover),0_0_0_1px_var(--ring-accent-soft)]`}>
                       <span className="shrink-0 text-accent inline-flex">
                         {isIconName(h.icon) ? <Icon name={h.icon} size={20} /> : <span className="text-xl">{h.icon}</span>}
                       </span>

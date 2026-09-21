@@ -234,10 +234,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
 
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 mb-6 text-xs text-muted" aria-label="Breadcrumb">
-            <Link href="/projects" className="no-underline transition-colors text-muted"
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
-            >
+            <Link href="/projects" className="no-underline transition-colors text-muted hover:text-secondary">
               Projects
             </Link>
             <span>/</span>
