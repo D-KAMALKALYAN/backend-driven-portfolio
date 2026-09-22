@@ -22,7 +22,9 @@
     "lint:fix": "eslint . --fix",
     "check:system": "node scripts/check-system.mjs",
     "check:screens": "node scripts/check-screens.mjs",
-    "check:diff": "node scripts/check-diff.mjs"
+    "check:diff": "node scripts/check-diff.mjs",
+    "ai:index": "node scripts/ai-index.mjs",
+    "ai:eval": "node scripts/ai-eval.mjs"
   },
   "type": "module",
   "dependencies": {

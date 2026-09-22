@@ -91,7 +91,21 @@ export interface Provider {
   complete(req: CompletionRequest): Promise<Completion>;
   /** The same completion, delivered as it is written; resolves with the whole of it and the usage, like complete(). */
   stream(req: CompletionRequest, opts: StreamOptions): Promise<Completion>;
+  /**
+   * The question as a vector, for hybrid retrieval (ADR-055) - the same
+   * model the indexer used, or the vectors would not be comparable. Null on
+   * any failure: retrieval then falls back to the lexical path.
+   */
+  embed(text: string): Promise<number[] | null>;
+  /** Many texts at once, for the indexer; null on any failure (the index is then left as it was). */
+  embedMany(texts: string[]): Promise<number[][] | null>;
 }
+
+/** What the indexer (scripts/ai-index.mjs) embeds with; a query must use the same. */
+export const EMBEDDING_MODEL = 'text-embedding-3-small';
+export const EMBEDDING_DIMENSIONS = 1536;
+/** Past this, the words alone answer: an embedding is worth a few hundred milliseconds, not a wait (a cold first call once took 21 s). */
+export const EMBEDDING_TIMEOUT_MS = 3000;
 
 const TIMEOUT_MS = 35_000;
 
@@ -145,6 +159,29 @@ export function createProvider(env: Record<string, string | undefined> = process
       }
       // The accumulated response: usage and the exact model, as create() would return them.
       return completion(await events.finalResponse());
+    },
+    async embed(text) {
+      try {
+        const r = await sdk().embeddings.create({ model: EMBEDDING_MODEL, input: text.slice(0, 2000), dimensions: EMBEDDING_DIMENSIONS }, { timeout: EMBEDDING_TIMEOUT_MS, maxRetries: 0 });
+        const v = r.data[0]?.embedding;
+        return Array.isArray(v) && v.length === EMBEDDING_DIMENSIONS ? v : null;
+      } catch (err) {
+        console.warn('[ask] embedding failed; lexical retrieval:', err instanceof Error ? err.message : String(err));
+        return null;
+      }
+    },
+    async embedMany(texts) {
+      try {
+        const out: number[][] = [];
+        for (let i = 0; i < texts.length; i += 64) {
+          const r = await sdk().embeddings.create({ model: EMBEDDING_MODEL, input: texts.slice(i, i + 64), dimensions: EMBEDDING_DIMENSIONS });
+          for (const d of r.data) out.push(d.embedding);
+        }
+        return out.length === texts.length ? out : null;
+      } catch (err) {
+        console.error('[index] embedding failed:', err instanceof Error ? err.message : String(err));
+        return null;
+      }
     },
   };
 }

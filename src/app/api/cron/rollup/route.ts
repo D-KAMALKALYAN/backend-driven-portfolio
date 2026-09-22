@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServiceSupabase } from '../../../../lib/supabase/server';
+import { createServerSupabase, createServiceSupabase } from '../../../../lib/supabase/server';
 import { getSiteFeatures } from '../../../../lib/features';
 import { createProvider } from '../../../../ai/provider';
 import { generateDailyDigest } from '../../../../ai/digest';
+import { indexIsStale, reindex } from '../../../../ai/indexer';
 
 /**
  * GET /api/cron/rollup - daily, from Vercel Cron (vercel.json).
@@ -14,7 +15,11 @@ import { generateDailyDigest } from '../../../../ai/digest';
  *     Ask ledger; tokens, cost and sources stay (ADR-049);
  *   the digest          - three sentences about the day's analytics, from
  *     the numbers alone, into `digests` (ADR-054); skipped without a model
- *     key or with the ask flag off, and a no-op when today's exists.
+ *     key or with the ask flag off, and a no-op when today's exists;
+ *   the index           - the embeddings behind hybrid retrieval (ADR-055),
+ *     refreshed when content changed since the last run (`?step=index`
+ *     runs this step alone, `&force=1` regardless of staleness - what
+ *     `npm run ai:index` sends).
  * Destructive, so two gates: the bearer secret Vercel attaches when
  * CRON_SECRET is set, and the service role - neither function is
  * executable by anon at all. Without either the route refuses and says
@@ -38,6 +43,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, message: 'SUPABASE_SERVICE_ROLE_KEY is not configured' }, { status: 503 });
   }
 
+  // The index step alone, on demand (the CLI): no rollup, no retention, no digest.
+  if (request.nextUrl.searchParams.get('step') === 'index') {
+    const force = request.nextUrl.searchParams.get('force') === '1';
+    const index = force || (await indexIsStale(db))
+      ? await reindex(createServerSupabase(), db, createProvider()).catch((err: unknown) => ({ status: 'failed' as const, documents: 0, chunks: 0, embedded: 0, removed: 0, reason: err instanceof Error ? err.message : String(err) }))
+      : { status: 'unchanged' as const, documents: 0, chunks: 0, embedded: 0, removed: 0, reason: 'not stale' };
+    if (index.status === 'failed') console.error('[cron/index] failed:', index.reason);
+    return NextResponse.json({ ok: index.status !== 'failed', index, at: new Date().toISOString() }, { status: index.status === 'failed' ? 500 : 200 });
+  }
+
   const [rollup, ask] = await Promise.all([
     db.rpc('rollup_analytics', { retain_days: RETAIN_DAYS }),
     db.rpc('ask_retention', { p_days: RETAIN_DAYS }),
@@ -57,6 +72,10 @@ export async function GET(request: NextRequest) {
     ? await generateDailyDigest(db, createProvider()).catch((err: unknown) => ({ status: 'failed' as const, reason: err instanceof Error ? err.message : String(err) }))
     : { status: 'skipped' as const, reason: 'ask flag off' };
   if (digest.status === 'failed') console.error('[cron/rollup] digest failed:', digest.reason);
-  console.info('[cron/rollup]', JSON.stringify({ rollup: rollup.data, ask: ask.data, digest }));
-  return NextResponse.json({ ok: true, result: rollup.data, ask: ask.data, digest, at: new Date().toISOString() });
+  const index = features.ask && (await indexIsStale(db))
+    ? await reindex(createServerSupabase(), db, createProvider()).catch((err: unknown) => ({ status: 'failed' as const, documents: 0, chunks: 0, embedded: 0, removed: 0, reason: err instanceof Error ? err.message : String(err) }))
+    : { status: 'skipped' as const, documents: 0, chunks: 0, embedded: 0, removed: 0, reason: features.ask ? 'not stale' : 'ask flag off' };
+  if (index.status === 'failed') console.error('[cron/rollup] index failed:', index.reason);
+  console.info('[cron/rollup]', JSON.stringify({ rollup: rollup.data, ask: ask.data, digest, index }));
+  return NextResponse.json({ ok: true, result: rollup.data, ask: ask.data, digest, index, at: new Date().toISOString() });
 }

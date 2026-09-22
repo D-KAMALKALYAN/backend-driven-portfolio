@@ -22,14 +22,18 @@ export interface RetrievalOptions {
   features: Pick<SiteFeatures, 'writing'>;
   /** The page the visitor is reading, already validated by lib/context.ts. */
   context?: AskContext | null;
+  /** The question's embedding (ADR-055); null or absent means the lexical path alone. */
+  embedding?: number[] | null;
 }
 
 /** Sources for a question, in rank order. Throws the database error; the route decides what that means. */
-export async function retrieveSources(anon: Db, question: string, { maxDocs = MAX_SOURCES, features, context }: RetrievalOptions): Promise<AskSource[]> {
+export async function retrieveSources(anon: Db, question: string, { maxDocs = MAX_SOURCES, features, context, embedding }: RetrievalOptions): Promise<AskSource[]> {
   const { data, error } = await anon.rpc('ask_context', {
     q: question,
     max_docs: maxDocs,
     ...(context ? { scope_href: context.href } : {}),
+    // pgvector reads a JSON array as a vector literal through PostgREST.
+    ...(embedding ? { q_embedding: JSON.stringify(embedding) } : {}),
   });
   if (error) throw error;
   return filterSources((data ?? []) as AskSource[], features);

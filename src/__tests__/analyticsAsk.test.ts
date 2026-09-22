@@ -79,6 +79,8 @@ describe('the daily digest', () => {
     price: { input: 0.25, cached: 0.025, output: 2, reasoning: true },
     complete: vi.fn(async () => ({ text, usage: { input_tokens: 800, output_tokens: 90, cached_tokens: 0 }, model: 'gpt-5-mini-2025-08-07', incomplete: null })),
     stream: vi.fn(),
+    embed: vi.fn(async () => null),
+    embedMany: vi.fn(async () => null),
   });
 
   /** A service client whose `digests` reads say whether today's row exists, and whose rpc plays the gate. */

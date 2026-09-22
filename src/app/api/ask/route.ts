@@ -155,7 +155,8 @@ export async function POST(request: NextRequest) {
         const [facts, digest] = await Promise.all([loadAnalyticsFacts(anon), loadLatestDigest(anon)]);
         sources = digest ? [facts, digest] : [facts];
       } else {
-        sources = await retrieveSources(anon, question, { features, context });
+        // Hybrid retrieval (ADR-055): the question's embedding joins the words; without one, the words alone.
+        sources = await retrieveSources(anon, question, { features, context, embedding: await provider.embed(question) });
       }
     } catch (err) {
       const e = err as { code?: string; message?: string };

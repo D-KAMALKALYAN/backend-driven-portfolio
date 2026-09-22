@@ -26,6 +26,9 @@ const stream = vi.fn(async (_req: { input: string }, { onDelta }: { onDelta: (t:
   for (const piece of c.text.match(/.{1,12}/g) ?? []) onDelta(piece);
   return c;
 });
+// The question's embedding (ADR-055): a vector when the provider can, null when it cannot.
+let embedding: number[] | null = null;
+const embed = vi.fn(async () => { calls.push('embed'); return embedding; });
 const features = { writing: true, ask: true };
 
 vi.mock('../lib/supabase/server', () => ({
@@ -42,7 +45,7 @@ vi.mock('../ai/facts', () => ({
 vi.mock('../ai/provider', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../ai/provider')>()),
   createProvider: () => (process.env.OPENAI_API_KEY
-    ? { model: 'gpt-5-mini', price: { input: 0.25, cached: 0.025, output: 2, reasoning: true }, complete: vi.fn(), stream }
+    ? { model: 'gpt-5-mini', price: { input: 0.25, cached: 0.025, output: 2, reasoning: true }, complete: vi.fn(), stream, embed, embedMany: vi.fn() }
     : null),
 }));
 
@@ -71,7 +74,7 @@ const SOURCES = [
 
 beforeEach(() => {
   calls.length = 0;
-  serviceRpc.mockClear(); anonRpc.mockClear(); stream.mockClear();
+  serviceRpc.mockClear(); anonRpc.mockClear(); stream.mockClear(); embed.mockClear(); embedding = null;
   process.env.OPENAI_API_KEY = 'sk-test';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'k';
   features.writing = true; features.ask = true;
@@ -108,7 +111,8 @@ describe('POST /api/ask', () => {
   it('runs gate → retrieval → model → ledger, streams sources first, then the text, then the finished answer with its citations', async () => {
     const res = await post({ question: 'How do rate limits work?' });
     const ev = await events(res);
-    expect(calls).toEqual(['ask_begin', 'ask_context', 'stream', 'ask_finish']);
+    expect(calls).toEqual(['ask_begin', 'embed', 'ask_context', 'stream', 'ask_finish']);
+    expect(argsOf('ask_context', anonRpc)).not.toHaveProperty('q_embedding');
     expect(ev[0]).toEqual({ event: 'sources', context: null, sources: [
       { n: 1, kind: 'project', title: 'SaaS Core', href: '/projects/saas' },
       { n: 2, kind: 'post', title: 'Rate limits', href: '/writing/rate-limits' },
@@ -128,6 +132,13 @@ describe('POST /api/ask', () => {
     expect(begin.p_ip_hash).not.toContain('203');
     // 2000 fresh × 0.25 + 1000 cached × 0.025 + 40 × 2 = 500 + 25 + 80
     expect(argsOf('ask_finish')).toMatchObject({ p_id: 'row-1', p_status: 'answered', p_cost_micro_usd: 605, p_sources: ['/projects/saas', '/writing/rate-limits', '/how-it-works'] });
+  });
+
+  it('the question is embedded first, and the vector rides to ask_context as a JSON array literal (ADR-055)', async () => {
+    embedding = Array.from({ length: 4 }, (_, i) => i / 10);
+    await events(await post({ question: 'What did Kamal build to help with old codebases?' }));
+    expect(calls.slice(0, 3)).toEqual(['ask_begin', 'embed', 'ask_context']);
+    expect(argsOf('ask_context', anonRpc)).toMatchObject({ q_embedding: '[0,0.1,0.2,0.3]' });
   });
 
   it('a context the route recognises reaches the gate and the retrieval, and the visitor is told what was read', async () => {
@@ -181,7 +192,7 @@ describe('POST /api/ask', () => {
       { event: 'sources', sources: [], context: null },
       { event: 'done', answer: NO_SOURCES_ANSWER, citations: [], cached: false, model: null },
     ]);
-    expect(calls).toEqual(['ask_begin', 'ask_context', 'ask_finish']);
+    expect(calls).toEqual(['ask_begin', 'embed', 'ask_context', 'ask_finish']);
     expect(argsOf('ask_finish')).toMatchObject({ p_status: 'failed', p_answer: NO_SOURCES_ANSWER, p_cost_micro_usd: 0 });
   });
 
@@ -240,7 +251,7 @@ describe('POST /api/ask', () => {
     expect(ev[0]!.event).toBe('sources');
     expect(ev.at(-1)).toEqual({ event: 'error', message: 'The answer did not come back. Try again.' });
     expect(JSON.stringify(ev)).not.toContain('ECONNRESET');
-    expect(calls).toEqual(['ask_begin', 'ask_context', 'stream', 'ask_finish']);
+    expect(calls).toEqual(['ask_begin', 'embed', 'ask_context', 'stream', 'ask_finish']);
     expect(argsOf('ask_finish')).toMatchObject({ p_status: 'failed', p_cost_micro_usd: 0 });
     spy.mockRestore();
   });
@@ -252,6 +263,7 @@ describe('POST /api/ask', () => {
       const ev = await events(await post({ question: 'How many visits today?' }));
       expect(calls).toEqual(['ask_begin', 'facts', 'digest', 'stream', 'ask_finish']);
       expect(anonRpc).not.toHaveBeenCalled();
+      expect(embed).not.toHaveBeenCalled();
       expect(ev[0]).toEqual({ event: 'sources', context: null, sources: [
         { n: 1, kind: 'analytics', title: 'Analytics as of 2026-09-22', href: '/analytics' },
         { n: 2, kind: 'digest', title: 'Digest for 2026-09-22', href: '/analytics' },
@@ -326,7 +338,7 @@ describe('POST /api/ask', () => {
     anonResult = { data: null, error: { code: '42883', message: 'function ask_context does not exist' } };
     const ev = await events(await post({ question: 'How do rate limits work?' }));
     expect(ev).toEqual([{ event: 'error', message: 'Ask is unavailable right now.' }]);
-    expect(calls).toEqual(['ask_begin', 'ask_context', 'ask_finish']);
+    expect(calls).toEqual(['ask_begin', 'embed', 'ask_context', 'ask_finish']);
     spy.mockRestore();
   });
 });
