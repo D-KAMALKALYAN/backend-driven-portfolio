@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import ProjectDetail from '../../../views/ProjectDetail';
+import PeopleAsked from '../../../components/PeopleAsked';
 import { findProjectBySlug, getProjectSections, getProjectStorytelling, getSiteContent } from '../../../lib/content';
 import { getVal } from '../../../utils/siteContent';
 
@@ -46,5 +47,10 @@ export default async function Page({ params }: Props) {
     getProjectStorytelling(project.id),
   ]);
 
-  return <ProjectDetail project={project} sections={sections} storytelling={storytelling} />;
+  return (
+    <>
+      <ProjectDetail project={project} sections={sections} storytelling={storytelling} />
+      <PeopleAsked href={`/projects/${project.slug}`} />
+    </>
+  );
 }

@@ -19,6 +19,7 @@ import { isInProgress } from '../utils/popularity';
 import { asObject, asObjectArray, asString } from '../utils/json';
 import { enterAt } from '../utils/enter';
 import { useRegisterPageActions } from '../hooks/usePageActions';
+import Explainable from '../components/Explainable';
 import type { Project, ProjectSection, ProjectStorytelling } from '../types/rows';
 
 export interface ProjectDetailProps {
@@ -84,10 +85,12 @@ function StorytellingSection({ rows }: { rows: ProjectStorytelling[] | null | un
                     {displayTitle}
                   </h3>
                 </div>
-                {/* Body */}
-                <p className="text-sm leading-relaxed whitespace-pre-line text-secondary">
-                  {row.body}
-                </p>
+                {/* Body - each case-study section can be explained on its own (ADR-053) */}
+                <Explainable source={{ table: 'project_storytelling', id: row.id }}>
+                  <p className="text-sm leading-relaxed whitespace-pre-line text-secondary">
+                    {row.body}
+                  </p>
+                </Explainable>
               </div>
             </div>
           );
@@ -416,7 +419,9 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                           )}
                         </div>
                       )}
-                      {renderContent(s)}
+                      {['code', 'metrics', 'text'].includes(s.type)
+                        ? <Explainable source={{ table: 'project_sections', id: s.id }}>{renderContent(s)}</Explainable>
+                        : renderContent(s)}
                     </Card>
                   </div>
                 );

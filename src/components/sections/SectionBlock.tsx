@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Container } from '../Layout';
 import SectionHeader from '../SectionHeader';
+import Explainable, { type ExplainSourceRef } from '../Explainable';
 
 /**
  * The frame every registry section renders in: heading + optional
@@ -11,12 +12,15 @@ export default function SectionBlock({
   heading,
   description,
   aside,
+  explain = null,
   children,
 }: {
   heading: string;
   description?: string | null;
   /** Small text beside the heading, e.g. "updated 12 Aug". */
   aside?: ReactNode;
+  /** The row this block came from; when given, the block can be explained (ADR-053). */
+  explain?: ExplainSourceRef | null;
   children: ReactNode;
 }) {
   return (
@@ -32,7 +36,7 @@ export default function SectionBlock({
             )}
           </div>
         )}
-        {children}
+        {explain ? <Explainable source={explain}>{children}</Explainable> : children}
       </Container>
     </section>
   );

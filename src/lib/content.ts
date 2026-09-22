@@ -6,6 +6,7 @@ import {
   fetchExperience,
   fetchExternalProfiles,
   fetchFeatureFlags,
+  fetchFeaturedQa,
   fetchNowEntries,
   fetchPageSections,
   fetchPostBlocks,
@@ -37,6 +38,7 @@ const db = cache(() => createServerSupabase());
 
 export const getSiteContent = cache(() => fetchSiteContent(db()));
 export const getFeatureFlags = cache(() => fetchFeatureFlags(db()));
+export const getFeaturedQa = cache((href: string) => fetchFeaturedQa(db(), href));
 export const getProfile = cache(() => fetchProfile(db()));
 export const getProjects = cache(() => fetchProjects(db()));
 export const getProjectBySlug = cache((slug: string) => fetchProjectBySlug(db(), slug));

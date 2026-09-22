@@ -131,6 +131,7 @@ Two rows in `feature_flags` are the owner's switches: `writing` (the Writing nav
 | `resume` | Version history of uploaded resume PDFs |
 | `site_content` | CMS key-value store for all editable copy |
 | `feature_flags` | The owner's switches: `writing`, `ask` |
+| `featured_qa` (view) | The Ask answers the owner marked `featured`, public columns only: "People asked" |
 | `ask_log` | The Ask ledger: one row per question, with feature, tokens and cost (service role only) |
 
 All tables use UUID primary keys, `created_at` / `updated_at` timestamps, and a `meta JSONB` column for future extensibility without migrations.
@@ -193,6 +194,8 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   │   ├── retrieval.ts       # ask_context() as anon, scoped to the page being read; the feature filter
 │   │   ├── prompt.ts          # system prompt, <source> delimiting, [n] → citations, the answer filter
 │   │   ├── ledger.ts          # ask_begin/ask_finish as outcomes; caps; the address hash
+│   │   ├── answer.ts          # the model → filter → ledger → events pipeline both flows share
+│   │   ├── explain.ts         # "Explain this": one block, by table and id, as anon
 │   │   ├── stream.ts          # the answer as server-sent events
 │   │   └── types.ts           # AskSource, AskCitation, AskEvent, ... (browser-safe)
 │   ├── lib/
@@ -342,9 +345,11 @@ which sections a page shows, in what order, with what heading:
 | `how_it_works` | `prose`, `diagram`, `steps`, `table` | content-only blocks rendered from the row's `config` - the [architecture write-up](https://backend-driven-portfolio.vercel.app/how-it-works) is eight of these |
 
 **Writing** uses the same blocks: a `posts` row is the head, `post_blocks` rows (`prose`,
-`code`, `diagram`, `steps`, `table`) are the body. Set `status = 'published'` and the post,
-its share card, its sitemap entry and the **Writing** nav item appear; until then the
-route is a 404 and the nav item is not rendered. A future `published_at` schedules it.
+`code`, `diagram`, `steps`, `table`, `qa`) are the body. Set `status = 'published'` and the
+post, its share card, its sitemap entry and the **Writing** nav item appear; until then
+the route is a 404 and the nav item is not rendered. A future `published_at` schedules
+it. A `qa` block - `{ "questions": ["What was the bug?", …] }` - is the questions the
+note invites: rendered as chips, and offered first by the palette on that page.
 
 Adding a row, reordering, retiring (`is_visible = false`) - no deploy. A section with
 no rows renders nothing. Adding a new *type* is one component plus one line in
@@ -394,6 +399,21 @@ The route is wiring over `src/ai/` - `ledger` (the gate), `retrieval` (as anon, 
 the scope), `provider` (the model, streaming), `prompt` (sources in, citations out),
 `stream` (the events) - so the next AI feature is a new caller of the same files, not a
 second copy of them.
+
+**Explain this.** Hover or focus a block - a case-study section, a code snippet, a
+diagram, a table, a page section - and *Explain* appears; it writes two or three
+sentences under the block from that block alone (`mode: 'explain'` on the same route,
+`explain_source()` as anon, so RLS decides what can be explained), streamed, cached for
+thirty days by a hash of the block's text, and never a chat: "Ask a follow-up" hands
+off to the palette.
+
+**People asked.** On a project or note page, the questions visitors asked about it that
+the owner marked worth keeping - with the answers the ledger already holds, no model
+call. To feature one: `update ask_log set featured = true where id = '…'` (the
+`featured_qa` view shows only those rows, and the page is revalidated by a trigger the
+moment the flag changes). Candidates: `select id, question, left(answer, 80), context_href
+from ask_log where status = 'answered' order by asked_at desc`. A featured question is
+served from the ledger at any age, and its words survive the 90-day retention.
 
 How it is kept honest and cheap:
 

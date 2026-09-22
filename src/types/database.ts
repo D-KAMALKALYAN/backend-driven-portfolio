@@ -978,6 +978,33 @@ export type Database = {
         }
         Relationships: []
       }
+      featured_qa: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          citations: Json | null
+          context_href: string | null
+          id: string | null
+          question: string | null
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          citations?: Json | null
+          context_href?: string | null
+          id?: string | null
+          question?: string | null
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          citations?: Json | null
+          context_href?: string | null
+          id?: string | null
+          question?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       ask_begin: {
@@ -1020,6 +1047,16 @@ export type Database = {
       ask_query_terms: { Args: { q: string }; Returns: string }
       ask_retention: { Args: { p_days?: number }; Returns: Json }
       ask_spend: { Args: never; Returns: Json }
+      explain_source: {
+        Args: { p_id: string; p_table: string }
+        Returns: {
+          body: string
+          href: string
+          kind: string
+          title: string
+          version: string
+        }[]
+      }
       get_analytics_summary: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       jsonb_strings: { Args: { doc: Json }; Returns: string }

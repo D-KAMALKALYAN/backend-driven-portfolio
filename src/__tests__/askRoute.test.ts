@@ -239,6 +239,57 @@ describe('POST /api/ask', () => {
     spy.mockRestore();
   });
 
+  describe('mode: explain (ADR-053)', () => {
+    const ID = '6fda732a-1111-4222-8333-444455556666';
+    const BLOCK = { kind: 'note block', title: 'The gate', href: '/writing/rate-limits', body: 'Ten an hour, in the database.', version: 'v1' };
+    const explain = (source: unknown) => post({ mode: 'explain', source });
+
+    it('rejects a source it does not explain, as JSON, before touching anything', async () => {
+      expect((await explain({ table: 'ask_log', id: ID })).status).toBe(400);
+      expect((await explain({ table: 'post_blocks', id: 'nope' })).status).toBe(400);
+      expect((await explain(null)).status).toBe(400);
+      expect(calls).toEqual([]);
+    });
+
+    it('is a 404 when the row is not there for the anon role - a draft, an unknown id - before the gate', async () => {
+      anonResult = { data: [], error: null };
+      const res = await explain({ table: 'post_blocks', id: ID });
+      expect(res.status).toBe(404);
+      expect(calls).toEqual(['explain_source']);
+    });
+
+    it('loads the block as anon, gates as explain with the version in the key, streams the one source, then the explanation', async () => {
+      anonResult = { data: [BLOCK], error: null };
+      completion = async () => ({ text: 'It counts messages per address in the database, so a burst is refused before the route runs.', usage: { input_tokens: 400, output_tokens: 30, cached_tokens: 0 }, model: 'gpt-5-mini-2025-08-07', incomplete: null });
+      const ev = await events(await explain({ table: 'post_blocks', id: ID }));
+      expect(calls).toEqual(['explain_source', 'ask_begin', 'stream', 'ask_finish']);
+      expect(argsOf('explain_source', anonRpc)).toEqual({ p_table: 'post_blocks', p_id: ID });
+      expect(argsOf('ask_begin')).toMatchObject({ p_feature: 'explain', p_question: 'Explain: The gate', p_question_norm: `explain:post_blocks:${ID}:v1`, p_context_href: '/writing/rate-limits', p_cache_days: 30 });
+      expect(ev[0]).toEqual({ event: 'sources', context: null, sources: [{ n: 1, kind: 'note block', title: 'The gate', href: '/writing/rate-limits' }] });
+      expect(ev.at(-1)).toMatchObject({ event: 'done', cached: false, answer: expect.stringContaining('counts messages') });
+      const prompt = (stream.mock.calls[0] as unknown as [{ input: string; instructions: string }])[0];
+      expect(prompt.instructions).toMatch(/At most three sentences/);
+      expect(prompt.input).toContain('<source n="1" kind="note block"');
+      expect(prompt.input.trim().endsWith('Explain this note block.')).toBe(true);
+      expect(argsOf('ask_finish')).toMatchObject({ p_status: 'answered', p_sources: ['/writing/rate-limits'], p_cost_micro_usd: 160 });
+    });
+
+    it('an explanation that says the block does not say why is still an answer - there is nowhere else to look', async () => {
+      anonResult = { data: [BLOCK], error: null };
+      completion = async () => ({ text: 'The block says ten an hour; it does not contain the reason for that number.', usage: { input_tokens: 400, output_tokens: 20, cached_tokens: 0 }, model: 'm', incomplete: null });
+      await events(await explain({ table: 'post_blocks', id: ID }));
+      expect(argsOf('ask_finish')).toMatchObject({ p_status: 'answered' });
+    });
+
+    it('a cached explanation is one done event with no citations', async () => {
+      anonResult = { data: [BLOCK], error: null };
+      serviceResults.ask_begin = { data: { cached: true, answer: 'It counts.', citations: [] }, error: null };
+      const ev = await events(await explain({ table: 'post_blocks', id: ID }));
+      expect(ev).toEqual([{ event: 'done', answer: 'It counts.', citations: [], cached: true, model: null }]);
+      expect(calls).toEqual(['explain_source', 'ask_begin']);
+    });
+  });
+
   it('a retrieval failure closes the ledger row and streams an error without the database text', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     anonResult = { data: null, error: { code: '42883', message: 'function ask_context does not exist' } };
