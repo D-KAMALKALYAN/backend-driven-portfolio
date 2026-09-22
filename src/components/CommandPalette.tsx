@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { ASK_IDLE, type AskState, type PaletteItem } from '../utils/palette';
+import { ASK_IDLE, TRY_HINT, type AskState, type PaletteItem } from '../utils/palette';
 import type { AskContextChip } from '../hooks/useCommandPalette';
 import { TRUNCATED_NOTE } from '../ai/prompt';
 
@@ -23,6 +23,10 @@ export interface CommandPaletteProps {
   askContext?: AskContextChip | null;
   /** Ask site-wide instead: the chip's ×. */
   clearContext?: () => void;
+  /** The mode the first character chose - "Commands", "Tag", "Ask" - or null for plain search (ADR-052). */
+  mode?: string | null;
+  /** A short confirmation for the footer ("Link copied"). */
+  notice?: string | null;
   executeCommand: (item: PaletteItem) => void;
   close: () => void;
 }
@@ -126,7 +130,7 @@ interface IndexedCommand {
   idx: number;
 }
 
-export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, askEnabled = false, askContext = null, clearContext, executeCommand, close }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, askEnabled = false, askContext = null, clearContext, mode = null, notice = null, executeCommand, close }: CommandPaletteProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const listRef   = useRef<HTMLDivElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
@@ -175,10 +179,14 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
         e.preventDefault();
         close();
         break;
+      case 'Backspace':
+        // On an empty query, Backspace lets go of the page: ask site-wide.
+        if (query === '' && askContext && clearContext) { e.preventDefault(); clearContext(); }
+        break;
       default:
         break;
     }
-  }, [allCommands, activeIdx, executeCommand, close]);
+  }, [allCommands, activeIdx, executeCommand, close, query, askContext, clearContext]);
 
   // Group for display, keeping each command's index into the flat list so
   // arrow-key position and rendered highlight agree.
@@ -221,13 +229,18 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                 <svg className="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
+                {mode && (
+                  <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-widest bg-accent-glow text-accent-hover" aria-label={`${mode} mode`}>
+                    {mode}
+                  </span>
+                )}
                 <input
                   ref={inputRef}
                   type="text"
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
                   onKeyDown={handleKeyDown}      /* ← single source of key events */
-                  placeholder={askEnabled ? 'Search, run a command, or ask a question (/ask …)' : 'Search projects, notes, skills - or type a command'}
+                  placeholder={askEnabled ? 'Search, ask a question, or type > for commands' : 'Search projects, notes, skills - or type > for commands'}
                   className="flex-1 bg-transparent border-none outline-none text-sm text-primary"
                   id="command-palette-input"
                   role="combobox"
@@ -243,7 +256,10 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
               <AskPanel ask={ask} close={close} />
 
               {/* Results */}
-              <div ref={listRef} className={`max-h-72 overflow-y-auto ${grouped.size === 0 && ask.status !== 'idle' ? '' : 'py-1.5'}`} role="listbox">
+              <div ref={listRef} className={`max-h-80 overflow-y-auto ${grouped.size === 0 && ask.status !== 'idle' ? '' : 'py-1.5'}`} role="listbox">
+                {query === '' && ask.status === 'idle' && (
+                  <p className="px-4 pt-1 pb-2 m-0 text-[11px] font-mono text-muted" aria-hidden>{TRY_HINT}</p>
+                )}
                 {grouped.size === 0 ? (
                   // While an answer is on its way or on show, the panel above is the content; "Nothing found" under it would be about the wrong thing.
                   ask.status !== 'idle' ? null : (
@@ -274,7 +290,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                             aria-selected={isActive}
                             tabIndex={-1}
                           >
-                            <span className="truncate">{cmd.label}</span>
+                            <span className="truncate">{cmd.label}{cmd.external ? ' ↗' : ''}</span>
                             {cmd.hint && (
                               <span className="text-xs font-mono truncate max-w-[45%] text-right shrink-0 text-muted">
                                 {cmd.hint}
@@ -289,7 +305,8 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
               </div>
 
               {/* Footer hints */}
-              <div className="px-4 py-2.5 flex items-center gap-4 text-[10px] border-t border-line text-muted">
+              <div className="px-4 py-2.5 flex items-center gap-4 text-[10px] border-t border-line text-muted" aria-live="polite">
+                {notice && <span className="font-semibold text-accent-hover">{notice}</span>}
                 <span className="flex items-center gap-1">
                   <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">↑</kbd>
                   <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">↓</kbd>

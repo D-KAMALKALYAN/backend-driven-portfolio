@@ -1,17 +1,40 @@
 import { ROUTES, type RoutePath } from './routes';
+import type { PaletteAction } from '../utils/palette';
 
 export interface Command {
   id: string;
   label: string;
+  /** What the visitor can type to find it; shown as the hint for an action. */
   shortcut: string;
-  path: RoutePath;
+  /** Where it goes; an action has none. */
+  path?: RoutePath;
+  /** What it does instead of navigating (ADR-052). */
+  action?: PaletteAction;
   group: 'Tools' | 'Navigation';
   /** Same gate as the nav item: only offered when the content exists. */
   requires?: 'writing';
 }
 
+/**
+ * Everything that exists in the product and is worth a row: the pages, and
+ * the two actions a visitor takes without leaving one. Nothing is invented
+ * for the palette - no "Create…", no "Summarize" outside Ask.
+ */
 export const COMMANDS: Command[] = [
-
+  {
+    id: 'action-toggle-theme',
+    label: 'Toggle theme',
+    shortcut: '> theme',
+    action: 'toggle-theme',
+    group: 'Tools',
+  },
+  {
+    id: 'action-copy-link',
+    label: 'Copy link to this page',
+    shortcut: '> copy',
+    action: 'copy-link',
+    group: 'Tools',
+  },
   {
     id: 'tools-analytics',
     label: 'System Analytics',
@@ -90,5 +113,4 @@ export const COMMANDS: Command[] = [
     path: ROUTES.RESUME,
     group: 'Navigation',
   },
-
 ];

@@ -33,13 +33,17 @@ const rec = (status, area, name, detail = '') => {
 };
 const pass = (ok, area, name, detail, warn = false) => rec(ok ? 'PASS' : warn ? 'WARN' : 'FAIL', area, name, detail);
 
-async function req(url, init = {}) {
+// A dropped connection is the checker's, not the site's: one retry before a
+// status 0 is allowed to fail a probe (a run once showed three FAILs with
+// empty details, all on the checking side).
+async function req(url, init = {}, attempt = 0) {
   const t = Date.now();
   try {
     const r = await fetch(url, { redirect: 'manual', ...init, headers: { 'user-agent': 'check-system/1.0', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(40_000) });
     const body = await r.text();
     return { status: r.status, headers: r.headers, body, ms: Date.now() - t };
   } catch (e) {
+    if (attempt === 0) { await new Promise((r) => setTimeout(r, 1500)); return req(url, init, 1); }
     return { status: 0, headers: new Headers(), body: String(e), ms: Date.now() - t };
   }
 }

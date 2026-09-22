@@ -5,6 +5,7 @@ import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from '../hooks/useTheme';
 import { SiteContentProvider } from '../hooks/useSiteContent';
 import { SiteFeaturesProvider, type SiteFeatures } from '../hooks/useSiteFeatures';
+import { PageActionsProvider } from '../hooks/usePageActions';
 import type { SiteContent } from '../types/rows';
 
 /**
@@ -18,7 +19,9 @@ export function Providers({ content, features, children }: { content: SiteConten
     <MotionConfig reducedMotion="user">
       <ThemeProvider>
         <SiteContentProvider content={content}>
-          <SiteFeaturesProvider features={features}>{children}</SiteFeaturesProvider>
+          <SiteFeaturesProvider features={features}>
+            <PageActionsProvider>{children}</PageActionsProvider>
+          </SiteFeaturesProvider>
         </SiteContentProvider>
       </ThemeProvider>
     </MotionConfig>
