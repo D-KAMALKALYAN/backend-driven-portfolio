@@ -264,6 +264,36 @@ export type Database = {
         }
         Relationships: []
       }
+      digests: {
+        Row: {
+          body: string
+          cost_micro_usd: number
+          created_at: string
+          id: string
+          kind: string
+          model: string | null
+          period_start: string
+        }
+        Insert: {
+          body: string
+          cost_micro_usd?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          model?: string | null
+          period_start: string
+        }
+        Update: {
+          body?: string
+          cost_micro_usd?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          model?: string | null
+          period_start?: string
+        }
+        Relationships: []
+      }
       experience: {
         Row: {
           company: string

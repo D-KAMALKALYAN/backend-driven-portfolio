@@ -173,6 +173,9 @@ for (const route of ROUTES) {
   pass(Array.isArray(offList) && offList.length === 0, 'ai', 'explain_source() explains nothing off the block-table list', JSON.stringify(offList)?.slice(0, 60));
   const fq = await sb('featured_qa?select=id,question&limit=1');
   pass(fq.status === 200 && Array.isArray(fq.json), 'rls', 'featured_qa readable by anon (only featured rows exist in it)', `${fq.status} ${fq.json?.length ?? '?'} rows`);
+  const dg = await sb('digests?select=period_start&order=period_start.desc&limit=1');
+  pass(dg.status === 200 && Array.isArray(dg.json), 'rls', 'digests readable by anon', `${dg.status} latest=${dg.json?.[0]?.period_start ?? 'none yet'}`);
+  pass([401, 403].includes((await sb('digests', { method: 'POST', body: '{"period_start":"2000-01-01","body":"probe probe probe probe probe"}' })).status), 'rls', 'anon INSERT into digests refused');
   const flags = (await sb('feature_flags?select=key,enabled&order=key')).json ?? [];
   pass(flags.map((f) => f.key).join(',') === 'ask,writing', 'flags', 'feature_flags holds exactly the rows the app reads (ask, writing)', flags.map((f) => `${f.key}=${f.enabled}`).join(' '));
   pass([401, 403, 404].includes((await sb('ask_log?select=id&limit=1')).status) || ((await sb('ask_log?select=id&limit=1')).json ?? []).length === 0, 'rls', 'ask_log invisible to anon');

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Activity, Building2, Calendar, ChartColumn, Cog, Eye, FileText, FolderOpen, Link2, Mail, Radio, Rocket, Star,
   TriangleAlert, User, type LucideIcon,
+  Sparkles,
 } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -319,6 +320,7 @@ export default function Analytics() {
   const dashboard = dashboardQ.data;
 
   const summary  = dashboard?.summary ?? null;
+  const digest   = dashboard?.digest ?? null;
   const visits   = dashboard?.daily ?? null;
   const projects = dashboard?.topProjects ?? null;
   const events   = dashboard?.recentEvents ?? null;
@@ -373,6 +375,21 @@ export default function Analytics() {
                 <StatCard key={s.label} {...s} delay={i * 0.07} />
               ))}
             </div>
+          )}
+
+          {/* ─ The day's digest (ADR-054): three sentences from the numbers, written once a day by the cron */}
+          {digest && (
+            <Card className="p-5 sm:p-6 mb-8 enter" hover={false}>
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <p className="m-0 text-xs font-semibold uppercase tracking-widest text-muted flex items-center gap-2">
+                  <Sparkles size={13} className="text-accent" aria-hidden />
+                  Digest
+                </p>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted">{digest.period_start}</span>
+              </div>
+              <p className="m-0 text-sm leading-relaxed text-primary max-w-3xl">{digest.body}</p>
+              <p className="m-0 mt-3 text-[11px] text-muted">Written by a model once a day from the numbers on this page - the numbers, quoted, never estimated. Ask the palette &ldquo;what happened this week?&rdquo; for more.</p>
+            </Card>
           )}
 
           {/* ─ Two-column: Chart + Top Projects */}

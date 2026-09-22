@@ -128,6 +128,7 @@ export function suggestedQuestions(context: AskContext | null, pathname: string)
   if (context?.kind === 'project') return ['Summarize this project', 'What were the trade-offs?', 'Which tech does it use, and why?'];
   if (context?.kind === 'post') return ['Summarize this note', 'What was the bug?', 'What is the rule he kept?'];
   if (context?.kind === 'page') return ['How is content cached?', 'What runs where?', 'How is this site kept honest?'];
+  if (pathname === '/analytics') return ['What happened this week?', 'Which project is most viewed?', 'How many visits today?'];
   if (pathname === '/skills') return ['Which databases has Kamal used?', 'What does Kamal use for the backend?', 'Which certifications does Kamal hold?'];
   if (pathname === '/experience') return ['Where has Kamal worked?', 'What did Kamal build most recently?', 'Which tech did his roles use?'];
   return ['What is this site built with?', 'Which certifications does Kamal hold?', 'What has Kamal worked on?'];

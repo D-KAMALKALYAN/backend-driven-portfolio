@@ -64,6 +64,8 @@ export interface AnalyticsDashboard {
   daily: DailyVisit[] | null;
   topProjects: TopProject[] | null;
   recentEvents: Pick<AnalyticsEvent, 'id' | 'event' | 'path' | 'created_at'>[] | null;
+  /** The latest daily digest (ADR-054); null until the cron has written one. */
+  digest: { period_start: string; body: string } | null;
   errors: string[];
 }
 
