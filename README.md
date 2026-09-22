@@ -350,12 +350,21 @@ Adding a row, reordering, retiring (`is_visible = false`) - no deploy. A section
 no rows renders nothing. Adding a new *type* is one component plus one line in
 `src/lib/sections.tsx`.
 
-### Search
+### Search, and the palette
 
-`Ctrl/⌘ K` searches content, not just commands: one SQL function, `search_content()`,
-runs Postgres full-text search over projects, posts (including their body blocks),
-skills and experience, weighted and ranked. It runs as the caller, so RLS decides what
-is searchable - a draft post cannot be found. Exposed as `GET /api/search?q=`.
+`Ctrl/⌘ K` (or `/`, or the field in the header) searches content, not just commands:
+one SQL function, `search_content()`, runs Postgres full-text search over projects,
+posts (including their body blocks), skills, experience, credentials and the profile,
+weighted and ranked. It runs as the caller, so RLS decides what is searchable - a draft
+post cannot be found. Exposed as `GET /api/search?q=`.
+
+The first character picks a mode: plain text searches; `>` is commands only ("> theme",
+"> copy"); `#postgres` narrows to the projects and notes carrying that tag and leads with
+the filtered projects page; `/ask …` or a question asks (below). On an empty query the
+palette shows the page's own rows first - three questions it invites, its repository
+and live demo when it has them - then the last five places chosen on this device, then
+the commands. Everything a visitor can do from the palette exists in the product
+already; nothing is invented for it.
 
 ### Ask this site (grounded Q&A)
 

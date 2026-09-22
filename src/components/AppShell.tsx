@@ -19,7 +19,7 @@ function PageTracker() {
  * Pages themselves are server-rendered and arrive as `children`.
  */
 export default function AppShell({ children }: { children: ReactNode }) {
-  const { isOpen, query, setQuery, items, searching, ask, askContext, clearContext, executeCommand, open, close } = useCommandPalette();
+  const { isOpen, query, setQuery, items, searching, mode, notice, ask, askContext, clearContext, executeCommand, open, close } = useCommandPalette();
   const features = useSiteFeatures();
 
   return (
@@ -48,6 +48,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
         askEnabled={features.ask}
         askContext={askContext}
         clearContext={clearContext}
+        mode={mode}
+        notice={notice}
         executeCommand={executeCommand}
         close={close}
       />

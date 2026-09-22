@@ -18,6 +18,7 @@ import { formatViews } from '../utils/format';
 import { isInProgress } from '../utils/popularity';
 import { asObject, asObjectArray, asString } from '../utils/json';
 import { enterAt } from '../utils/enter';
+import { useRegisterPageActions } from '../hooks/usePageActions';
 import type { Project, ProjectSection, ProjectStorytelling } from '../types/rows';
 
 export interface ProjectDetailProps {
@@ -216,6 +217,12 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
       trackEvent('project_view', { project_id: project.id });
     }
   }, [project.id]); // fires once per project per session load
+
+  // The page's own rows in the palette (ADR-052): where the code and the demo are.
+  useRegisterPageActions([
+    ...(project.repo_url ? [{ id: 'repo', label: 'Open source code', href: project.repo_url, hint: 'repository', external: true }] : []),
+    ...(project.demo_url ? [{ id: 'demo', label: 'Open live demo', href: project.demo_url, hint: 'live', external: true }] : []),
+  ]);
 
   const techs       = parseTechs(project.tech_stack);
   const tags        = Array.isArray(project.tags) ? project.tags : [];

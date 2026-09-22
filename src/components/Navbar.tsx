@@ -106,17 +106,27 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
               )}
             </button>
 
-            {/* Search / Command Palette */}
+            {/* Search / Command Palette - the field in the header is the palette's front door (ADR-052) */}
             <button
               onClick={onCommandPaletteOpen}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-[var(--r-md)] border border-line text-muted hover:border-line-hover hover:text-secondary transition-colors cursor-pointer bg-transparent"
-              aria-label="Open command palette"
+              className="hidden sm:flex items-center gap-2 pl-3 pr-1.5 py-1.5 md:min-w-44 rounded-[var(--r-md)] border border-line text-muted hover:border-line-hover hover:text-secondary transition-colors cursor-pointer bg-transparent text-left"
+              aria-label="Search or ask a question"
+              aria-keyshortcuts="Control+K Meta+K /"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <span className="hidden md:inline">Search</span>
+              <span className="hidden md:inline flex-1 text-sm">Search or ask…</span>
               <kbd className="px-1.5 py-0.5 rounded bg-subtle text-[10px] font-mono">⌘K</kbd>
+            </button>
+            <button
+              onClick={onCommandPaletteOpen}
+              className="sm:hidden p-2 rounded-[var(--r-md)] text-secondary hover:bg-subtle hover:text-primary transition-colors cursor-pointer bg-transparent border-none"
+              aria-label="Search or ask a question"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </button>
 
             {/* Hamburger */}
@@ -177,7 +187,7 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                Command Palette
+                Search or ask…
               </button>
             </div>
           </motion.div>

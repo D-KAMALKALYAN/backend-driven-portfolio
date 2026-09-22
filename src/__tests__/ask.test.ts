@@ -62,10 +62,10 @@ describe('stripAskPrefix', () => {
 
 describe('palette Ask row', () => {
   it('leads the list when the query is a question and is absent otherwise', () => {
-    const asked = buildPaletteItems(COMMANDS.slice(0, 2), [], true, 'how does caching work?');
+    const asked = buildPaletteItems({ query: 'how does caching work?', commands: COMMANDS.slice(0, 2), results: [], askable: true, askText: 'how does caching work?' });
     expect(asked[0]?.id).toBe(ASK_ITEM_ID);
     expect(asked[0]?.label).toBe('Ask: how does caching work?');
-    const plain = buildPaletteItems(COMMANDS.slice(0, 2), [], false, 'postgres');
+    const plain = buildPaletteItems({ query: 'postgres', commands: COMMANDS.slice(0, 2), results: [], askable: false, askText: 'postgres' });
     expect(plain.some((i) => i.id === ASK_ITEM_ID)).toBe(false);
   });
 });
