@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent, type ReactNode } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent } from 'react';
 import Link from 'next/link';
+import AnswerText from './AnswerText';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -29,28 +30,6 @@ export interface CommandPaletteProps {
   notice?: string | null;
   executeCommand: (item: PaletteItem) => void;
   close: () => void;
-}
-
-/**
- * The answer text with each `[n]` marker turned into a link to its source.
- * While the answer streams, the markers resolve against the numbered
- * sources; once it is done, against the citations the answer actually used
- * - the same numbers, so nothing moves.
- */
-function AnswerText({ answer, refs, onNavigate }: { answer: string; refs: ReadonlyArray<{ n: number; href: string; title: string }>; onNavigate: () => void }) {
-  const byN = new Map(refs.map((c) => [c.n, c]));
-  const parts = answer.split(/(\[\d{1,2}\])/g);
-  const nodes: ReactNode[] = parts.map((part, i) => {
-    const m = /^\[(\d{1,2})\]$/.exec(part);
-    const c = m ? byN.get(Number(m[1])) : undefined;
-    if (!c) return <span key={i}>{part}</span>;
-    return (
-      <Link key={i} href={c.href} onClick={onNavigate} className="no-underline hover:underline text-accent font-mono text-[0.8em] align-super" title={c.title}>
-        [{c.n}]
-      </Link>
-    );
-  });
-  return <p className="text-sm leading-relaxed m-0 text-primary">{nodes}</p>;
 }
 
 /**

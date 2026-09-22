@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { COMMANDS } from '../constants/commands';
 import { useSiteFeatures } from './useSiteFeatures';
 import { useTheme } from './useTheme';
-import { usePageActions } from './usePageActions';
+import { usePageActions, usePageSuggestions } from './usePageActions';
 import { useDebounce } from './useDebounce';
 import {
   ASK_IDLE, MODE_LABEL, RECENT_KEY, buildPaletteItems, isSearchable, parseQuery, parseRecents, pushRecent,
@@ -13,7 +13,7 @@ import {
 } from '../utils/palette';
 import { isAskable, stripAskPrefix } from '../lib/ask';
 import { contextFromPath, contextLabel, pageTitleOf, type AskContext } from '../lib/context';
-import { createSseParser } from '../lib/sse';
+import { askStream, PALETTE_ASK_EVENT, PALETTE_OPEN_EVENT } from '../lib/askClient';
 import type { AskEvent } from '../ai/types';
 
 /**
@@ -70,6 +70,7 @@ export function useCommandPalette() {
 
   const { toggleTheme } = useTheme();
   const pageActions = usePageActions();
+  const pageSuggestions = usePageSuggestions();
   const pageContext = useMemo(() => contextFromPath(pathname), [pathname]);
   const context = scopeCleared ? null : pageContext;
   // A short confirmation in the footer ("Link copied"), gone on its own.
@@ -125,37 +126,12 @@ export function useCommandPalette() {
       }
     };
 
-    (async () => {
-      const res = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, context: scope ? { href: scope.href } : null }),
-        signal: controller.signal,
+    askStream({ question: q, context: scope ? { href: scope.href } : null }, apply, controller.signal)
+      .then(({ finished }) => { if (!finished) fail('The answer stopped early. Ask again.'); })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        fail('The answer did not come back.');
       });
-      if (!res.ok || !res.headers.get('content-type')?.includes('text/event-stream') || !res.body) {
-        const body = (await res.json().catch(() => ({}))) as { message?: string };
-        return fail(body.message ?? 'The answer did not come back.');
-      }
-      let finished = false;
-      const parser = createSseParser(({ event, data }) => {
-        let payload: unknown;
-        try { payload = JSON.parse(data); } catch { return; }
-        if (event === 'done' || event === 'error') finished = true;
-        apply({ event, ...(payload as object) } as AskEvent);
-      });
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        parser.push(decoder.decode(value, { stream: true }));
-      }
-      parser.end();
-      if (!finished) fail('The answer stopped early. Ask again.');
-    })().catch((err: unknown) => {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      fail('The answer did not come back.');
-    });
   }, [stopAsking]);
 
   // Content search, debounced, latest-wins. An aborted request is not an
@@ -179,10 +155,14 @@ export function useCommandPalette() {
   const busy = ask.status === 'asking' || ask.status === 'streaming';
   const askable = isOpen && features.ask && mode !== 'commands' && mode !== 'tags' && isAskable(query) && !busy;
   const items = useMemo(
-    () => buildPaletteItems({ query, commands: availableCommands, results, askable, askText, context, pageActions, recents, pathname: pathname ?? '/' })
+    () => buildPaletteItems({
+      query, commands: availableCommands, results, askable, askText, context, pageActions, recents, pathname: pathname ?? '/',
+      // A page's own questions (a qa block) replace the per-kind defaults.
+      suggestions: pageSuggestions.length > 0 ? pageSuggestions : undefined,
+    })
       // Without a model key the page's questions are rows that lead nowhere.
       .filter((i) => i.action !== 'ask' || features.ask),
-    [query, availableCommands, results, askable, askText, context, pageActions, recents, pathname, features.ask],
+    [query, availableCommands, results, askable, askText, context, pageActions, pageSuggestions, recents, pathname, features.ask],
   );
   // The answer panel shows only for the question the visitor can still see.
   const askVisible = ask.status !== 'idle' && ask.question === askText ? ask : ASK_IDLE;
@@ -231,6 +211,23 @@ export function useCommandPalette() {
     const t = setTimeout(() => setNotice(null), 1800);
     return () => clearTimeout(t);
   }, [notice]);
+
+  // A page can hand the palette a question (a qa chip, "People asked") or
+  // just open it (the Explain footnote's follow-up). The question is asked
+  // about the page it came from.
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const question = (e as CustomEvent<{ question?: string }>).detail?.question?.trim();
+      if (!question) return;
+      open();
+      setQuery(question);
+      if (features.ask) askQuestion(question, pageContext);
+    };
+    const onOpen = () => open();
+    window.addEventListener(PALETTE_ASK_EVENT, onAsk);
+    window.addEventListener(PALETTE_OPEN_EVENT, onOpen);
+    return () => { window.removeEventListener(PALETTE_ASK_EVENT, onAsk); window.removeEventListener(PALETTE_OPEN_EVENT, onOpen); };
+  }, [open, askQuestion, pageContext, features.ask]);
 
   useEffect(() => {
     const typing = (el: EventTarget | null) => {

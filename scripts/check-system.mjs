@@ -169,6 +169,10 @@ for (const route of ROUTES) {
   pass([401, 403].includes((await sb('rpc/ask_begin', { method: 'POST', body: '{"p_ip_hash":"x","p_question":"probe","p_question_norm":"probe"}' })).status), 'rls', 'anon may not call ask_begin');
   pass([401, 403].includes((await sb('rpc/ask_retention', { method: 'POST', body: '{"p_days":90}' })).status), 'rls', 'anon may not call ask_retention');
   pass([401, 403].includes((await sb('rpc/ask_spend', { method: 'POST', body: '{}' })).status), 'rls', 'anon may not call ask_spend');
+  const offList = (await sb('rpc/explain_source', { method: 'POST', body: '{"p_table":"ask_log","p_id":"00000000-0000-4000-8000-000000000000"}' })).json;
+  pass(Array.isArray(offList) && offList.length === 0, 'ai', 'explain_source() explains nothing off the block-table list', JSON.stringify(offList)?.slice(0, 60));
+  const fq = await sb('featured_qa?select=id,question&limit=1');
+  pass(fq.status === 200 && Array.isArray(fq.json), 'rls', 'featured_qa readable by anon (only featured rows exist in it)', `${fq.status} ${fq.json?.length ?? '?'} rows`);
   const flags = (await sb('feature_flags?select=key,enabled&order=key')).json ?? [];
   pass(flags.map((f) => f.key).join(',') === 'ask,writing', 'flags', 'feature_flags holds exactly the rows the app reads (ask, writing)', flags.map((f) => `${f.key}=${f.enabled}`).join(' '));
   pass([401, 403, 404].includes((await sb('ask_log?select=id&limit=1')).status) || ((await sb('ask_log?select=id&limit=1')).json ?? []).length === 0, 'rls', 'ask_log invisible to anon');

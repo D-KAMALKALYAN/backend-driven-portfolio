@@ -7,6 +7,7 @@ import Badge from '../../../components/Badge';
 import { findPostBySlug, getPostBlocks, getSiteContent } from '../../../lib/content';
 import { getSiteFeatures } from '../../../lib/features';
 import { renderBlocks } from '../../../lib/sections';
+import PeopleAsked from '../../../components/PeopleAsked';
 import { getVal } from '../../../utils/siteContent';
 import { formatPostDate, readingMinutes } from '../../../utils/reading';
 
@@ -81,6 +82,8 @@ export default async function Page({ params }: Props) {
         </header>
 
         {nodes}
+
+        <PeopleAsked href={`/writing/${post.slug}`} />
 
         <footer className="py-10">
           <Container>

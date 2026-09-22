@@ -58,6 +58,8 @@ export interface BeginInput {
   feature: AskFeature;
   /** The page the visitor was on, once the client sends it and the server has verified it (step 4). */
   contextHref?: string | null;
+  /** How long an answered row serves repeats; the function's default (7) unless the feature says otherwise. */
+  cacheDays?: number;
 }
 
 interface BeginRow { cached: boolean; id?: string; answer?: string; citations?: AskCitation[] }
@@ -73,6 +75,7 @@ export async function beginAsk(service: Db, input: BeginInput): Promise<BeginOut
     p_feature: input.feature,
     p_daily_cap_cents: DAILY_CAP_CENTS,
     ...(input.contextHref ? { p_context_href: input.contextHref } : {}),
+    ...(input.cacheDays ? { p_cache_days: input.cacheDays } : {}),
   });
   if (error) {
     if (error.message.includes('ask_rate_limited')) return { kind: 'refused', reason: 'rate_limited' };

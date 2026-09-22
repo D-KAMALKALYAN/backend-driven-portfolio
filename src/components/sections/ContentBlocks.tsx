@@ -3,6 +3,13 @@ import SectionBlock from './SectionBlock';
 import { asObject, asObjectArray, asString, asStringArray } from '../../utils/json';
 import { enterAt } from '../../utils/enter';
 import type { BlockLike } from '../../types/rows';
+import type { ExplainSourceRef } from '../Explainable';
+
+/** The row a block came from, for "Explain this"; absent when the block cannot be explained. */
+export interface BlockProps {
+  section: BlockLike;
+  source?: ExplainSourceRef | null;
+}
 
 /**
  * Content-only section types. Unlike `now` or `timeline`, these fetch
@@ -17,6 +24,7 @@ import type { BlockLike } from '../../types/rows';
  *   steps    { steps: [{ title, body }] }
  *   table    { columns: string[], rows: string[][] }
  *   code     { snippet: string, language?: string, caption?: string }
+ *   qa       { questions: string[] }            - the questions this page invites (QaBlock)
  *
  * Inline emphasis: `code` spans are rendered as <code>. Nothing else - no
  * HTML, no markdown engine. Text is text.
@@ -43,7 +51,7 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-export function ProseBlock({ section }: { section: BlockLike }) {
+export function ProseBlock({ section, source = null }: BlockProps) {
   const c = asObject(section.config) ?? {};
   const paragraphs = asStringArray(c['paragraphs']);
   const bullets = asStringArray(c['bullets']);
@@ -53,7 +61,7 @@ export function ProseBlock({ section }: { section: BlockLike }) {
   if (paragraphs.length === 0 && bullets.length === 0) return null;
 
   return (
-    <SectionBlock heading={section.heading ?? ''} description={section.description}>
+    <SectionBlock heading={section.heading ?? ''} description={section.description} explain={source}>
       {/* flex gap, not space-y: Tailwind v4's space utilities are zero-specificity
           and lose to the m-0 on each paragraph. */}
       <div className="max-w-3xl flex flex-col gap-4">
@@ -83,14 +91,14 @@ export function ProseBlock({ section }: { section: BlockLike }) {
   );
 }
 
-export function DiagramBlock({ section }: { section: BlockLike }) {
+export function DiagramBlock({ section, source = null }: BlockProps) {
   const c = asObject(section.config) ?? {};
   const ascii = asString(c['ascii']);
   const caption = asString(c['caption']);
   if (!ascii) return null;
 
   return (
-    <SectionBlock heading={section.heading ?? ''} description={section.description}>
+    <SectionBlock heading={section.heading ?? ''} description={section.description} explain={source}>
       <figure className="m-0">
         {/* Monospace, not an image: readable in both themes, zoomable, and
             the text is in the HTML for anyone who cannot see it. */}
@@ -108,7 +116,7 @@ export function DiagramBlock({ section }: { section: BlockLike }) {
   );
 }
 
-export function StepsBlock({ section }: { section: BlockLike }) {
+export function StepsBlock({ section, source = null }: BlockProps) {
   const c = asObject(section.config) ?? {};
   const steps = asObjectArray(c['steps'])
     .map((s) => ({ title: asString(s['title']), body: asString(s['body']) }))
@@ -116,7 +124,7 @@ export function StepsBlock({ section }: { section: BlockLike }) {
   if (steps.length === 0) return null;
 
   return (
-    <SectionBlock heading={section.heading ?? ''} description={section.description}>
+    <SectionBlock heading={section.heading ?? ''} description={section.description} explain={source}>
       <ol className="list-none m-0 p-0 grid grid-cols-1 md:grid-cols-2 gap-4">
         {steps.map((s, i) => (
           <li
@@ -143,14 +151,14 @@ export function StepsBlock({ section }: { section: BlockLike }) {
   );
 }
 
-export function TableBlock({ section }: { section: BlockLike }) {
+export function TableBlock({ section, source = null }: BlockProps) {
   const c = asObject(section.config) ?? {};
   const columns = asStringArray(c['columns']);
   const rows = (Array.isArray(c['rows']) ? c['rows'] : []).map((r) => asStringArray(r)).filter((r) => r.length > 0);
   if (columns.length === 0 || rows.length === 0) return null;
 
   return (
-    <SectionBlock heading={section.heading ?? ''} description={section.description}>
+    <SectionBlock heading={section.heading ?? ''} description={section.description} explain={source}>
       <div className="overflow-x-auto rounded-2xl shadow-card bg-card">
         <table className="w-full text-sm border-collapse">
           <thead>
@@ -191,7 +199,7 @@ export function TableBlock({ section }: { section: BlockLike }) {
   );
 }
 
-export function CodeBlock({ section }: { section: BlockLike }) {
+export function CodeBlock({ section, source = null }: BlockProps) {
   const c = asObject(section.config) ?? {};
   const snippet = asString(c['snippet']);
   const language = asString(c['language']);
@@ -199,7 +207,7 @@ export function CodeBlock({ section }: { section: BlockLike }) {
   if (!snippet) return null;
 
   return (
-    <SectionBlock heading={section.heading ?? ''} description={section.description}>
+    <SectionBlock heading={section.heading ?? ''} description={section.description} explain={source}>
       <figure className="m-0">
         <pre
           className="enter overflow-x-auto text-xs leading-relaxed p-5 rounded-2xl font-mono m-0 bg-card text-primary shadow-card"

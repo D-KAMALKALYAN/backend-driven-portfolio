@@ -32,6 +32,22 @@ export async function fetchFeatureFlags(db: Db) {
 }
 
 /**
+ * The owner-featured questions and answers for a page (ADR-053): a view over
+ * the Ask ledger that holds only `featured` rows and their public columns.
+ * Newest first, four at most.
+ */
+export async function fetchFeaturedQa(db: Db, href: string) {
+  const { data, error } = await db
+    .from('featured_qa')
+    .select('id, question, answer, citations, context_href, answered_at')
+    .eq('context_href', href)
+    .order('answered_at', { ascending: false })
+    .limit(4);
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Fetch profile/about data
  */
 export async function fetchProfile(db: Db) {
