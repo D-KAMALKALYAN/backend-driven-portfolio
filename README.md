@@ -132,6 +132,7 @@ Two rows in `feature_flags` are the owner's switches: `writing` (the Writing nav
 | `site_content` | CMS key-value store for all editable copy |
 | `feature_flags` | The owner's switches: `writing`, `ask` |
 | `digests` | One row a day: three sentences about the analytics, from the numbers alone (cron-written, public) |
+| `content_chunks` | The corpus, chunked and embedded for hybrid retrieval; readable only while the page is |
 | `featured_qa` (view) | The Ask answers the owner marked `featured`, public columns only: "People asked" |
 | `ask_log` | The Ask ledger: one row per question, with feature, tokens and cost (service role only) |
 
@@ -200,6 +201,8 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   │   ├── router.ts          # a question about the numbers, or about the content (rules, golden-tested)
 │   │   ├── facts.ts           # the analytics as lines this code writes from the dashboard - the model quotes
 │   │   ├── digest.ts          # the day's three sentences, through the same gate and ledger (feature 'digest')
+│   │   ├── chunk.ts           # a document as pieces small enough to embed (pure)
+│   │   ├── indexer.ts         # the embeddings index, kept by the cron: only what anon can read, only what changed
 │   │   ├── stream.ts          # the answer as server-sent events
 │   │   └── types.ts           # AskSource, AskCitation, AskEvent, ... (browser-safe)
 │   ├── lib/
@@ -329,7 +332,7 @@ variables:
 | `ASK_MONTHLY_CAP_CENTS` | optional | the app's own monthly cap for Ask, default `300` |
 | `ASK_DAILY_CAP_CENTS` | optional | a day's ceiling under the month's, default `50` |
 | `ASK_MODEL` / `ASK_MODEL_PRICE` | optional | `gpt-5-mini` (default), `gpt-5`, `gpt-5-nano`, `gpt-4.1-mini`; another model only with its price `input,cached,output` in USD/MTok |
-| `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily`, blanks Ask questions older than 90 days, and writes the day's digest; the route refuses without it |
+| `CRON_SECRET` | for the cron | Vercel attaches it to the daily `/api/cron/rollup` call: the analytics rollup, the 90-day Ask retention, the day's digest, and the embeddings index when content changed; `npm run ai:index` sends it too. The route refuses without it |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
 ### Sections without a deploy
@@ -427,11 +430,24 @@ the seven before, the busiest day, the most viewed projects) plus the latest dig
 model quotes them; it cannot invent a number it was not given. A question about the
 mechanism ("how does the site track analytics?") still goes to the content.
 
+**Retrieval is hybrid.** Words find pages that use the words; "what did Kamal build to
+help with old codebases?" finds nothing, because the page says "legacy". So every public
+document is chunked and embedded (`content_chunks`, OpenAI `text-embedding-3-small`) by
+the site itself - the daily cron re-embeds only what changed, `npm run ai:index` does it
+on demand - and a question's embedding joins its words: `ask_context()` fuses the
+lexical and the semantic candidates by reciprocal rank, then rebuilds every body from the
+live tables under their own RLS. Without an embedding (no key, a slow call, nothing
+indexed yet) it is the lexical function it was. `scripts/ai-eval.mjs` scores a fixed
+question set against both; the numbers live in ADR-055. `GET /api/health` reports the
+index under `ask.index` (chunks, when, and whether content changed since).
+
 How it is kept honest and cheap:
 
 - **Retrieval runs as the anon role.** `ask_context()` is `SECURITY INVOKER` over the
   same full-text search the palette uses; Row Level Security decides what can be quoted.
-  A draft post cannot be cited by anyone who could not read it.
+  A draft post cannot be cited by anyone who could not read it - and a chunk of a page
+  is readable only while the page is (the chunks table's RLS mirrors visibility by href).
+  Bodies the model reads are never taken from chunks; a chunk only nominates.
 - **Sources are data.** Each source is wrapped in a `<source n=…>` element with its own
   `[n]` markers neutralised, so a note that quotes "ignore the rules above" or "[3]"
   cannot instruct the model or forge a citation; the system prompt says so in as many

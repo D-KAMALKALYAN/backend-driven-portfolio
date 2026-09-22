@@ -264,6 +264,42 @@ export type Database = {
         }
         Relationships: []
       }
+      content_chunks: {
+        Row: {
+          body: string
+          chunk_index: number
+          content_hash: string
+          embedding: string | null
+          href: string
+          id: string
+          indexed_at: string
+          kind: string
+          title: string
+        }
+        Insert: {
+          body: string
+          chunk_index?: number
+          content_hash: string
+          embedding?: string | null
+          href: string
+          id?: string
+          indexed_at?: string
+          kind: string
+          title: string
+        }
+        Update: {
+          body?: string
+          chunk_index?: number
+          content_hash?: string
+          embedding?: string | null
+          href?: string
+          id?: string
+          indexed_at?: string
+          kind?: string
+          title?: string
+        }
+        Relationships: []
+      }
       digests: {
         Row: {
           body: string
@@ -1052,7 +1088,21 @@ export type Database = {
         Returns: Json
       }
       ask_context: {
-        Args: { max_docs?: number; q: string; scope_href?: string }
+        Args: {
+          max_docs?: number
+          q: string
+          q_embedding?: string
+          scope_href?: string
+        }
+        Returns: {
+          body: string
+          href: string
+          kind: string
+          title: string
+        }[]
+      }
+      ask_corpus: {
+        Args: never
         Returns: {
           body: string
           href: string
@@ -1074,6 +1124,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      ask_index_state: { Args: never; Returns: Json }
       ask_query_terms: { Args: { q: string }; Returns: string }
       ask_retention: { Args: { p_days?: number }; Returns: Json }
       ask_spend: { Args: never; Returns: Json }

@@ -16,7 +16,11 @@ const denied = (fn: string) => ({ data: null, error: { code: '42501', message: `
 const rpc = vi.fn();
 vi.mock('../lib/supabase/server', () => ({
   createServiceSupabase: () => (process.env.SUPABASE_SERVICE_ROLE_KEY ? { rpc } : null),
+  createServerSupabase: () => ({ rpc: vi.fn() }),
 }));
+const indexIsStale = vi.fn(async () => false);
+const reindex = vi.fn(async () => ({ status: 'indexed' as const, documents: 11, chunks: 13, embedded: 2, removed: 0 }));
+vi.mock('../ai/indexer', () => ({ indexIsStale: () => indexIsStale(), reindex: (...a: unknown[]) => reindex(...(a as [])) }));
 const features = { writing: true, ask: true };
 vi.mock('../lib/features', () => ({ getSiteFeatures: async () => features }));
 const generateDailyDigest = vi.fn(async () => ({ status: 'written' as const, period_start: '2026-09-22', cost_micro_usd: 380 }));
@@ -26,7 +30,7 @@ vi.mock('../ai/provider', () => ({ createProvider: () => (process.env.OPENAI_API
 const { GET, RETAIN_DAYS } = await import('../app/api/cron/rollup/route');
 const get = (auth?: string) => GET(new NextRequest('http://localhost/api/cron/rollup', { headers: auth ? { authorization: auth } : {} }));
 
-beforeEach(() => { rpc.mockReset(); generateDailyDigest.mockClear(); features.ask = true; process.env.CRON_SECRET = 'c'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k'; process.env.OPENAI_API_KEY = 'sk-test'; });
+beforeEach(() => { rpc.mockReset(); generateDailyDigest.mockClear(); reindex.mockClear(); indexIsStale.mockResolvedValue(false); features.ask = true; process.env.CRON_SECRET = 'c'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k'; process.env.OPENAI_API_KEY = 'sk-test'; });
 afterEach(() => { delete process.env.CRON_SECRET; delete process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.OPENAI_API_KEY; });
 
 describe('GET /api/cron/rollup', () => {
@@ -64,6 +68,25 @@ describe('GET /api/cron/rollup', () => {
     const res = await get('Bearer c');
     expect(await res.json()).toMatchObject({ ok: true, digest: { status: 'skipped', reason: 'ask flag off' } });
     expect(generateDailyDigest).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the index only when it is stale, and reports the step', async () => {
+    rpc.mockImplementation(byFunction(ok(ROLLUP), ok(RETENTION)));
+    expect(await (await get('Bearer c')).json()).toMatchObject({ index: { status: 'skipped', reason: 'not stale' } });
+    expect(reindex).not.toHaveBeenCalled();
+    indexIsStale.mockResolvedValue(true);
+    expect(await (await get('Bearer c')).json()).toMatchObject({ index: { status: 'indexed', chunks: 13, embedded: 2 } });
+    expect(reindex).toHaveBeenCalledTimes(1);
+  });
+
+  it('?step=index runs the index alone - no rollup, no retention, no digest - and ?force=1 ignores staleness', async () => {
+    const res = await GET(new NextRequest('http://localhost/api/cron/rollup?step=index', { headers: { authorization: 'Bearer c' } }));
+    expect(await res.json()).toMatchObject({ ok: true, index: { status: 'unchanged', reason: 'not stale' } });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(generateDailyDigest).not.toHaveBeenCalled();
+    const forced = await GET(new NextRequest('http://localhost/api/cron/rollup?step=index&force=1', { headers: { authorization: 'Bearer c' } }));
+    expect(await forced.json()).toMatchObject({ ok: true, index: { status: 'indexed' } });
+    expect((await GET(new NextRequest('http://localhost/api/cron/rollup?step=index', { headers: { authorization: 'Bearer nope' } }))).status).toBe(401);
   });
 
   it('a digest failure is reported beside the other steps, not instead of them', async () => {

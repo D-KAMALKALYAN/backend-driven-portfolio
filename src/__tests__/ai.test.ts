@@ -51,6 +51,14 @@ describe('provider: price table', () => {
     expect(p?.model).toBe('gpt-5-nano');
     expect(p?.price).toEqual(MODELS['gpt-5-nano']);
   });
+  it('an embedding that cannot be made is null, never a throw - retrieval falls back to the words', async () => {
+    // No network in tests; the SDK call fails and embed() must swallow it.
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const p = createProvider({ OPENAI_API_KEY: 'sk-test', OPENAI_BASE_URL: 'http://127.0.0.1:9' });
+    expect(await p!.embed('anything')).toBeNull();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
   it('turns an unknown failure into a 502 with a plain message and the detail kept for the log', () => {
     const c = classifyProviderError(new Error('socket hang up'));
     expect(c.status).toBe(502);

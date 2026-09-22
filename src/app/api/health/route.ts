@@ -89,6 +89,8 @@ interface AskSpend {
   answered: number;
   failed: number;
   byFeature: Record<string, string>;
+  /** The embeddings index (ADR-055): how much of the corpus is indexed and whether content changed since. */
+  index: { chunks: number; documents: number; indexedAt: string | null; stale: boolean } | null;
 }
 
 const usd = (micro: unknown) => ((typeof micro === 'number' ? micro : 0) / 1_000_000).toFixed(4);
@@ -96,10 +98,13 @@ const usd = (micro: unknown) => ((typeof micro === 'number' ? micro : 0) / 1_000
 async function askSpend(): Promise<AskSpend | null> {
   const service = createServiceSupabase();
   if (!service) return null;
-  const { data, error } = await service.rpc('ask_spend');
+  const [{ data, error }, indexRes] = await Promise.all([service.rpc('ask_spend'), service.rpc('ask_index_state')]);
   if (error || !data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;
   const by = d.by_feature && typeof d.by_feature === 'object' ? (d.by_feature as Record<string, unknown>) : {};
+  const ix = !indexRes.error && indexRes.data && typeof indexRes.data === 'object' ? (indexRes.data as Record<string, unknown>) : null;
+  const indexedAt = ix && typeof ix.indexed_at === 'string' ? ix.indexed_at : null;
+  const changedAt = ix && typeof ix.content_changed_at === 'string' ? ix.content_changed_at : null;
   return {
     monthUsd: usd(d.month_micro_usd),
     todayUsd: usd(d.today_micro_usd),
@@ -108,6 +113,15 @@ async function askSpend(): Promise<AskSpend | null> {
     answered: typeof d.month_questions === 'number' ? d.month_questions : 0,
     failed: typeof d.month_failed === 'number' ? d.month_failed : 0,
     byFeature: Object.fromEntries(Object.entries(by).map(([k, v]) => [k, usd(v)])),
+    index: ix
+      ? {
+          chunks: typeof ix.chunks === 'number' ? ix.chunks : 0,
+          documents: typeof ix.documents === 'number' ? ix.documents : 0,
+          indexedAt,
+          // Nothing indexed yet, or content edited since the last run: the owner runs `npm run ai:index`.
+          stale: indexedAt === null || (changedAt !== null && changedAt > indexedAt),
+        }
+      : null,
   };
 }
 
