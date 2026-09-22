@@ -296,11 +296,12 @@ export async function fetchRecentEvents(db: Db, limit = 20) {
  * the four calls itself, and it is kept now that one route makes them.
  */
 export async function fetchAnalyticsDashboard(db: Db, topLimit = 8, recentLimit = 20): Promise<AnalyticsDashboard> {
-  const [summary, daily, topProjects, recentEvents] = await Promise.allSettled([
+  const [summary, daily, topProjects, recentEvents, digest] = await Promise.allSettled([
     fetchAnalyticsSummary(db),
     fetchDailyVisits(db),
     fetchTopProjects(db, topLimit),
     fetchRecentEvents(db, recentLimit),
+    fetchLatestDigest(db),
   ]);
   const errors: string[] = [];
   const part = <T,>(name: string, r: PromiseSettledResult<T>): T | null => {
@@ -313,8 +314,21 @@ export async function fetchAnalyticsDashboard(db: Db, topLimit = 8, recentLimit 
     daily: part('daily', daily),
     topProjects: part('topProjects', topProjects),
     recentEvents: part('recentEvents', recentEvents),
+    digest: part('digest', digest),
     errors,
   };
+}
+
+/** The most recent daily digest (ADR-054), or null before the cron has written one. Cached under table:digests; a new row expires it. */
+export async function fetchLatestDigest(db: Db): Promise<{ period_start: string; body: string } | null> {
+  const { data, error } = await db
+    .from('digests')
+    .select('period_start, body')
+    .eq('kind', 'daily')
+    .order('period_start', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] ?? null;
 }
 
 /** PostgrestError is a plain object, not an Error subclass; both are handled. */

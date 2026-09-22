@@ -11,6 +11,9 @@ import { ASK_MAX_OUTPUT_TOKENS, ASK_SYSTEM_PROMPT, EXPLAIN_MAX_OUTPUT_TOKENS, EX
 import { EXPLAIN_CACHE_DAYS, explainCacheKey, loadExplainSource, parseExplainRequest } from '../../../ai/explain';
 import { streamAnswer } from '../../../ai/answer';
 import { createAskStream } from '../../../ai/stream';
+import { routeQuestion } from '../../../ai/router';
+import { loadAnalyticsFacts, loadLatestDigest } from '../../../ai/facts';
+import type { AskSource } from '../../../ai/types';
 
 /**
  * POST /api/ask
@@ -30,10 +33,12 @@ import { createAskStream } from '../../../ai/stream';
  *      response is a stream of events (src/ai/types.ts AskEvent).
  *   2. retrieval            - ask_context() WITH THE ANON KEY, boosted to the
  *      context href the route validated itself (lib/context.ts); or, for
- *      Explain, the one block by explain_source(), as anon too. Row Level
- *      Security decides what the model may quote. The numbered sources are
- *      the first event: the visitor sees what is being read within half a
- *      second.
+ *      Explain, the one block by explain_source(), as anon too; or, for a
+ *      question about the numbers (ai/router.ts), the analytics facts and
+ *      the latest digest - lines this code wrote from the database, never
+ *      the model. Row Level Security decides what the model may quote. The
+ *      numbered sources are the first event: the visitor sees what is being
+ *      read within half a second.
  *   3. provider.stream()    - the model, sources delimited as data and the
  *      question last, asked to cite; each piece of text is an event as it
  *      arrives. The finished answer is filtered (no link the sources did not
@@ -144,12 +149,17 @@ export async function POST(request: NextRequest) {
 
   const run = async () => {
     // 2. Retrieval, as the anon role; the sources are the first thing the visitor sees.
-    let sources;
+    let sources: AskSource[];
     try {
-      sources = await retrieveSources(anon, question, { features, context });
+      if (routeQuestion(question) === 'analytics') {
+        const [facts, digest] = await Promise.all([loadAnalyticsFacts(anon), loadLatestDigest(anon)]);
+        sources = digest ? [facts, digest] : [facts];
+      } else {
+        sources = await retrieveSources(anon, question, { features, context });
+      }
     } catch (err) {
       const e = err as { code?: string; message?: string };
-      console.error('[ask] ask_context failed:', e.code, e.message);
+      console.error('[ask] retrieval failed:', e.code, e.message);
       await finishAsk(service, { id: gate.id, model: provider.model, price: provider.price, sources: [], status: 'failed', answer: null, citations: [], usage: null });
       stream.send({ event: 'error', message: 'Ask is unavailable right now.' });
       return stream.close();

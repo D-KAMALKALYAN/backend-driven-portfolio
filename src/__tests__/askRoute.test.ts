@@ -33,6 +33,12 @@ vi.mock('../lib/supabase/server', () => ({
   createServerSupabase: () => ({ rpc: anonRpc }),
 }));
 vi.mock('../lib/features', () => ({ getSiteFeatures: async () => features }));
+const FACTS = { kind: 'analytics', title: 'Analytics as of 2026-09-22', href: '/analytics', body: 'Total page visits: 1,234. Visits today: 9.' };
+let digestSource: { kind: string; title: string; href: string; body: string } | null = null;
+vi.mock('../ai/facts', () => ({
+  loadAnalyticsFacts: async () => { calls.push('facts'); return FACTS; },
+  loadLatestDigest: async () => { calls.push('digest'); return digestSource; },
+}));
 vi.mock('../ai/provider', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../ai/provider')>()),
   createProvider: () => (process.env.OPENAI_API_KEY
@@ -237,6 +243,31 @@ describe('POST /api/ask', () => {
     expect(calls).toEqual(['ask_begin', 'ask_context', 'stream', 'ask_finish']);
     expect(argsOf('ask_finish')).toMatchObject({ p_status: 'failed', p_cost_micro_usd: 0 });
     spy.mockRestore();
+  });
+
+  describe('a question about the numbers (ADR-054)', () => {
+    it('is answered from the facts and the latest digest - never from ask_context', async () => {
+      digestSource = { kind: 'digest', title: 'Digest for 2026-09-22', href: '/analytics', body: 'Three sentences.' };
+      completion = async () => ({ text: 'The site had 1,234 visits in total and 9 today [1].', usage: { input_tokens: 500, output_tokens: 20, cached_tokens: 0 }, model: 'm', incomplete: null });
+      const ev = await events(await post({ question: 'How many visits today?' }));
+      expect(calls).toEqual(['ask_begin', 'facts', 'digest', 'stream', 'ask_finish']);
+      expect(anonRpc).not.toHaveBeenCalled();
+      expect(ev[0]).toEqual({ event: 'sources', context: null, sources: [
+        { n: 1, kind: 'analytics', title: 'Analytics as of 2026-09-22', href: '/analytics' },
+        { n: 2, kind: 'digest', title: 'Digest for 2026-09-22', href: '/analytics' },
+      ] });
+      expect(ev.at(-1)).toMatchObject({ event: 'done', answer: 'The site had 1,234 visits in total and 9 today [1].' });
+      expect((ev.at(-1)!.citations as { href: string }[])[0]?.href).toBe('/analytics');
+      const prompt = (stream.mock.calls[0] as unknown as [{ input: string }])[0].input;
+      expect(prompt).toContain('Total page visits: 1,234.');
+      expect(argsOf('ask_finish')).toMatchObject({ p_status: 'answered', p_sources: ['/analytics'] });
+      digestSource = null;
+    });
+    it('without a digest yet, the facts alone are the source', async () => {
+      const ev = await events(await post({ question: 'what happened this week?' }));
+      expect((ev[0]!.sources as unknown[]).length).toBe(1);
+      expect(anonRpc).not.toHaveBeenCalled();
+    });
   });
 
   describe('mode: explain (ADR-053)', () => {

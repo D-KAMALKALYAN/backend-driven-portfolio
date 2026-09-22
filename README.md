@@ -103,7 +103,7 @@ Every string, every section, every config value lives in the database. The `site
 Projects aren't just titles and descriptions. Each project has typed content blocks — `text`, `image`, `code`, `metrics`, `gallery` — stored as structured JSONB. Add a new section type without touching the schema.
 
 ### 📊 Built-in Analytics Engine
-Every page view, project click, and resume download is tracked in the `analytics` table. A database trigger auto-increments `projects.view_count` on each event. Top projects get a `🔥 Most Popular` badge, refreshed daily.
+Every page view, project click, and resume download is tracked in the `analytics` table. A database trigger auto-increments `projects.view_count` on each event. Top projects get a `🔥 Most Popular` badge, refreshed daily. Once a day the cron writes a three-sentence **digest** of the numbers into `digests` - shown on `/analytics` - and a question about the numbers in the palette ("what happened this week?") is answered from a facts source this code writes from the database, never from the model's memory.
 
 ### 🔐 Row Level Security at Every Layer
 RLS is enabled on all 12 tables. Public visitors can only read published content. Writes are restricted to validated inputs or authenticated admins. The database enforces this — not the application.
@@ -131,6 +131,7 @@ Two rows in `feature_flags` are the owner's switches: `writing` (the Writing nav
 | `resume` | Version history of uploaded resume PDFs |
 | `site_content` | CMS key-value store for all editable copy |
 | `feature_flags` | The owner's switches: `writing`, `ask` |
+| `digests` | One row a day: three sentences about the analytics, from the numbers alone (cron-written, public) |
 | `featured_qa` (view) | The Ask answers the owner marked `featured`, public columns only: "People asked" |
 | `ask_log` | The Ask ledger: one row per question, with feature, tokens and cost (service role only) |
 
@@ -196,6 +197,9 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   │   ├── ledger.ts          # ask_begin/ask_finish as outcomes; caps; the address hash
 │   │   ├── answer.ts          # the model → filter → ledger → events pipeline both flows share
 │   │   ├── explain.ts         # "Explain this": one block, by table and id, as anon
+│   │   ├── router.ts          # a question about the numbers, or about the content (rules, golden-tested)
+│   │   ├── facts.ts           # the analytics as lines this code writes from the dashboard - the model quotes
+│   │   ├── digest.ts          # the day's three sentences, through the same gate and ledger (feature 'digest')
 │   │   ├── stream.ts          # the answer as server-sent events
 │   │   └── types.ts           # AskSource, AskCitation, AskEvent, ... (browser-safe)
 │   ├── lib/
@@ -325,7 +329,7 @@ variables:
 | `ASK_MONTHLY_CAP_CENTS` | optional | the app's own monthly cap for Ask, default `300` |
 | `ASK_DAILY_CAP_CENTS` | optional | a day's ceiling under the month's, default `50` |
 | `ASK_MODEL` / `ASK_MODEL_PRICE` | optional | `gpt-5-mini` (default), `gpt-5`, `gpt-5-nano`, `gpt-4.1-mini`; another model only with its price `input,cached,output` in USD/MTok |
-| `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily` and blanks Ask questions older than 90 days; the route refuses without it |
+| `CRON_SECRET` | for retention | Vercel attaches it to the daily `/api/cron/rollup` call that rolls analytics older than 90 days into `analytics_daily`, blanks Ask questions older than 90 days, and writes the day's digest; the route refuses without it |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | optional | source-map upload at build time for readable stack traces |
 
 ### Sections without a deploy
@@ -414,6 +418,14 @@ call. To feature one: `update ask_log set featured = true where id = '…'` (the
 moment the flag changes). Candidates: `select id, question, left(answer, 80), context_href
 from ask_log where status = 'answered' order by asked_at desc`. A featured question is
 served from the ledger at any age, and its words survive the 90-day retention.
+
+**Questions about the numbers.** "What happened this week?", "which project is most
+viewed?": a rule-based router (`src/ai/router.ts`, a golden list) sends these to a
+*facts* source instead of search - lines this code writes from the same dashboard
+`/api/analytics` serves (totals, today, the calendar week, the last seven days against
+the seven before, the busiest day, the most viewed projects) plus the latest digest. The
+model quotes them; it cannot invent a number it was not given. A question about the
+mechanism ("how does the site track analytics?") still goes to the content.
 
 How it is kept honest and cheap:
 

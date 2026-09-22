@@ -1,19 +1,25 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceSupabase } from '../../../../lib/supabase/server';
+import { getSiteFeatures } from '../../../../lib/features';
+import { createProvider } from '../../../../ai/provider';
+import { generateDailyDigest } from '../../../../ai/digest';
 
 /**
  * GET /api/cron/rollup - daily, from Vercel Cron (vercel.json).
  *
- * The site's retention, in one place:
+ * The site's daily housekeeping, in one place:
  *   rollup_analytics(90) - raw analytics rows older than 90 days are
  *     aggregated into analytics_daily and deleted (ADR-040);
  *   ask_retention(90)    - questions older than 90 days are blanked in the
- *     Ask ledger; tokens, cost and sources stay (ADR-049).
+ *     Ask ledger; tokens, cost and sources stay (ADR-049);
+ *   the digest          - three sentences about the day's analytics, from
+ *     the numbers alone, into `digests` (ADR-054); skipped without a model
+ *     key or with the ask flag off, and a no-op when today's exists.
  * Destructive, so two gates: the bearer secret Vercel attaches when
  * CRON_SECRET is set, and the service role - neither function is
  * executable by anon at all. Without either the route refuses and says
- * which. The two steps are independent: a failure in one is reported
- * beside the other's result, not instead of it.
+ * which. The steps are independent: a failure in one is reported beside
+ * the others' results, not instead of them.
  */
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +52,11 @@ export async function GET(request: NextRequest) {
       ask: ask.error ? null : ask.data,
     }, { status: 500 });
   }
-  console.info('[cron/rollup]', JSON.stringify({ rollup: rollup.data, ask: ask.data }));
-  return NextResponse.json({ ok: true, result: rollup.data, ask: ask.data, at: new Date().toISOString() });
+  const features = await getSiteFeatures().catch(() => ({ writing: false, ask: false }));
+  const digest = features.ask
+    ? await generateDailyDigest(db, createProvider()).catch((err: unknown) => ({ status: 'failed' as const, reason: err instanceof Error ? err.message : String(err) }))
+    : { status: 'skipped' as const, reason: 'ask flag off' };
+  if (digest.status === 'failed') console.error('[cron/rollup] digest failed:', digest.reason);
+  console.info('[cron/rollup]', JSON.stringify({ rollup: rollup.data, ask: ask.data, digest }));
+  return NextResponse.json({ ok: true, result: rollup.data, ask: ask.data, digest, at: new Date().toISOString() });
 }

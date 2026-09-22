@@ -17,12 +17,17 @@ const rpc = vi.fn();
 vi.mock('../lib/supabase/server', () => ({
   createServiceSupabase: () => (process.env.SUPABASE_SERVICE_ROLE_KEY ? { rpc } : null),
 }));
+const features = { writing: true, ask: true };
+vi.mock('../lib/features', () => ({ getSiteFeatures: async () => features }));
+const generateDailyDigest = vi.fn(async () => ({ status: 'written' as const, period_start: '2026-09-22', cost_micro_usd: 380 }));
+vi.mock('../ai/digest', () => ({ generateDailyDigest: (...args: unknown[]) => generateDailyDigest(...(args as [])) }));
+vi.mock('../ai/provider', () => ({ createProvider: () => (process.env.OPENAI_API_KEY ? { model: 'gpt-5-mini' } : null) }));
 
 const { GET, RETAIN_DAYS } = await import('../app/api/cron/rollup/route');
 const get = (auth?: string) => GET(new NextRequest('http://localhost/api/cron/rollup', { headers: auth ? { authorization: auth } : {} }));
 
-beforeEach(() => { rpc.mockReset(); process.env.CRON_SECRET = 'c'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k'; });
-afterEach(() => { delete process.env.CRON_SECRET; delete process.env.SUPABASE_SERVICE_ROLE_KEY; });
+beforeEach(() => { rpc.mockReset(); generateDailyDigest.mockClear(); features.ask = true; process.env.CRON_SECRET = 'c'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k'; process.env.OPENAI_API_KEY = 'sk-test'; });
+afterEach(() => { delete process.env.CRON_SECRET; delete process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.OPENAI_API_KEY; });
 
 describe('GET /api/cron/rollup', () => {
   it('refuses when no cron secret is configured', async () => {
@@ -49,7 +54,26 @@ describe('GET /api/cron/rollup', () => {
     expect(rpc).toHaveBeenCalledWith('rollup_analytics', { retain_days: RETAIN_DAYS });
     expect(rpc).toHaveBeenCalledWith('ask_retention', { p_days: RETAIN_DAYS });
     expect(RETAIN_DAYS).toBeGreaterThanOrEqual(30); // the dashboard reads 30 days of raw rows
-    expect(await res.json()).toMatchObject({ ok: true, result: { rows_deleted: 37 }, ask: { rows_blanked: 4 } });
+    expect(await res.json()).toMatchObject({ ok: true, result: { rows_deleted: 37 }, ask: { rows_blanked: 4 }, digest: { status: 'written', period_start: '2026-09-22' } });
+    expect(generateDailyDigest).toHaveBeenCalledWith({ rpc }, { model: 'gpt-5-mini' });
+  });
+
+  it('writes the digest only while the ask flag is on, and reports a skip otherwise', async () => {
+    rpc.mockImplementation(byFunction(ok(ROLLUP), ok(RETENTION)));
+    features.ask = false;
+    const res = await get('Bearer c');
+    expect(await res.json()).toMatchObject({ ok: true, digest: { status: 'skipped', reason: 'ask flag off' } });
+    expect(generateDailyDigest).not.toHaveBeenCalled();
+  });
+
+  it('a digest failure is reported beside the other steps, not instead of them', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    rpc.mockImplementation(byFunction(ok(ROLLUP), ok(RETENTION)));
+    generateDailyDigest.mockRejectedValueOnce(new Error('model down'));
+    const res = await get('Bearer c');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, result: { rows_deleted: 37 }, digest: { status: 'failed', reason: 'model down' } });
+    spy.mockRestore();
   });
 
   it('a failure in one step still runs and reports the other', async () => {
