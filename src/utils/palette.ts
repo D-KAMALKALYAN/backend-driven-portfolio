@@ -18,6 +18,8 @@ export interface AskState {
   context: AskContextInfo | null;
   message?: string;
   cached?: boolean;
+  /** The model stopped before it finished; what is shown is what it wrote. */
+  truncated?: boolean;
 }
 
 export const ASK_IDLE: AskState = { status: 'idle', question: '', answer: '', citations: [], sources: [], context: null };
@@ -50,6 +52,7 @@ const KIND_GROUP: Record<string, string> = {
   skill: 'Skills',
   experience: 'Experience',
   credential: 'Credentials',
+  profile: 'About',
 };
 
 /**

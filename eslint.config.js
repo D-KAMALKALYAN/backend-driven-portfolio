@@ -5,7 +5,8 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import nextPlugin from '@next/eslint-plugin-next';
 
 export default tseslint.config(
-  { ignores: ['dist', '.next', 'node_modules', 'supabase/.temp', 'coverage', 'src/types/database.ts', 'next-env.d.ts'] },
+  // developer-notes is the owner's gitignored notebook; its scripts are evidence, not code under lint.
+  { ignores: ['dist', '.next', 'node_modules', 'supabase/.temp', 'coverage', 'src/types/database.ts', 'next-env.d.ts', 'developer-notes'] },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,

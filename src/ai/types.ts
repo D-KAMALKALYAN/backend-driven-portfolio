@@ -58,5 +58,5 @@ export interface AskContextInfo {
 export type AskEvent =
   | { event: 'sources'; sources: AskSourceRef[]; context: AskContextInfo | null }
   | { event: 'delta'; text: string }
-  | { event: 'done'; answer: string; citations: AskCitation[]; cached: boolean; model: string | null }
+  | { event: 'done'; answer: string; citations: AskCitation[]; cached: boolean; model: string | null; truncated?: boolean }
   | { event: 'error'; message: string };

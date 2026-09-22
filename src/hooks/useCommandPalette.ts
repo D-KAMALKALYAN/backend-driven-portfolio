@@ -98,7 +98,7 @@ export function useCommandPalette() {
       switch (e.event) {
         case 'sources': setAsk((s) => ({ ...s, status: 'streaming', sources: e.sources, context: e.context })); break;
         case 'delta': setAsk((s) => ({ ...s, status: 'streaming', answer: s.answer + e.text })); break;
-        case 'done': setAsk((s) => ({ ...s, status: 'done', answer: e.answer, citations: e.citations, cached: e.cached })); break;
+        case 'done': setAsk((s) => ({ ...s, status: 'done', answer: e.answer, citations: e.citations, cached: e.cached, truncated: e.truncated })); break;
         case 'error': fail(e.message); break;
       }
     };
