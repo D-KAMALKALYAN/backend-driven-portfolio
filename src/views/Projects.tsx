@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Construction, Eye, Flame, FolderOpen, Search } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -107,7 +106,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                 const viewLabel = formatViews(p.view_count);
 
                 return (
-                  <motion.div key={p.id} className="enter" style={enterAt(i * 70)} whileHover={{ y: -2 }}>
+                  <div key={p.id} className="enter" style={enterAt(i * 70)}>
                     <Card
                       glow
                       className="group relative flex flex-col p-5 sm:p-6 h-full"
@@ -143,7 +142,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                             {/* Most Popular badge */}
                             {isPopular && (
                               <span
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 hue-chip"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label font-bold shrink-0 hue-chip"
                                 style={hueStyle('red')}
                               >
                                 <Flame size={11} aria-hidden /> Popular
@@ -153,7 +152,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                                 which was true on every row and so meant nothing. */}
                             {inProgress && (
                               <span
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 hue-chip"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label font-bold shrink-0 hue-chip"
                                 style={hueStyle('amber')}
                                 title="Currently in development"
                               >
@@ -192,7 +191,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                       >
                         {/* View count social proof */}
                         {viewLabel ? (
-                          <span className="text-[10px] font-mono text-muted">
+                          <span className="text-label font-mono text-muted">
                             <Eye size={11} className="inline -mt-px" aria-hidden /> {viewLabel}
                           </span>
                         ) : <span />}
@@ -204,7 +203,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                               href={p.demo_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors bg-subtle text-accent"
+                              className="text-label font-semibold px-2 py-1 rounded-lg no-underline transition-colors bg-subtle text-accent"
                             >
                               Demo ↗
                             </a>
@@ -214,7 +213,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                               href={p.repo_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-semibold px-2 py-1 rounded-lg no-underline transition-colors bg-subtle text-secondary"
+                              className="text-label font-semibold px-2 py-1 rounded-lg no-underline transition-colors bg-subtle text-secondary"
                             >
                               Repo ↗
                             </a>
@@ -222,7 +221,7 @@ export default function Projects({ projects }: { projects: Project[] }) {
                         </div>
                       </div>
                     </Card>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

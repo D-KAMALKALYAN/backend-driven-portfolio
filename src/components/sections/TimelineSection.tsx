@@ -50,7 +50,7 @@ export default async function TimelineSection({ section }: { section: PageSectio
                 return (
                   <li key={it.id} className="enter flex flex-wrap items-baseline gap-x-3 gap-y-1" style={enterAt(Math.min(i++, 12) * 50)}>
                     <span
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0 hue-chip"
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-label font-semibold uppercase tracking-wider shrink-0 hue-chip"
                       style={hueStyle(kind.hue)}
                       title={kind.label}
                     >
@@ -60,7 +60,7 @@ export default async function TimelineSection({ section }: { section: PageSectio
                       {link}
                       {it.subtitle && <span className="text-sm text-secondary"> · {it.subtitle}</span>}
                     </span>
-                    <span className="text-[11px] font-mono ml-auto shrink-0" style={{ color: it.ongoing ? 'var(--success)' : 'var(--text-muted)' }}>
+                    <span className="text-caption font-mono ml-auto shrink-0" style={{ color: it.ongoing ? 'var(--success)' : 'var(--text-muted)' }}>
                       {formatSpan(it)}
                     </span>
                   </li>

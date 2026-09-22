@@ -105,7 +105,7 @@ export default function ProjectFilterBar({
                 // Visually the margin separates label from count, but the
                 // accessible name would run them together as "backend4".
                 aria-label={`${value}, ${count} project${count === 1 ? '' : 's'}`}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer border-none transition-colors"
+                className="px-2.5 py-1 rounded-full text-caption font-medium cursor-pointer border-none transition-colors"
                 style={{
                   backgroundColor: active ? 'var(--accent)' : 'var(--bg-subtle)',
                   color: active ? 'var(--on-accent)' : 'var(--text-secondary)',

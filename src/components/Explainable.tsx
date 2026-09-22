@@ -58,7 +58,7 @@ export default function Explainable({ source, label = 'Explain', children }: { s
         <button
           type="button"
           onClick={explain}
-          className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-card text-secondary shadow-card border border-line cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:text-primary"
+          className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded-md text-caption font-medium bg-card text-secondary shadow-card border border-line cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:text-primary"
           aria-label={`${label}: a short explanation of this block`}
         >
           <Sparkles size={12} aria-hidden />
@@ -69,7 +69,7 @@ export default function Explainable({ source, label = 'Explain', children }: { s
         <aside className="mt-3 pl-4 border-l-2 border-accent text-sm leading-relaxed text-secondary max-w-3xl" aria-live="polite">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles size={12} className={`text-accent ${state.status === 'loading' ? 'animate-pulse' : ''}`} aria-hidden />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+            <span className="text-label font-semibold uppercase text-muted">
               {state.status === 'loading' ? (state.text ? 'Explaining' : 'Reading this block…') : state.status === 'error' ? 'No explanation' : state.cached ? 'Explained · from an earlier ask' : 'Explained'}
             </span>
           </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cloud, Cog, Database, FlaskConical, Layers, Lock, MessageSquare, Monitor, Package, Rocket, Wrench, type LucideIcon,
 } from 'lucide-react';
@@ -63,12 +62,7 @@ function SkillTag({ skill, hue: h, delayMs }: { skill: Skill; hue: Hue; delayMs:
   const level = getLevel(skill?.proficiency);
   // The tag's tints (rest and hover) live in .hue-tag; motion only scales.
   return (
-    <motion.div
-      className="enter group flex items-center gap-2 px-3 py-2 rounded-xl cursor-default select-none transition-colors duration-150 hue-tag"
-      style={hueStyle(h, enterAt(delayMs))}
-      whileHover={{ scale: 1.03 }}
-      transition={{ duration: 0.15 }}
-    >
+    <div className="enter group flex items-center gap-2 px-3 py-2 rounded-xl cursor-default select-none transition-colors duration-150 hue-tag" style={hueStyle(h, enterAt(delayMs))}>
       {/* Dot — size and glow reflect level */}
       <span
         className="shrink-0 rounded-full transition-all duration-300 group-hover:scale-125 hue-dot"
@@ -85,11 +79,11 @@ function SkillTag({ skill, hue: h, delayMs }: { skill: Skill; hue: Hue; delayMs:
       </span>
       {/* Level label shown only if proficiency data is available */}
       {level && (
-        <span className="ml-auto pl-2 text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-200 hue-text">
+        <span className="ml-auto pl-2 text-label font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-200 hue-text">
           {level.label}
         </span>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -104,15 +98,7 @@ interface CategoryCardProps {
 
 function CategoryCard({ category, skills, hue: h, icon: Glyph, index }: CategoryCardProps) {
   return (
-    <motion.div
-      className="enter rounded-2xl p-5 flex flex-col gap-4 h-full transition-all duration-200"
-      style={{
-        ...enterAt(index * 60),
-        backgroundColor: 'var(--bg-card)',
-        boxShadow: 'var(--shadow-card)',
-      }}
-      whileHover={{ y: -2, boxShadow: 'var(--shadow-hover)' }}
-    >
+    <div className="enter rounded-2xl p-5 flex flex-col gap-4 h-full transition-all duration-200" style={{ ...enterAt(index * 60), backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-card)', }}>
       {/* Header */}
       <div className="flex items-center gap-2.5">
         <span
@@ -127,7 +113,7 @@ function CategoryCard({ category, skills, hue: h, icon: Glyph, index }: Category
           {category}
         </h3>
         <span
-          className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted"
+          className="text-label font-mono px-2 py-0.5 rounded-full bg-subtle text-muted"
         >
           {skills.length}
         </span>
@@ -139,7 +125,7 @@ function CategoryCard({ category, skills, hue: h, icon: Glyph, index }: Category
           <SkillTag key={skill.id} skill={skill} hue={h} delayMs={index * 60 + 150 + i * 50} />
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -211,15 +197,7 @@ export default function Skills({ skills }: { skills: Skill[] }) {
           )}
 
           {entries.length > 0 ? (
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={activeFilter}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-              >
+            <div key={activeFilter} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {entries.map(([cat, catSkills], i) => (
                   <CategoryCard
                     key={cat}
@@ -230,8 +208,7 @@ export default function Skills({ skills }: { skills: Skill[] }) {
                     index={i}
                   />
                 ))}
-              </motion.div>
-            </AnimatePresence>
+              </div>
           ) : (
             <EmptyState icon={<Wrench size={24} aria-hidden />} title="No skills listed" description="Add skills via Supabase." />
           )}

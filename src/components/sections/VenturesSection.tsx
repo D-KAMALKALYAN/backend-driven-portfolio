@@ -44,7 +44,7 @@ function VentureCard({ v, i, light }: { v: Venture; i: number; light: boolean })
             </div>
           </div>
           <span
-            className="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider hue-chip"
+            className="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-label font-semibold uppercase tracking-wider hue-chip"
             style={hueStyle(statusHue)}
           >
             {STATUS_LABEL[v.status] ?? v.status}

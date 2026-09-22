@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
@@ -83,17 +82,12 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
             <div className="enter" style={enterAt(100)}>
               <Card className="p-8" hover={false}>
                 {/* Gradient doc icon */}
-                <motion.div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
-                  style={{ background: 'linear-gradient(135deg, var(--accent-glow2) 0%, var(--accent-glow) 100%)' }}
-                  whileHover={{ scale: 1.08, rotate: 2 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, var(--accent-glow2) 0%, var(--accent-glow) 100%)' }}>
                   <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                </motion.div>
+                </div>
 
                 <h3 className="text-xl font-semibold mb-1 text-primary">
                   {profile?.full_name || getVal(content, 'profile.name', 'Kamal Kalyan')}
@@ -149,7 +143,7 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
                         <p className="text-2xl font-bold font-mono text-accent">
                           <CountUp value={s.value} suffix={s.suffix} />
                         </p>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5 text-muted">
+                        <p className="text-label font-semibold uppercase tracking-wider mt-0.5 text-muted">
                           {s.label}
                         </p>
                       </div>
@@ -161,18 +155,14 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
               {/* Inline PDF preview — desktop only (sm+). Mobile browsers show only 1 page of iframed PDFs. */}
               {showPdf && resumeUrl && (
                 <div className="hidden sm:block">
-                  <motion.div
-                    initial={{ opacity: 0, scaleY: 0.9 }}
-                    animate={{ opacity: 1, scaleY: 1 }}
-                    style={{ transformOrigin: 'top', overflow: 'hidden', borderRadius: '1rem', marginTop: '1rem' }}
-                  >
+                  <div style={{ transformOrigin: 'top', overflow: 'hidden', borderRadius: '1rem', marginTop: '1rem' }}>
                     <iframe
                       src={`${resumeUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                       title="Resume Preview"
                       className="w-full"
                       style={{ height: 520, border: 'none', borderRadius: '1rem', backgroundColor: 'var(--bg-subtle)', boxShadow: 'var(--shadow-card)' }}
                     />
-                  </motion.div>
+                  </div>
                 </div>
               )}
 
@@ -194,7 +184,7 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
 
               <div className="space-y-3">
                 {highlights.map((h, i) => (
-                  <motion.div key={h.label} className="enter" style={enterAt(250 + i * 80)} whileHover={{ x: 4 }}>
+                  <div key={h.label} className="enter" style={enterAt(250 + i * 80)}>
                     <div className={`flex items-center gap-4 p-4 cursor-default ${CARD} transition-shadow duration-200 hover:shadow-[var(--shadow-hover),0_0_0_1px_var(--ring-accent-soft)]`}>
                       <span className="shrink-0 text-accent inline-flex">
                         {isIconName(h.icon) ? <Icon name={h.icon} size={20} /> : <span className="text-xl">{h.icon}</span>}
@@ -207,7 +197,7 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
@@ -221,15 +211,7 @@ export default function Resume({ resume, profile, skillCount, expCount }: Resume
                 }}
               >
                 {/* Shimmer overlay */}
-                <motion.div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(105deg, transparent 40%, var(--sheen) 50%, transparent 60%)',
-                    backgroundSize: '200% 100%',
-                  }}
-                  animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: 'linear', repeatDelay: 1.5 }}
-                />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(105deg, transparent 40%, var(--sheen) 50%, transparent 60%)', backgroundSize: '200% 100%', }}/>
                 <p className="text-sm font-semibold mb-1 relative z-10 text-primary">
                   Interested in collaborating?
                 </p>

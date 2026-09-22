@@ -6,6 +6,7 @@ import { COMMANDS } from '../constants/commands';
 import { useSiteFeatures } from './useSiteFeatures';
 import { useTheme } from './useTheme';
 import { usePageActions, usePageSuggestions } from './usePageActions';
+import { useToast } from '../components/Toast';
 import { useDebounce } from './useDebounce';
 import {
   ASK_IDLE, MODE_LABEL, RECENT_KEY, buildPaletteItems, isSearchable, parseQuery, parseRecents, pushRecent,
@@ -73,8 +74,7 @@ export function useCommandPalette() {
   const pageSuggestions = usePageSuggestions();
   const pageContext = useMemo(() => contextFromPath(pathname), [pathname]);
   const context = scopeCleared ? null : pageContext;
-  // A short confirmation in the footer ("Link copied"), gone on its own.
-  const [notice, setNotice] = useState<string | null>(null);
+  const { toast } = useToast();
   // Recents live on the device; read as the palette opens (an event, never
   // a render - the open palette is never server-rendered).
   const [recents, setRecents] = useState<RecentItem[]>([]);
@@ -96,9 +96,12 @@ export function useCommandPalette() {
     setQuery('');
     setAsk(ASK_IDLE);
     setScopeCleared(false);
-    setNotice(null);
   }, [stopAsking]);
-  const open = useCallback(() => { setRecents(readRecents()); setIsOpen(true); }, []);
+  // Latched on the first open, whatever opened it (Ctrl+K, "/", the header
+  // field, a page's question): AppShell mounts the palette - and with it
+  // framer-motion - only from then on (ADR-056).
+  const [everOpened, setEverOpened] = useState(false);
+  const open = useCallback(() => { setRecents(readRecents()); setEverOpened(true); setIsOpen(true); }, []);
   const close = useCallback(() => { setIsOpen(false); reset(); }, [reset]);
   const toggle = useCallback(() => { if (isOpen) close(); else open(); }, [isOpen, open, close]);
   const clearContext = useCallback(() => setScopeCleared(true), []);
@@ -187,8 +190,9 @@ export function useCommandPalette() {
       if (item.action === 'toggle-theme') { toggleTheme(); close(); return; }
       if (item.action === 'copy-link') {
         navigator.clipboard?.writeText(window.location.href)
-          .then(() => setNotice('Link copied'))
-          .catch(() => setNotice('Could not copy - the address bar has it'));
+          .then(() => toast('Link copied'))
+          .catch(() => toast('Could not copy - the address bar has it'));
+        close();
         return;
       }
       if (item.external) {
@@ -203,14 +207,8 @@ export function useCommandPalette() {
       router.push(item.path);
       close();
     },
-    [router, close, askQuestion, askText, context, toggleTheme, remember]
+    [router, close, askQuestion, askText, context, toggleTheme, remember, toast]
   );
-
-  useEffect(() => {
-    if (!notice) return;
-    const t = setTimeout(() => setNotice(null), 1800);
-    return () => clearTimeout(t);
-  }, [notice]);
 
   // A page can hand the palette a question (a qa chip, "People asked") or
   // just open it (the Explain footnote's follow-up). The question is asked
@@ -257,12 +255,12 @@ export function useCommandPalette() {
 
   return {
     isOpen,
+    everOpened,
     query,
     setQuery,
     items,
     searching,
     mode: MODE_LABEL[mode],
-    notice,
     ask: askVisible,
     askContext,
     clearContext,

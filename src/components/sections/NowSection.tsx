@@ -54,13 +54,13 @@ export default async function NowSection({ section }: { section: PageSection }) 
               <Card className="p-5 h-full flex flex-col gap-2" hover={Boolean(href)}>
                 <div className="flex items-center justify-between gap-3">
                   <span
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider hue-chip"
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-label font-semibold uppercase tracking-wider hue-chip"
                     style={hueStyle(kind.hue)}
                   >
                     <kind.icon size={11} aria-hidden /> {kind.label}
                   </span>
                   {e.progress && (
-                    <span className="text-[11px] font-mono text-muted">{e.progress}</span>
+                    <span className="text-caption font-mono text-muted">{e.progress}</span>
                   )}
                 </div>
                 {href ? (
@@ -74,7 +74,7 @@ export default async function NowSection({ section }: { section: PageSection }) 
                   <p className="text-sm leading-relaxed m-0 text-secondary">{e.description}</p>
                 )}
                 {e.started_on && (
-                  <p className="text-[11px] font-mono mt-auto pt-1 m-0 text-muted">
+                  <p className="text-caption font-mono mt-auto pt-1 m-0 text-muted">
                     since {new Date(e.started_on).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
                   </p>
                 )}

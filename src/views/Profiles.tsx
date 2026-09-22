@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactElement } from 'react';
-import { motion } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
@@ -115,7 +114,7 @@ export default function Profiles({ profiles }: { profiles: ExternalProfile[] }) 
                 const href = normalizeUrl(p?.profile_url);
                 const color = platformColor(p?.platform);
                 return (
-                  <motion.div key={p.id} className="enter" style={enterAt(i * 50)} whileHover={{ y: -2 }}>
+                  <div key={p.id} className="enter" style={enterAt(i * 50)}>
                     <a
                       href={href || undefined}
                       target={href ? '_blank' : undefined}
@@ -154,7 +153,7 @@ export default function Profiles({ profiles }: { profiles: ExternalProfile[] }) 
                         </svg>
                       )}
                     </a>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

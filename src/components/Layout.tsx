@@ -6,12 +6,12 @@ interface LayoutProps {
 }
 
 /**
- * Section — standard page section wrapper.
- * Always: py-16 (64px) md:py-20 (80px)
+ * Section — the page's vertical rhythm, as a token rather than a number
+ * repeated in every view (`--spacing-section`, one step larger from `md`).
  */
 export function Section({ children, className = '' }: LayoutProps) {
   return (
-    <section className={`py-16 md:py-20 ${className}`}>
+    <section className={`py-section md:py-section-lg ${className}`}>
       {children}
     </section>
   );
@@ -27,4 +27,13 @@ export function Container({ children, className = '' }: LayoutProps) {
       {children}
     </div>
   );
+}
+
+/**
+ * Prose — a reading column. Long-form text (a note's blocks, an answer, a
+ * case study) is capped at a measure, not at whatever max-width the view
+ * reached for: 65 characters is the line a reader does not lose.
+ */
+export function Prose({ children, className = '' }: LayoutProps) {
+  return <div className={`max-w-[65ch] ${className}`}>{children}</div>;
 }

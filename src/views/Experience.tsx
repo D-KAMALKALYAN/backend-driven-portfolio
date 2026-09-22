@@ -10,7 +10,6 @@ function useIsTouchDevice() {
     []
   );
 }
-import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, MapPin } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -75,41 +74,26 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
   // navbar (z-50) - the header with the close button was covered. Outside
   // the page and above the bar, as the command palette already is.
   return createPortal(
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-[100] flex items-stretch justify-end"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-      >
+    <div
+ className="fixed inset-0 z-[100] flex items-stretch justify-end">
         {/* Backdrop */}
-        <motion.div
-          className="absolute inset-0"
-          style={{ backgroundColor: 'var(--overlay)', backdropFilter: 'blur(4px)' }}
-          onClick={onClose}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        />
+        <div
+ className="absolute inset-0"
+ style={{ backgroundColor: 'var(--overlay)', backdropFilter: 'blur(4px)' }}
+ onClick={onClose}/>
 
         {/* Drawer panel */}
-        <motion.div
-          ref={panelRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${exp?.role ?? 'Role'} at ${exp?.company ?? 'company'}`}
-          className="relative z-10 flex flex-col h-full overflow-y-auto"
-          style={{
-            width: 'min(480px, 92vw)',
-            backgroundColor: 'var(--bg-surface)',
-            boxShadow: 'var(--shadow-drawer)',
-          }}
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-        >
+        <div
+ ref={panelRef}
+ role="dialog"
+ aria-modal="true"
+ aria-label={`${exp?.role ?? 'Role'} at ${exp?.company ?? 'company'}`}
+ className="enter-panel relative z-10 flex flex-col h-full overflow-y-auto"
+ style={{
+ width: 'min(480px, 92vw)',
+ backgroundColor: 'var(--bg-surface)',
+ boxShadow: 'var(--shadow-drawer)',
+ }}>
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
@@ -122,7 +106,7 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             <div className="flex items-center gap-2">
               {isCurrent && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold hue-chip"
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-label font-semibold hue-chip"
                   style={hueStyle('success')}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
@@ -194,18 +178,14 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
                 </p>
                 <ul className="space-y-2.5">
                   {achievements.map((item, i) => (
-                    <motion.li
-                      key={i}
-                      initial={{ opacity: 0, x: 12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 + i * 0.06 }}
-                      className="flex items-start gap-2.5 text-sm text-secondary"
-                    >
+                    <li
+ key={i}
+ className="flex items-start gap-2.5 text-sm text-secondary">
                       <span
                         className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-accent"
                       />
                       {item}
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -217,21 +197,13 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
                 <p className="text-xs font-semibold uppercase tracking-widest mb-3 text-muted">
                   Technologies
                 </p>
-                <motion.div
-                  className="flex flex-wrap gap-2"
-                  initial="hidden"
-                  animate="show"
-                  variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-                >
-                  {techs.map((t) => (
-                    <motion.div
-                      key={t}
-                      variants={{ hidden: { opacity: 0, scale: 0.85 }, show: { opacity: 1, scale: 1 } }}
-                    >
+                <div className="flex flex-wrap gap-2">
+                  {techs.map((t, i) => (
+                    <div key={t} className="enter" style={enterAt(i * 30)}>
                       <Badge>{t}</Badge>
-                    </motion.div>
+                    </div>
                   ))}
-                </motion.div>
+                </div>
               </div>
             )}
 
@@ -258,20 +230,19 @@ function ExperienceDrawer({ exp, onClose }: { exp: ExperienceRow; onClose: () =>
             {isTouch ? (
               <>
                 Tap{' '}
-                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-subtle">✕</kbd>
+                <kbd className="px-1.5 py-0.5 rounded text-label font-mono bg-subtle">✕</kbd>
                 {' '}to close
               </>
             ) : (
               <>
                 Press{' '}
-                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-subtle">ESC</kbd>
+                <kbd className="px-1.5 py-0.5 rounded text-label font-mono bg-subtle">ESC</kbd>
                 {' '}to close
               </>
             )}
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>,
+        </div>
+      </div>,
     document.body,
   );
 }
@@ -322,10 +293,7 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
 
       {/* Card */}
       <div className="flex-1 pb-8">
-        <motion.div
-          whileHover={{ y: -3 }}
-          transition={{ duration: 0.18 }}
-        >
+        <div>
           <button
             className="w-full text-left"
             onClick={() => onSelect(exp)}
@@ -347,7 +315,7 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
                 <div className="flex items-center gap-2">
                   {isCurrent && (
                     <span
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold hue-chip"
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-label font-semibold hue-chip"
                       style={hueStyle('success')}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
@@ -356,7 +324,7 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
                   )}
                   {/* Click-to-expand hint */}
                   <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-accent-glow text-accent"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-accent-glow text-accent"
                   >
                     Details
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,7 +366,7 @@ function TimelineItem({ exp, index, isLast, onSelect }: TimelineItemProps) {
               )}
             </Card>
           </button>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -442,9 +410,7 @@ export default function Experience({ experience }: { experience: ExperienceRow[]
       </Section>
 
       {/* Detail drawer — rendered outside the timeline flow */}
-      <AnimatePresence>
-        {selected && <ExperienceDrawer exp={selected} onClose={handleClose} />}
-      </AnimatePresence>
+      {selected && <ExperienceDrawer exp={selected} onClose={handleClose} />}
     </PageWrapper>
   );
 }

@@ -39,6 +39,21 @@
   --color-transparent:  transparent;
   --color-current:      currentColor;
 
+  /* Two steps below Tailwind's text-xs, because this site's labels and
+     captions live there: 61 places wrote text-[10px] or text-[11px] by
+     hand, which is a scale nobody can change. Names must never collide
+     with a colour name - `text-*` serves both namespaces (ADR-044). */
+  --text-label:   0.625rem;
+  --text-label--line-height: 1.4;
+  --text-label--letter-spacing: 0.12em;
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1.5;
+
+  /* The rhythm a page is built on: Section owns the vertical step, and a
+     reading column is a measure, not a max-width someone picked twice. */
+  --spacing-section: 4rem;
+  --spacing-section-lg: 5rem;
+
   --shadow-card:   var(--shadow-card);
   --shadow-hover:  var(--shadow-hover);
   --shadow-glow:   var(--glow);
@@ -140,8 +155,33 @@
   --accent-glow:  rgba(79,70,229,0.10);
   --accent-glow2: rgba(79,70,229,0.20);
 
-  --shadow-card:  0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06);
-  --shadow-hover: 0 4px 12px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.09);
+  /* The categorical hues, darkened for a light background: the dark-theme
+     values are tuned against #0a0a0f and, as text on white, most fall under
+     4.5:1 (amber was 2.0:1). Same names, same meanings, one step deeper. */
+  --hue-indigo: #4f46e5;
+  --hue-violet: #7c3aed;
+  --hue-purple: #7e5bef;
+  --hue-green:  #15803d;
+  --hue-amber:  #b45309;
+  --hue-blue:   #1d4ed8;
+  --hue-pink:   #be185d;
+  --hue-teal:   #0f766e;
+  --hue-red:    #dc2626;
+  --hue-cyan:   #0e7490;
+  --hue-orange: #c2410c;
+  --hue-slate:  #4b5563;
+
+  --success: #15803d;
+  --warning: #b45309;
+  --danger:  #dc2626;
+  --info:    #1d4ed8;
+
+  /* Softer than the dark theme's: a shadow on white is a hint, not a lift. */
+  --shadow-card:  0 1px 2px rgba(16,24,40,0.05), 0 0 0 1px rgba(16,24,40,0.05);
+  --shadow-hover: 0 4px 10px rgba(16,24,40,0.07), 0 0 0 1px rgba(16,24,40,0.08);
+  --shadow-bar:    0 2px 10px rgba(16,24,40,0.06);
+  --shadow-drawer: -4px 0 30px rgba(16,24,40,0.12), -1px 0 0 var(--border);
+  --shadow-modal:  0 20px 40px rgba(16,24,40,0.14), 0 0 0 1px rgba(16,24,40,0.06);
   --glow:  0 0 16px rgba(79,70,229,0.15);
   --glow2: 0 0 30px rgba(79,70,229,0.25);
 
@@ -189,6 +229,18 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .enter { animation: none; }
+}
+
+/* A panel that slides in from the right (the experience drawer), and the
+   backdrop behind it. CSS, so /experience does not carry an animation
+   library for one interaction (ADR-056); the close is immediate, which is
+   the price of not shipping 40 kB to animate an exit. */
+@keyframes enter-slide-left { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes enter-fade { from { opacity: 0; } to { opacity: 1; } }
+.enter-panel   { animation: enter-slide-left 0.22s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.enter-overlay { animation: enter-fade 0.2s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .enter-panel, .enter-overlay { animation: none; }
 }
 
 /* Scrollbar */

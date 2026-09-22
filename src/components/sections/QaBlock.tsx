@@ -21,7 +21,7 @@ export default function QaBlock({ heading, questions }: { heading?: string | nul
     <section className="py-6" aria-label={heading ?? 'Ask about this'}>
       <Container>
       <div className="max-w-3xl">
-        <p className="m-0 mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted flex items-center gap-2">
+        <p className="m-0 mb-3 text-label font-semibold uppercase text-muted flex items-center gap-2">
           <MessageCircleQuestionMark size={13} className="text-accent" aria-hidden />
           {heading ?? 'Ask about this'}
         </p>

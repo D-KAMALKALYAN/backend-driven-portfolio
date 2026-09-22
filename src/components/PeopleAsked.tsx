@@ -22,7 +22,7 @@ export default async function PeopleAsked({ href }: { href: string }) {
     <section className="py-8 md:py-10" aria-labelledby="people-asked">
       <Container>
         <div className="max-w-3xl">
-          <h2 id="people-asked" className="m-0 mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted flex items-center gap-2">
+          <h2 id="people-asked" className="m-0 mb-4 text-label font-semibold uppercase text-muted flex items-center gap-2">
             <MessageCircleQuestionMark size={13} className="text-accent" aria-hidden />
             People asked
           </h2>
@@ -57,7 +57,7 @@ export default async function PeopleAsked({ href }: { href: string }) {
               );
             })}
           </ul>
-          <p className="m-0 mt-3 text-[11px] text-muted">Answered by a model from the site&apos;s own content, kept because the owner checked them.</p>
+          <p className="m-0 mt-3 text-caption text-muted">Answered by a model from the site&apos;s own content, kept because the owner checked them.</p>
         </div>
       </Container>
     </section>
