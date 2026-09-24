@@ -35,3 +35,9 @@ Thumbs.db
 # Supabase CLI local artifacts
 supabase/.temp
 supabase/.branches
+
+# Written (and re-written) by `next dev`: Next 16 drops an AGENTS.md of its
+# own rules into the repo root, plus a CLAUDE.md that points at it. Useful
+# locally, not part of this project's source.
+AGENTS.md
+CLAUDE.md

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import PageWrapper from '../../../components/PageWrapper';
 import { Container } from '../../../components/Layout';
+import DocNav from '../../../components/DocNav';
 import Badge from '../../../components/Badge';
 import { findPostBySlug, getPostBlocks, getSiteContent } from '../../../lib/content';
 import { getSiteFeatures } from '../../../lib/features';
@@ -81,7 +82,15 @@ export default async function Page({ params }: Props) {
           </Container>
         </header>
 
-        {nodes}
+        {/* The body in a reading column, its headings in a nav beside it
+            (ADR-057). `doc-prose` caps the measure of the blocks the
+            registry renders without each block knowing about it. */}
+        <Container>
+          <div className="flex gap-10">
+            <div className="doc-prose min-w-0 flex-1">{nodes}</div>
+            <DocNav label="In this note" />
+          </div>
+        </Container>
 
         <PeopleAsked href={`/writing/${post.slug}`} />
 

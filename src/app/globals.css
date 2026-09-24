@@ -243,6 +243,28 @@ body {
   .enter-panel, .enter-overlay { animation: none; }
 }
 
+/* =========================================================
+   DOCUMENT LAYOUTS (ADR-057)
+   Registry sections each bring their own Container, because each is
+   normally a page-width band. Inside a document column that pads twice and
+   caps at the page width, so the column takes the padding back: `doc-flush`
+   for a page that keeps full-width figures (the architecture page),
+   `doc-prose` for prose, which also takes a measure.
+   ========================================================= */
+.doc-flush > section > div,
+.doc-prose > section > div {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+.doc-prose :is(p, ul, ol, figure, table) {
+  max-width: 68ch;
+}
+.doc-flush > section:first-child,
+.doc-prose > section:first-child { padding-top: 0; }
+
 /* Scrollbar */
 ::-webkit-scrollbar       { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-surface); }
