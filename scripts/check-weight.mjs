@@ -29,7 +29,7 @@
 import { gzipSync } from 'node:zlib';
 
 const args = process.argv.slice(2);
-const WITH_ASK = args.includes('--ask');
+const WITH_ASK = args.some((a) => a === '--ask' || a.startsWith('--ask='));
 const BASE = (args.find((a) => !a.startsWith('--')) ?? 'https://backend-driven-portfolio.vercel.app').replace(/\/$/, '');
 const PAGES = ['/', '/projects', '/experience', '/skills', '/about', '/contact', '/analytics', '/how-it-works', '/writing', '/resume'];
 
@@ -72,7 +72,13 @@ async function weigh(path) {
   return { scripts: srcs.length, kb: bytes / 1024, ttfbMs: await ttfb(BASE + path) };
 }
 
-/** Time to the `sources` event: retrieval done, the visitor has something to read. */
+/**
+ * Time to the first event on the stream, and which event it was. A fresh
+ * question sends `sources` once retrieval is done; a repeat inside the
+ * cache window sends `done` straight away and never sends `sources` at all
+ * (ADR-047). Waiting only for `sources` therefore measured nothing on a
+ * cached question, which is the common case for any question asked twice.
+ */
 async function askFirstByte(question) {
   const start = performance.now();
   const res = await req(`${BASE}/api/ask`, {
@@ -80,19 +86,30 @@ async function askFirstByte(question) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ question }),
   });
-  if (!res.ok || !res.body) return { ms: null, note: `HTTP ${res.status}` };
+  if (!res.ok || !res.body) return { ms: null, kind: `HTTP ${res.status}` };
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffered = '';
-  let sourcesMs = null;
-  while (sourcesMs === null) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffered += decoder.decode(value, { stream: true });
-    if (buffered.includes('event: sources')) sourcesMs = Math.round(performance.now() - start);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffered += decoder.decode(value, { stream: true });
+      const match = buffered.match(/event: (\w+)/);
+      if (match) {
+        const kind = match[1];
+        return {
+          ms: Math.round(performance.now() - start),
+          kind: kind === 'sources' ? 'sources (fresh: retrieval done)'
+            : kind === 'done' ? 'done (cached: no model call)'
+            : kind,
+        };
+      }
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
   }
-  await reader.cancel();
-  return { ms: sourcesMs, note: sourcesMs === null ? 'no sources event' : '' };
+  return { ms: null, kind: 'stream ended with no event' };
 }
 
 console.log(`${BASE}\n`);
@@ -112,6 +129,11 @@ console.log('─'.repeat(54));
 console.log(`heaviest page: ${worst.toFixed(1)} kB`);
 
 if (WITH_ASK) {
-  const { ms, note } = await askFirstByte('What does Kamal do at Tata Consultancy Services?');
-  console.log(`\nask first byte (sources event): ${ms === null ? note : ms + ' ms'}`);
+  // --ask="..." to measure a question the ledger has not answered recently;
+  // the default will usually come back cached, which is its own useful number.
+  const asked = args.find((a) => a.startsWith('--ask='))?.slice('--ask='.length)
+    || 'What does Kamal do at Tata Consultancy Services?';
+  const { ms, kind } = await askFirstByte(asked);
+  console.log(`\nask first byte: ${ms === null ? '-' : ms + ' ms'}  [${kind}]`);
+  console.log(`  question: ${asked}`);
 }
