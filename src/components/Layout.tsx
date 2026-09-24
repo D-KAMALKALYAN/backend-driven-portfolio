@@ -8,10 +8,23 @@ interface LayoutProps {
 /**
  * Section — the page's vertical rhythm, as a token rather than a number
  * repeated in every view (`--spacing-section`, one step larger from `md`).
+ *
+ * `pad` rather than a `pt-0` in `className`: both are padding utilities of
+ * equal specificity, so which one wins is decided by their order in the
+ * generated stylesheet, not by the order they are written here. Sections
+ * that asked for `pt-0` were silently keeping their top padding, and every
+ * gap on the home page was two paddings wide instead of one (ADR-064).
  */
-export function Section({ children, className = '' }: LayoutProps) {
+type SectionPad = 'y' | 'bottom' | 'none';
+
+export function Section({ children, className = '', pad = 'y' }: LayoutProps & { pad?: SectionPad }) {
+  const padding = pad === 'y'
+    ? 'py-section md:py-section-lg'
+    : pad === 'bottom'
+      ? 'pb-section md:pb-section-lg'
+      : '';
   return (
-    <section className={`py-section md:py-section-lg ${className}`}>
+    <section className={`${padding} ${className}`.trim()}>
       {children}
     </section>
   );

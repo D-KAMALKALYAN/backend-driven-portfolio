@@ -51,8 +51,8 @@
 
   /* The rhythm a page is built on: Section owns the vertical step, and a
      reading column is a measure, not a max-width someone picked twice. */
-  --spacing-section: 4rem;
-  --spacing-section-lg: 5rem;
+  --spacing-section: 3rem;
+  --spacing-section-lg: 4rem;
 
   --shadow-card:   var(--shadow-card);
   --shadow-hover:  var(--shadow-hover);

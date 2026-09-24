@@ -12,7 +12,7 @@ import type { AnalyticsDashboard } from '../types/rows';
  * /api/analytics the dashboard reads, cached by hooks/useResource so
  * following the link does not fetch twice.
  */
-export default function AnalyticsTeaser() {
+export default function AnalyticsTeaser({ className = '' }: { className?: string }) {
   const { data, loading } = useResource<AnalyticsDashboard>('/api/analytics');
   const stats = data?.summary;
 
@@ -30,7 +30,7 @@ export default function AnalyticsTeaser() {
   ];
 
   return (
-    <div className="enter mt-6 w-full max-w-lg">
+    <div className={`enter w-full max-w-lg ${className}`}>
       <Link
         href="/analytics"
         className="group no-underline block"
