@@ -30,8 +30,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { isOpen, everOpened, query, setQuery, items, searching, mode, ask, askContext, clearContext, executeCommand, open, close } = useCommandPalette();
   const features = useSiteFeatures();
 
+  // overflow-x-CLIP, not hidden (ADR-066). `overflow-x: hidden` forces the
+  // other axis to compute as `auto`, which makes this div a scroll container -
+  // and a scroll container between a `position: sticky` element and the
+  // viewport is what that element sticks to. DocNav was pinned to a box that
+  // never scrolls, so it slid off the top of the page and left the whole right
+  // column empty below the first screen. `clip` clips the same way and creates
+  // no scroll container.
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden">
+    <div className="min-h-screen flex flex-col overflow-x-clip">
       <Suspense fallback={null}>
         <PageTracker />
       </Suspense>
