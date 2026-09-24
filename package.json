@@ -24,7 +24,8 @@
     "check:screens": "node scripts/check-screens.mjs",
     "check:diff": "node scripts/check-diff.mjs",
     "ai:index": "node scripts/ai-index.mjs",
-    "ai:eval": "node scripts/ai-eval.mjs"
+    "ai:eval": "node scripts/ai-eval.mjs",
+    "check:weight": "node scripts/check-weight.mjs"
   },
   "type": "module",
   "dependencies": {

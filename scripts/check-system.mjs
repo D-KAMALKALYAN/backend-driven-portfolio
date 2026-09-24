@@ -13,6 +13,7 @@
  * anything FAILs; WARNs do not fail the run.
  */
 import { readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 
 const BASE = (process.argv[2] ?? 'https://backend-driven-portfolio.vercel.app').replace(/\/$/, '');
 const env = Object.fromEntries(
@@ -69,6 +70,25 @@ const unescapeHtml = (s) => s.replace(/&amp;/g, '&').replace(/&#x27;/g, "'").rep
   for (let i = 0; i < 5; i++) { const s = await req(`${BASE}/api/health`); try { samples.push(JSON.parse(s.body).dbMs); } catch { /* */ } }
   const sorted = [...samples].sort((a, b) => a - b);
   pass(sorted.length === 5 && sorted[2] < 300, 'deploy', 'server→DB round trip median (ms)', samples.join(' '), true);
+  // ---- step 11 (ADR-062): the weight budget, enforced rather than aspirational ----
+  // Every <script src> the home page references, gzipped here at a fixed
+  // level so two runs compare. This is the number a browser could disagree
+  // with, unlike the build's First Load estimate - see ADR-062 for why the
+  // project quotes this one. `npm run check:weight` breaks it down per page.
+  {
+    const home = await req(`${BASE}/`);
+    const srcs = [...new Set([...home.body.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]))];
+    let bytes = 0;
+    let missed = 0;
+    for (const src of srcs) {
+      const r = await req(src.startsWith('http') ? src : BASE + src);
+      if (r.status !== 200) { missed += 1; continue; }
+      bytes += gzipSync(Buffer.from(r.body, 'utf8'), { level: 6 }).byteLength;
+    }
+    const kb = bytes / 1024;
+    pass(missed === 0 && kb > 0 && kb <= 220, 'weight', 'home page JS within the 220 kB budget', `${kb.toFixed(1)} kB gzipped across ${srcs.length} scripts${missed ? `, ${missed} unreadable` : ''}`);
+  }
+
   // ---- step 10 (ADR-060): observability, retention and the caps, from outside ----
   // Read after the calls above, so the ring has something in it - on the
   // instance that answers this one. Several instances serve a deployment
