@@ -1,0 +1,51 @@
+-- ============================================================
+-- resume: the upload trigger could not insert its own row
+--
+-- Uploading to the `resumes` bucket failed with a 500 and Postgres
+-- 23502 (not_null_violation). handle_resume_upload() inserts
+--
+--   INSERT INTO resume (version, file_url, file_name, storage_path, is_active)
+--   VALUES (..., NULL, ...)   -- file_url: "resolved at read time"
+--
+-- into a table whose file_url is NOT NULL. The two halves disagree, and
+-- the trigger is AFTER INSERT ON storage.objects, so its failure takes
+-- the upload down with it: the object is rolled back and the file never
+-- lands. Nothing here is recoverable by retrying.
+--
+-- The column is the stale half. V1 stored an absolute URL built by string
+-- concatenation, which is why filenames containing spaces produced a URL
+-- that did not resolve (ADR-021); the reader has resolved the public URL
+-- from the object name through the Storage SDK ever since, and
+-- fetchActiveResume() already treats file_url as a legacy fallback used
+-- only when file_name is empty. So the URL is derived, not stored, and a
+-- derived value must not be NOT NULL.
+--
+-- Dropping the constraint rather than teaching the trigger to build the
+-- string again: a second source of truth for the same URL is what broke
+-- the first time.
+--
+-- This was invisible because nothing had been uploaded since the trigger
+-- changed - the one active row predates it and carries a V1 URL. The
+-- audit lesson repeats: a workflow nobody exercises is not a working one.
+--
+-- SAFE TO RE-RUN.
+-- ============================================================
+
+ALTER TABLE public.resume
+  ALTER COLUMN file_url DROP NOT NULL;
+
+
+-- ------------------------------------------------------------
+-- POST-CHECK
+-- ------------------------------------------------------------
+--   select is_nullable from information_schema.columns
+--   where table_name = 'resume' and column_name = 'file_url';
+--   -> YES
+--
+-- Then the path itself, on the local stack:
+--   insert into storage.objects (bucket_id, name, owner)
+--   values ('resumes', 'probe.pdf', NULL);
+--   select version, file_name, storage_path, is_active, file_url from resume;
+--   -> one new row, is_active = false, file_url null. Publishing stays an
+--      explicit second step, and one_active_resume still allows exactly
+--      one active row.

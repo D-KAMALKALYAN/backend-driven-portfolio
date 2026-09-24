@@ -852,7 +852,7 @@ export type Database = {
         Row: {
           created_at: string | null
           file_name: string
-          file_url: string
+          file_url: string | null
           id: string
           is_active: boolean | null
           notes: string | null
@@ -863,7 +863,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           file_name: string
-          file_url: string
+          file_url?: string | null
           id?: string
           is_active?: boolean | null
           notes?: string | null
@@ -874,7 +874,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           file_name?: string
-          file_url?: string
+          file_url?: string | null
           id?: string
           is_active?: boolean | null
           notes?: string | null
