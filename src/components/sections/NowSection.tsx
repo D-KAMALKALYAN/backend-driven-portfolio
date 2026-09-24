@@ -41,7 +41,10 @@ export default async function NowSection({ section }: { section: PageSection }) 
       description={section.description}
       aside={<>updated {formatUpdated(freshness.updatedAt)}</>}
     >
-      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 list-none m-0 p-0">
+      {/* Two columns only when there are two things to put in them: a
+          single entry in a half-width grid leaves the other half blank,
+          which reads as a section that failed to load (ADR-064). */}
+      <ul className={`grid grid-cols-1 gap-4 list-none m-0 p-0 ${entries.length > 1 ? 'md:grid-cols-2' : ''}`}>
         {entries.map((e, i) => {
           const kind = KIND[e.kind] ?? { icon: Activity, label: e.kind, hue: 'accent' as const };
           const projectSlug = e.project_id ? slugById.get(e.project_id) : undefined;

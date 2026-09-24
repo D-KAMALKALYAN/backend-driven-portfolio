@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { ArrowRight, PenLine, Sparkles } from 'lucide-react';
+import { ArrowRight, PenLine } from 'lucide-react';
 import { Section, Container } from './Layout';
 import { CARD, CARD_HOVER, CARD_HOVER_ACCENT } from './Card';
 import Badge from './Badge';
-import AskPrompt from './AskPrompt';
+import AskInvitationBody from './AskInvitation';
 import AnalyticsTeaser from './AnalyticsTeaser';
 import { getPosts, getProjects, getPostBlocks } from '../lib/content';
 import { formatPostDate, readingMinutes } from '../utils/reading';
@@ -43,7 +43,7 @@ export async function SelectedWork() {
     .slice(0, 3);
 
   return (
-    <Section className="pt-0">
+    <Section pad="bottom">
       <Container>
         <SectionHeading label="Selected work" title="Things built, and what they cost" href="/projects" cta="All projects" />
         <ul className="m-0 p-0 list-none grid gap-4 md:grid-cols-3">
@@ -72,20 +72,42 @@ export async function LatestNote() {
   const post = posts[0];
   if (!post) return null;
   const minutes = readingMinutes(await getPostBlocks(post.id));
+  // The two after it fill the column the featured note does not need, so
+  // the row ends where the page does rather than two thirds across it.
+  const more = posts.slice(1, 3);
 
   return (
-    <Section className="pt-0">
+    <Section pad="bottom">
       <Container>
         <SectionHeading label="Writing" title="The most recent note" href="/writing" cta="All notes" />
-        <Link href={`/writing/${post.slug}`} className={`enter block p-6 no-underline max-w-3xl ${CARD} ${CARD_HOVER}`}>
-          <p className="m-0 mb-2 text-caption font-mono text-muted">
-            <PenLine size={12} className="inline align-[-2px] mr-1.5" aria-hidden />
-            <time dateTime={post.published_at ?? undefined}>{formatPostDate(post.published_at)}</time>
-            {' · '}{minutes} min read
-          </p>
-          <h3 className="m-0 mb-2 text-xl font-semibold leading-snug text-primary">{post.title}</h3>
-          {post.summary && <p className="m-0 text-sm leading-relaxed text-secondary">{post.summary}</p>}
-        </Link>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Link
+            href={`/writing/${post.slug}`}
+            className={`enter block p-6 no-underline ${more.length > 0 ? 'lg:col-span-2' : ''} ${CARD} ${CARD_HOVER}`}
+          >
+            <p className="m-0 mb-2 text-caption font-mono text-muted">
+              <PenLine size={12} className="inline align-[-2px] mr-1.5" aria-hidden />
+              <time dateTime={post.published_at ?? undefined}>{formatPostDate(post.published_at)}</time>
+              {' · '}{minutes} min read
+            </p>
+            <h3 className="m-0 mb-2 text-xl font-semibold leading-snug text-primary">{post.title}</h3>
+            {post.summary && <p className="m-0 text-sm leading-relaxed text-secondary">{post.summary}</p>}
+          </Link>
+          {more.length > 0 && (
+            <ul className="m-0 p-0 list-none flex flex-col gap-4">
+              {more.map((p, i) => (
+                <li key={p.id} className="enter flex-1" style={enterAt(80 + i * 70)}>
+                  <Link href={`/writing/${p.slug}`} className={`flex flex-col gap-1.5 h-full p-5 no-underline ${CARD} ${CARD_HOVER}`}>
+                    <span className="text-caption font-mono text-muted">
+                      <time dateTime={p.published_at ?? undefined}>{formatPostDate(p.published_at)}</time>
+                    </span>
+                    <span className="text-sm font-semibold leading-snug text-primary">{p.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Container>
     </Section>
   );
@@ -94,41 +116,37 @@ export async function LatestNote() {
 /** How the site itself works - the page that is the argument for the rest. */
 export function HowItWorksTeaser() {
   return (
-    <Section className="pt-0">
+    <Section pad="bottom">
       <Container>
-        <div className={`enter p-6 sm:p-8 max-w-3xl ${CARD}`}>
-          <p className="m-0 mb-1.5 text-label font-semibold uppercase text-accent">Under the hood</p>
-          <h2 className="m-0 mb-3 text-2xl font-bold tracking-tight text-primary">This page is rows in a database</h2>
-          <p className="m-0 mb-5 leading-relaxed text-secondary">
-            Every section, every string and every feature switch on this site is a row, read on the server per
-            request. The page that explains it is written the same way - and says what each decision cost.
-          </p>
-          <Link href="/how-it-works" className="text-sm font-semibold no-underline hover:underline text-accent">
-            How this site works <ArrowRight size={14} className="inline align-[-2px]" aria-hidden />
-          </Link>
-          {/* The claim, and the numbers that make it checkable. */}
-          <AnalyticsTeaser />
+        {/* The claim on the left, the numbers that make it checkable on the
+            right - the evidence beside the assertion rather than under it,
+            and the card fills the row (ADR-064). */}
+        <div className={`enter p-6 sm:p-8 grid gap-8 lg:grid-cols-2 lg:items-center ${CARD}`}>
+          <div>
+            <p className="m-0 mb-1.5 text-label font-semibold uppercase text-accent">Under the hood</p>
+            <h2 className="m-0 mb-3 text-2xl font-bold tracking-tight text-primary">This page is rows in a database</h2>
+            <p className="m-0 mb-5 leading-relaxed text-secondary">
+              Every section, every string and every feature switch on this site is a row, read on the server per
+              request. The page that explains it is written the same way - and says what each decision cost.
+            </p>
+            <Link href="/how-it-works" className="text-sm font-semibold no-underline hover:underline text-accent">
+              How this site works <ArrowRight size={14} className="inline align-[-2px]" aria-hidden />
+            </Link>
+          </div>
+          <AnalyticsTeaser className="lg:justify-self-end" />
         </div>
       </Container>
     </Section>
   );
 }
 
-/** The last thing on the page: ask it something. */
+/** The last thing on the page: ask it something. The body is a client
+ *  component so the whole invitation can disappear with the flag. */
 export function AskInvitation() {
   return (
-    <Section className="pt-0">
+    <Section pad="bottom">
       <Container>
-        <div className="enter max-w-3xl">
-          <p className="m-0 mb-1.5 text-label font-semibold uppercase text-accent flex items-center gap-1.5">
-            <Sparkles size={12} aria-hidden /> Ask this site
-          </p>
-          <h2 className="m-0 mb-3 text-2xl font-bold tracking-tight text-primary">Rather than read all of it</h2>
-          <p className="m-0 mb-4 leading-relaxed text-secondary">
-            Every answer is written from this site&apos;s own content, with the sources it used - and nothing else.
-          </p>
-          <AskPrompt />
-        </div>
+        <AskInvitationBody />
       </Container>
     </Section>
   );
@@ -140,7 +158,7 @@ export function AskInvitation() {
  */
 export function HomeSectionSkeleton({ label, cards = 1 }: { label: string; cards?: number }) {
   return (
-    <Section className="pt-0">
+    <Section pad="bottom">
       <Container>
         <div aria-busy="true" aria-live="polite">
           <span className="sr-only">Loading {label.toLowerCase()}…</span>
