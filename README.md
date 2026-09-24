@@ -532,6 +532,26 @@ jobs:
 
 ---
 
+## Checks
+
+Six scripts, each answering a question the site cannot answer about itself. They run
+against any deployment - pass a base URL, default is production.
+
+| Command | What it asks |
+|---|---|
+| `npm run check:system` | 85+ probes from outside with the public key only: health and capabilities, every page renders what the database holds, security headers, the RLS boundary as `anon`, SEO, the Ask ledger's caps, the 90-day question retention, and the resume upload invariant. Exit 1 on any failure |
+| `npm run check:weight` | Per page: every `<script src>` it references, gzipped, plus TTFB (median of five). `-- --ask` also times Ask's first byte, which costs a question |
+| `npm run check:screens -- <dir> [url]` | 40 full-page captures in both themes and at phone width, plus the interactive states; records console errors, failed requests and a11y basics per capture |
+| `npm run check:diff -- <before> <after> <out>` | Pixel diff between two capture runs |
+| `npm run ai:index` | Re-embeds changed content for hybrid retrieval (the daily cron does this too) |
+| `npm run ai:eval` | 20 questions against the live corpus, reporting hit@1 and hit@3 for lexical and hybrid retrieval |
+
+`check:system` enforces the JS budget: `/` must stay at or under **220 kB gzipped on the
+wire**, counted as every script the page actually references rather than as the build's
+First Load estimate. It is 196.9 kB today.
+
+---
+
 ## Security Model
 
 | Layer | Mechanism |
@@ -549,13 +569,23 @@ jobs:
 
 ## Roadmap
 
-- [ ] Admin dashboard (React + service_role, separate deployment)
+**Shipped**
+
 - [x] Real-time analytics view (Supabase Realtime subscription)
-- [ ] AI portfolio assistant (RAG over project descriptions)
+- [x] OpenGraph image generation per project (`next/og`)
+- [x] Analytics writes behind `/api/track`; no anonymous INSERT policy on any table
+- [x] **Ask this site** - grounded Q&A over the site's own rows, streamed, with citations
+- [x] **Hybrid retrieval** - pgvector embeddings fused with full-text search; measured hit@3 13/20 to 17/20, no misses
+- [x] **Explain this** - a footnote on one block, cached and attributed to its own feature
+- [x] **A daily digest** - three sentences about the day's numbers, written from the numbers alone
+- [x] **A spend ledger** - per-question cost, daily and monthly caps, 90-day retention on the questions themselves
+- [x] **Observability** - request id, timing and error reporting on every route, surfaced by `/api/health`
+
+**Next**
+
+- [ ] Admin dashboard (React + service_role, separate deployment)
 - [ ] Multi-language support via `site_content` locale keys
 - [ ] GitHub activity auto-sync (Edge Function + cron)
-- [x] OpenGraph image generation per project (`next/og`)
-- [x] Move analytics writes behind `/api/track`; drop anonymous INSERT from RLS once the service key is configured
 
 ---
 
@@ -574,8 +604,8 @@ The same Supabase backend could power a mobile app, a CLI tool, or a different f
 **Kamal Kalyan**
 Backend-focused engineer specializing in system design, security, and scalable architectures.
 
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github)](https://github.com/your-username)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/your-profile)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github)](https://github.com/D-KAMALKALYAN)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/kamalkalyan/)
 
 ---
 
