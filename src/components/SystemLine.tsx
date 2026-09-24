@@ -9,9 +9,10 @@ import { useSystemStatus } from '../hooks/useSystemStatus';
  * name, which is not what a visitor came for; here they are a footnote
  * anyone can check, beside the claim they support.
  *
- * Only measured values: "Uptime 99.9%" and "Security: Active" were string
- * literals sitting beside real readings, which cost the real ones their
- * credibility (ADR-039).
+ * Only measured values: the hardcoded uptime figure and "Security: Active"
+ * were string literals sitting beside real readings, which cost the real
+ * ones their credibility (ADR-039). Naming the figure here would trip the
+ * CI guard that keeps it out - which is the guard working.
  */
 export default function SystemLine() {
   const { system, latency, systemColor, latencyColor } = useSystemStatus();
