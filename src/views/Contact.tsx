@@ -9,6 +9,8 @@ import Button from '../components/Button';
 import { validateContactForm, type ContactFormErrors } from '../utils/validators';
 import { getVal, getItems } from '../utils/siteContent';
 import { useSiteContent } from '../hooks/useSiteContent';
+import PlatformIcon, { normalizeUrl } from '../components/PlatformIcon';
+import type { ExternalProfile } from '../types/rows';
 import { asObjectArray, asString } from '../utils/json';
 import { enterAt } from '../utils/enter';
 import { hueStyle } from '../lib/palette';
@@ -154,8 +156,13 @@ function InfoItem({ icon, label, value, href }: { icon: ReactNode; label: string
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function Contact() {
+export default function Contact({ profiles = [] }: { profiles?: ExternalProfile[] }) {
   const { content } = useSiteContent();
+
+  // Ordered by the table's display_order, inactive rows dropped by the query.
+  const links = profiles
+    .map((p) => ({ id: p.id, platform: p.platform ?? 'Link', href: normalizeUrl(p.profile_url) }))
+    .filter((l): l is { id: string; platform: string; href: string } => Boolean(l.href));
 
   const [form, setForm]       = useState<ContactForm>(INIT);
   const [errors, setErrors]   = useState<ContactFormErrors>({});
@@ -179,9 +186,6 @@ export default function Contact() {
     .filter((item) => item.label);
   const availability = storedAvailability.length > 0 ? storedAvailability : DEFAULT_AVAILABILITY;
 
-  const socialGithub   = getVal(content, 'social.github',   '');
-  const socialLinkedin = getVal(content, 'social.linkedin',  '');
-  const socialLeetcode = getVal(content, 'social.leetcode',  '');
 
   // ── Form handlers ─────────────────────────────────────────────────────────
   const onChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -338,22 +342,20 @@ export default function Contact() {
                   <InfoItem icon={<ClockIcon />} label="Response Time" value="Usually within 24 hours" />
                 </div>
 
-                {/* Social links */}
-                {(socialGithub || socialLinkedin || socialLeetcode) && (
-                  <div className="mt-4 pt-4 flex items-center gap-3 flex-wrap border-t border-line">
-                    {[
-                      { href: socialGithub,   label: 'GitHub',   char: 'GH' },
-                      { href: socialLinkedin, label: 'LinkedIn', char: 'LI' },
-                      { href: socialLeetcode, label: 'LeetCode', char: 'LC' },
-                    ].filter((s) => s.href).map((s) => (
+                {/* Every profile the owner has, drawn with its own mark. */}
+                {links.length > 0 && (
+                  <div className="mt-4 pt-4 flex items-center gap-2 flex-wrap border-t border-line">
+                    {links.map((l) => (
                       <a
-                        key={s.label}
-                        href={s.href}
+                        key={l.id}
+                        href={l.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono no-underline transition-[color,box-shadow] bg-subtle text-muted shadow-card hover:text-accent hover:shadow-[0_0_0_1px_var(--ring-accent)]"
+                        title={l.platform}
+                        aria-label={l.platform}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg no-underline transition-[color,box-shadow] bg-subtle text-muted shadow-card hover:text-accent hover:shadow-[0_0_0_1px_var(--ring-accent)]"
                       >
-                        {s.char}
+                        <PlatformIcon platform={l.platform} className="w-[18px] h-[18px]" />
                       </a>
                     ))}
                   </div>
