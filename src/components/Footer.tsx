@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { Cog } from 'lucide-react';
 import { useSiteContent } from '../hooks/useSiteContent';
-import SystemLine from './SystemLine';
 import { asObjectArray, asString } from '../utils/json';
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -109,7 +108,7 @@ export default function Footer() {
             style={{ backgroundColor: 'var(--bg-subtle)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
           >
             <Cog size={14} className="shrink-0 mt-px text-muted" aria-hidden />
-            <p className="text-caption leading-relaxed text-muted flex-1 m-0">
+            <p className="text-caption leading-relaxed text-muted m-0">
               {noteTitle && (
                 <strong className="text-secondary">{noteTitle}{' '}</strong>
               )}
@@ -123,9 +122,6 @@ export default function Footer() {
                 </>
               )}
             </p>
-            {/* The two readings the site measures about itself (ADR-057),
-                beside the claim they support. A span: this row is a <p>. */}
-            <SystemLine />
           </div>
         )}
 

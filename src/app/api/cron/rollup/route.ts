@@ -4,6 +4,8 @@ import { getSiteFeatures } from '../../../../lib/features';
 import { createProvider } from '../../../../ai/provider';
 import { generateDailyDigest } from '../../../../ai/digest';
 import { indexIsStale, reindex } from '../../../../ai/indexer';
+import { RETAIN_DAYS } from '../../../../lib/retention';
+import { withRoute } from '../../../../lib/observe';
 
 /**
  * GET /api/cron/rollup - daily, from Vercel Cron (vercel.json).
@@ -28,9 +30,10 @@ import { indexIsStale, reindex } from '../../../../ai/indexer';
  */
 export const dynamic = 'force-dynamic';
 
-export const RETAIN_DAYS = 90;
+// One definition, shared with /api/health so the check and the cron agree.
+export { RETAIN_DAYS } from '../../../../lib/retention';
 
-export async function GET(request: NextRequest) {
+export const GET = withRoute('cron/rollup', async (request: NextRequest): Promise<Response> => {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     return NextResponse.json({ ok: false, message: 'CRON_SECRET is not configured' }, { status: 503 });
@@ -78,4 +81,4 @@ export async function GET(request: NextRequest) {
   if (index.status === 'failed') console.error('[cron/rollup] index failed:', index.reason);
   console.info('[cron/rollup]', JSON.stringify({ rollup: rollup.data, ask: ask.data, digest, index }));
   return NextResponse.json({ ok: true, result: rollup.data, ask: ask.data, digest, index, at: new Date().toISOString() });
-}
+});

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createServiceSupabase } from '../../../lib/supabase/server';
 import { getFeatureFlags } from '../../../lib/content';
 import { getPublicSupabaseConfig } from '../../../services/supabaseConfig';
+import { RETAIN_DAYS } from '../../../lib/retention';
+import type { Json } from '../../../types/database';
+import { routeStats, withRoute } from '../../../lib/observe';
 
 /**
  * GET /api/health
@@ -125,6 +128,28 @@ async function askSpend(): Promise<AskSpend | null> {
   };
 }
 
+/**
+ * Two invariants that used to be checkable only by reading the tables
+ * (ADR-060). `retention.overdue` above zero means the daily cron has
+ * stopped blanking questions past their 90 days; `resume.unsatisfied`
+ * non-empty means the upload trigger would fail its own INSERT, which is
+ * how ADR-059 happened. Counts and column names, never a question.
+ */
+async function ledgerState(): Promise<{ retention: Json | null; resume: Json | null }> {
+  const service = createServiceSupabase();
+  if (!service) return { retention: null, resume: null };
+  const [retention, resume] = await Promise.all([
+    service.rpc('ask_retention_state', { p_days: RETAIN_DAYS }),
+    service.rpc('resume_pipeline_state'),
+  ]);
+  if (retention.error) console.error('[health] ask_retention_state failed:', retention.error.code, retention.error.message);
+  if (resume.error) console.error('[health] resume_pipeline_state failed:', resume.error.code, resume.error.message);
+  return {
+    retention: retention.error ? null : retention.data,
+    resume: resume.error ? null : resume.data,
+  };
+}
+
 /** The owner's switches as the app reads them (utils/features.ts). Null when the read fails; the site would be erroring too. */
 async function features(): Promise<Record<string, boolean> | null> {
   try {
@@ -135,13 +160,14 @@ async function features(): Promise<Record<string, boolean> | null> {
   }
 }
 
-export async function GET() {
+export const GET = withRoute('health', async (): Promise<Response> => {
   const { url, key, configured } = getPublicSupabaseConfig();
-  const [ping, revalidation, ask, flags] = await Promise.all([
+  const [ping, revalidation, ask, flags, state] = await Promise.all([
     configured ? pingDatabase(url, key) : Promise.resolve({ db: false, dbMs: null }),
     configured ? revalidationDiagnostics() : Promise.resolve(null),
     configured ? askSpend() : Promise.resolve(null),
     configured ? features() : Promise.resolve(null),
+    configured ? ledgerState() : Promise.resolve({ retention: null, resume: null }),
   ]);
 
   return NextResponse.json(
@@ -159,8 +185,14 @@ export async function GET() {
       openai: Boolean(process.env.OPENAI_API_KEY),
       flags,
       ask,
+      retention: state.retention,
+      resume: state.resume,
+      // Timings from this instance's ring, and honest about being one
+      // instance's view (ADR-060). Empty until a route has been called
+      // on the instance answering this request.
+      routes: routeStats(),
       env: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'unknown',
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );
-}
+});
