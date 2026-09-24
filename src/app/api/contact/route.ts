@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabase, createServiceSupabase } from '../../../lib/supabase/server';
 import { getProfile } from '../../../lib/content';
 import { notifyOwner, parseSubmission, submitContact } from '../../../lib/contact';
+import { withRoute } from '../../../lib/observe';
 
 /**
  * POST /api/contact
@@ -17,7 +18,7 @@ import { notifyOwner, parseSubmission, submitContact } from '../../../lib/contac
  * through Resend. The database's own rate-limit trigger still applies and
  * is reported as 429.
  */
-export async function POST(request: NextRequest) {
+export const POST = withRoute('contact', async (request: NextRequest): Promise<Response> => {
   let body: unknown;
   try {
     body = await request.json();
@@ -62,4 +63,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });
-}
+});

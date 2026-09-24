@@ -48,6 +48,17 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
 
+      # Already covered by `npm test`, and run again by name: these are the
+      # prompt-injection rules (ADR-051, ADR-053) - source delimiting,
+      # marker neutralisation, the data rule in both system prompts, and the
+      # output link filter. A failure here should read as a security
+      # regression in the CI log, not as one line inside 340 passing tests.
+      - name: Prompt-injection suite
+        run: npx vitest run src/__tests__/askInjection.test.ts
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+
       # Every route renders per request, so `next build` needs no database:
       # nothing is fetched at build time. If this step ever starts needing
       # real credentials, something has become static that should not be.

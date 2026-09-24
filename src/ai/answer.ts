@@ -6,6 +6,7 @@ import { sourceHrefs } from './retrieval';
 import { EMPTY_ANSWER, extractCitations, filterAnswer, isNonAnswer } from './prompt';
 import type { AskStream } from './stream';
 import type { AskSource } from './types';
+import { span } from '../lib/observe';
 
 /**
  * Steps 3 and 4 of every answer (ADR-050, ADR-053): the model, streamed;
@@ -32,14 +33,17 @@ export interface AnswerJob {
 }
 
 export async function streamAnswer({ service, provider, gate, sources, instructions, input, maxOutputTokens, stream, nonAnswerIsFailure = true }: AnswerJob): Promise<void> {
+  // Both steps are timed (ADR-060). The route's own sample stopped when the
+  // stream opened; everything below happens after that, so this is the only
+  // place the model's and the ledger's share of an answer is visible.
   const finish = (status: 'answered' | 'failed', answer: string | null, citations: ReturnType<typeof extractCitations>, usage: Parameters<typeof finishAsk>[1]['usage']) =>
-    finishAsk(service, { id: gate.id, model: provider.model, price: provider.price, sources: sourceHrefs(sources), status, answer, citations, usage });
+    span('ai.ledger', () => finishAsk(service, { id: gate.id, model: provider.model, price: provider.price, sources: sourceHrefs(sources), status, answer, citations, usage }));
 
   try {
-    const { text, usage, model, incomplete } = await provider.stream(
+    const { text, usage, model, incomplete } = await span('ai.model', () => provider.stream(
       { instructions, input, maxOutputTokens },
       { onDelta: (piece) => stream.send({ event: 'delta', text: piece }) },
-    );
+    ));
     const answer = filterAnswer(text, sources);
     if (!answer || incomplete === 'content_filter') {
       // A refusal or an empty completion: say so, bill it, do not cache it.

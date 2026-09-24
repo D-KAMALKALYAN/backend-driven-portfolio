@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { CONTENT_TAG } from '../../../lib/supabase/server';
+import { withRoute } from '../../../lib/observe';
 
 /**
  * POST /api/revalidate
@@ -21,7 +22,7 @@ interface WebhookPayload {
   schema?: string;
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withRoute('revalidate', async (request: NextRequest): Promise<Response> => {
   const secret = process.env.REVALIDATE_SECRET;
   if (!secret) {
     return NextResponse.json({ ok: false, message: 'REVALIDATE_SECRET is not configured' }, { status: 503 });
@@ -50,4 +51,4 @@ export async function POST(request: NextRequest) {
   // entry, which is what "I just edited it" expects to see.
   revalidateTag(tag, { expire: 0 });
   return NextResponse.json({ ok: true, revalidated: tag, at: new Date().toISOString() });
-}
+});

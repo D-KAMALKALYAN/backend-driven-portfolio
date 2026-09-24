@@ -14,6 +14,7 @@ import { createAskStream } from '../../../ai/stream';
 import { routeQuestion } from '../../../ai/router';
 import { loadAnalyticsFacts, loadLatestDigest } from '../../../ai/facts';
 import type { AskSource } from '../../../ai/types';
+import { span, withRoute } from '../../../lib/observe';
 
 /**
  * POST /api/ask
@@ -59,7 +60,7 @@ const noStore = { 'Cache-Control': 'no-store' };
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: noStore });
 const unavailable = () => json({ ok: false, message: 'Ask is unavailable right now.' }, 500);
 
-export async function POST(request: NextRequest) {
+export const POST = withRoute('ask', async (request: NextRequest): Promise<Response> => {
   const provider = createProvider();
   const service = createServiceSupabase();
   if (!provider || !service) {
@@ -151,13 +152,16 @@ export async function POST(request: NextRequest) {
     // 2. Retrieval, as the anon role; the sources are the first thing the visitor sees.
     let sources: AskSource[];
     try {
-      if (routeQuestion(question) === 'analytics') {
-        const [facts, digest] = await Promise.all([loadAnalyticsFacts(anon), loadLatestDigest(anon)]);
-        sources = digest ? [facts, digest] : [facts];
-      } else {
+      // Timed as one step (ADR-060): whichever way the sources are found,
+      // this is the half-second before the visitor sees anything.
+      sources = await span('ask.retrieve', async () => {
+        if (routeQuestion(question) === 'analytics') {
+          const [facts, digest] = await Promise.all([loadAnalyticsFacts(anon), loadLatestDigest(anon)]);
+          return digest ? [facts, digest] : [facts];
+        }
         // Hybrid retrieval (ADR-055): the question's embedding joins the words; without one, the words alone.
-        sources = await retrieveSources(anon, question, { features, context, embedding: await provider.embed(question) });
-      }
+        return retrieveSources(anon, question, { features, context, embedding: await provider.embed(question) });
+      });
     } catch (err) {
       const e = err as { code?: string; message?: string };
       console.error('[ask] retrieval failed:', e.code, e.message);
@@ -185,7 +189,7 @@ export async function POST(request: NextRequest) {
   };
   keepAlive(run());
   return stream.response;
-}
+});
 
 /**
  * after(): the platform waits for the work before freezing the function,

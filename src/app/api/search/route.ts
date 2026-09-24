@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabase } from '../../../lib/supabase/server';
 import { getSiteFeatures } from '../../../lib/features';
+import { withRoute } from '../../../lib/observe';
 
 /**
  * GET /api/search?q=...&limit=8
@@ -18,7 +19,7 @@ const MAX_QUERY = 100;
 const DEFAULT_LIMIT = 8;
 const MAX_LIMIT = 20;
 
-export async function GET(request: NextRequest) {
+export const GET = withRoute('search', async (request: NextRequest): Promise<Response> => {
   const q = (request.nextUrl.searchParams.get('q') ?? '').trim().slice(0, MAX_QUERY);
   const limitRaw = Number(request.nextUrl.searchParams.get('limit') ?? DEFAULT_LIMIT);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(1, Math.trunc(limitRaw)), MAX_LIMIT) : DEFAULT_LIMIT;
@@ -43,4 +44,4 @@ export async function GET(request: NextRequest) {
   // issued a background refetch of every result it served, doubling the
   // traffic the cache was meant to remove.
   return NextResponse.json({ results }, { headers: { 'Cache-Control': 'public, max-age=60' } });
-}
+});

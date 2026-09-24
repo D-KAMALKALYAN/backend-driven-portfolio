@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabase, createServiceSupabase } from '../../../lib/supabase/server';
 import { parseTrackRequest, recordEvent, trackContextFrom } from '../../../lib/track';
+import { withRoute } from '../../../lib/observe';
 
 /**
  * POST /api/track
@@ -12,7 +13,7 @@ import { parseTrackRequest, recordEvent, trackContextFrom } from '../../../lib/t
  * Always answers quickly and never with a body the client would read;
  * telemetry must not be able to surface a failure to a visitor.
  */
-export async function POST(request: NextRequest) {
+export const POST = withRoute('track', async (request: NextRequest): Promise<Response> => {
   let body: unknown;
   try {
     body = await request.json();
@@ -34,4 +35,4 @@ export async function POST(request: NextRequest) {
   }
 
   return new NextResponse(null, { status: outcome.ok ? 204 : 500 });
-}
+});

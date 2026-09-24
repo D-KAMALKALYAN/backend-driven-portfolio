@@ -69,6 +69,44 @@ const unescapeHtml = (s) => s.replace(/&amp;/g, '&').replace(/&#x27;/g, "'").rep
   for (let i = 0; i < 5; i++) { const s = await req(`${BASE}/api/health`); try { samples.push(JSON.parse(s.body).dbMs); } catch { /* */ } }
   const sorted = [...samples].sort((a, b) => a - b);
   pass(sorted.length === 5 && sorted[2] < 300, 'deploy', 'server→DB round trip median (ms)', samples.join(' '), true);
+  // ---- step 10 (ADR-060): observability, retention and the caps, from outside ----
+  // Read after the calls above, so the ring has something in it - on the
+  // instance that answers this one. Several instances serve a deployment
+  // and they do not share the ring, which is why the payload says so and
+  // why an empty one is a WARN, not a FAIL.
+  const r2 = await req(`${BASE}/api/health`);
+  let h2 = {}; try { h2 = JSON.parse(r2.body); } catch { /* */ }
+  pass(h2.routes?.perInstance === true && typeof h2.routes?.windowMinutes === 'number', 'observe', 'health reports route timings, labelled per-instance', JSON.stringify({ perInstance: h2.routes?.perInstance, windowMinutes: h2.routes?.windowMinutes }));
+  pass(Boolean(h2.routes?.byRoute?.health), 'observe', 'this instance has timings of its own', JSON.stringify(h2.routes?.byRoute ?? {}), true);
+  pass(Boolean(r2.headers.get('x-request-id')), 'observe', 'an API response carries a request id', r2.headers.get('x-request-id') ?? 'missing');
+
+  // A visitor's words are kept for 90 days (ADR-049). `overdue` is the
+  // number of rows past that which still hold one: the cron's own report,
+  // asked of the database rather than of the cron's log.
+  if (h.retention) {
+    pass(h.retention.overdue === 0, 'privacy', 'no question past its retention window still holds its words', JSON.stringify(h.retention));
+    pass(typeof h.retention.rows === 'number' && h.retention.retain_days === 90, 'privacy', 'retention window is 90 days', String(h.retention.retain_days));
+  } else {
+    pass(false, 'privacy', 'health reports ask retention state', 'missing');
+  }
+
+  // The invariant ADR-059 broke: every NOT NULL column without a default
+  // must be one the upload trigger supplies. Non-empty means the next
+  // upload fails - which is how that outage stayed invisible for weeks.
+  if (h.resume) {
+    pass(h.resume.trigger_installed === true && Array.isArray(h.resume.unsatisfied) && h.resume.unsatisfied.length === 0, 'resume', 'the upload trigger can still insert its own row', JSON.stringify(h.resume));
+    pass(h.resume.active === 1, 'resume', 'exactly one resume is published', `${h.resume.active} of ${h.resume.rows} rows, ${h.resume.objects} objects in the bucket`);
+  } else {
+    pass(false, 'resume', 'health reports the upload pipeline state', 'missing');
+  }
+
+  // Both caps, checked from outside rather than trusted.
+  if (h.ask) {
+    const n = (v) => Number(String(v ?? '0'));
+    pass(n(h.ask.dailyCapUsd) > 0 && n(h.ask.capUsd) > 0, 'ai', 'both spend caps are configured', `${h.ask.dailyCapUsd} daily, ${h.ask.capUsd} monthly`);
+    pass(n(h.ask.todayUsd) <= n(h.ask.dailyCapUsd) && n(h.ask.monthUsd) <= n(h.ask.capUsd), 'ai', 'spend is inside both caps', `${h.ask.todayUsd}/${h.ask.dailyCapUsd} today, ${h.ask.monthUsd}/${h.ask.capUsd} this month`);
+  }
+
   if (h.revalidation) pass(h.revalidation.secretSet === true && h.revalidation.triggers >= 15, 'cache', 'revalidation triggers armed', JSON.stringify(h.revalidation));
   if (h.ask) rec('INFO', 'ai', 'ask spend this month', JSON.stringify(h.ask));
 }

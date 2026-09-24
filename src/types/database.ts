@@ -1127,6 +1127,7 @@ export type Database = {
       ask_index_state: { Args: never; Returns: Json }
       ask_query_terms: { Args: { q: string }; Returns: string }
       ask_retention: { Args: { p_days?: number }; Returns: Json }
+      ask_retention_state: { Args: { p_days?: number }; Returns: Json }
       ask_spend: { Args: never; Returns: Json }
       explain_source: {
         Args: { p_id: string; p_table: string }
@@ -1142,6 +1143,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       jsonb_strings: { Args: { doc: Json }; Returns: string }
       refresh_project_view_counts: { Args: never; Returns: undefined }
+      resume_pipeline_state: { Args: never; Returns: Json }
       revalidate_diagnostics: { Args: never; Returns: Json }
       rollup_analytics: { Args: { retain_days?: number }; Returns: Json }
       search_content: {
