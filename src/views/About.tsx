@@ -125,7 +125,9 @@ export default function About({ profile, achievements, children }: AboutProps) {
     { key: 'approach',       label: 'Approach',       content: meta.approach },
     { key: 'interests',      label: 'Interests',      content: meta.interests },
     { key: 'education',      label: 'Education',      content: meta.education },
-    { key: 'certifications', label: 'Certifications', content: meta.certifications },
+    // No 'certifications' card: it was a hand-written prose copy of the
+    // achievements table rendered directly below it, and it had already
+    // drifted - missing a credential the table had (ADR-065).
   ].filter((s) => s.content);
 
   const achievementList    = Array.isArray(achievements) ? achievements : [];

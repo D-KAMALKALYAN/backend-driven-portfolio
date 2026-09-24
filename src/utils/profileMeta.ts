@@ -1,8 +1,8 @@
 /**
  * Typed reader for `profiles.meta`.
  *
- * The About page's philosophy/approach/interests/education/certifications
- * sections and the "N+ yrs experience" chip are not columns: they live in
+ * The About page's philosophy/approach/interests/education sections and
+ * the "N+ yrs experience" chip are not columns: they live in
  * the JSONB `meta` escape hatch so they can be edited from the dashboard
  * without a migration. The keys below are the contract; the population
  * migration (20260912100100_content_population) writes exactly these.
@@ -21,7 +21,6 @@ export interface ProfileMeta {
   approach: string;
   interests: string;
   education: string;
-  certifications: string;
 }
 
 export function readProfileMeta(meta: Json | null | undefined): ProfileMeta {
@@ -33,6 +32,5 @@ export function readProfileMeta(meta: Json | null | undefined): ProfileMeta {
     approach: asString(m['approach']),
     interests: asString(m['interests']),
     education: asString(m['education']),
-    certifications: asString(m['certifications']),
   };
 }
