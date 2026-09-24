@@ -6,6 +6,7 @@ import { MapPin } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import Button from '../components/Button';
+import SystemPanel from '../components/SystemPanel';
 import { buildCareerLine } from '../utils/career';
 import { trackEvent } from '../services/analytics';
 import { getVal, getItems } from '../utils/siteContent';
@@ -64,8 +65,14 @@ export default function Landing({ experience, resume, children }: LandingProps) 
       <Section>
         <Container className="relative">
 
-          {/* ── Hero ── */}
-          <div className="enter w-full max-w-3xl" style={enterAt(50)}>
+          {/* ── Hero ──
+              Two columns from `lg`: the intro, and the readings the site
+              measures about itself (ADR-061). The intro alone left the
+              right half of a 1280 px screen empty, and the readings were
+              in the footer where nobody scrolled to them. One change
+              answers both. Below `lg` the panel follows the intro. */}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-10 lg:gap-16">
+          <div className="enter w-full max-w-3xl min-w-0" style={enterAt(50)}>
             <h1 className="text-4xl sm:text-6xl font-extrabold leading-[1.05] tracking-tight mb-4 text-primary">
               {name}
             </h1>
@@ -147,6 +154,14 @@ export default function Landing({ experience, resume, children }: LandingProps) 
                   {tag}
                 </span>
               ))}
+            </div>
+          </div>
+
+            {/* Measured, not asserted: what the server just saw of the
+                database. The one thing on this page that cannot be faked
+                by a static file. */}
+            <div className="enter w-full lg:w-auto lg:shrink-0" style={enterAt(400)}>
+              <SystemPanel />
             </div>
           </div>
 
