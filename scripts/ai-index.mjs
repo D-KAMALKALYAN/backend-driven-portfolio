@@ -19,7 +19,13 @@ const env = Object.fromEntries(
     .map((l) => { const i = l.indexOf('='); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }),
 );
 const args = process.argv.slice(2);
-const base = (args[args.indexOf('--base') + 1] && args.includes('--base') ? args[args.indexOf('--base') + 1] : (process.env.NEXT_PUBLIC_SITE_URL ?? env.NEXT_PUBLIC_SITE_URL ?? 'https://backend-driven-portfolio.vercel.app')).replace(/\/$/, '');
+// NEXT_PUBLIC_SITE_URL is deliberately not consulted: in a local .env it is
+// http://localhost:3000, so the documented "npm run ai:index -> production"
+// quietly asked a dev server instead, which answered 401 with the
+// deployment's secret and looked like the secret was wrong.
+const base = (args.includes('--base') && args[args.indexOf('--base') + 1]
+  ? args[args.indexOf('--base') + 1]
+  : process.env.AI_INDEX_BASE ?? 'https://backend-driven-portfolio.vercel.app').replace(/\/$/, '');
 const secret = process.env.CRON_SECRET ?? env.CRON_SECRET;
 if (!secret) { console.error('CRON_SECRET missing from .env'); process.exit(2); }
 
