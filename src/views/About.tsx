@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
 import {
   Award, Code2, Compass, FileText, GraduationCap, Heart, Hourglass, Lightbulb, MapPin, Medal, Mic, Star, Target, Trophy, User,
   type LucideIcon,
@@ -47,7 +46,7 @@ function AchievementCard({ a, index }: { a: Achievement; index: number }) {
     : null;
 
   return (
-    <motion.div className="enter" style={enterAt(index * 50)} whileHover={{ y: -2 }}>
+    <div className="enter" style={enterAt(index * 50)}>
       <a
         href={a?.credential_url || undefined}
         target={a?.credential_url ? '_blank' : undefined}
@@ -65,7 +64,7 @@ function AchievementCard({ a, index }: { a: Achievement; index: number }) {
             </div>
             {a?.is_featured && (
               <span
-                className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full hue-chip"
+                className="text-label font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full hue-chip"
                 style={hueStyle('amber')}
               >
                 Featured
@@ -96,12 +95,12 @@ function AchievementCard({ a, index }: { a: Achievement; index: number }) {
           <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-line">
             <Badge hue={meta.hue}>{a?.type ?? 'other'}</Badge>
             {dateStr && (
-              <span className="text-[10px] font-mono text-muted">{dateStr}</span>
+              <span className="text-label font-mono text-muted">{dateStr}</span>
             )}
           </div>
         </div>
       </a>
-    </motion.div>
+    </div>
   );
 }
 

@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, type ChangeEvent, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { Send } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
 import SectionHeader from '../components/SectionHeader';
@@ -60,29 +59,12 @@ const ShieldIcon = () => (
 // ─── Animated success checkmark ───────────────────────────────────────────────
 function SuccessBanner({ message }: { message: string }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -12, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8 }}
-      className="p-5 rounded-2xl mb-6 flex items-center gap-4 hue-pill"
-      style={hueStyle('success')}
-    >
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
-        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 hue-chip"
-        style={hueStyle('success')}
-      >
+    <div className="p-5 rounded-2xl mb-6 flex items-center gap-4 hue-pill" style={hueStyle('success')}>
+      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 hue-chip" style={hueStyle('success')}>
         <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <motion.path
-            strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
         </svg>
-      </motion.div>
+      </div>
       <div>
         <p className="text-sm font-semibold text-success">
           {message || "Message sent successfully!"}
@@ -91,7 +73,7 @@ function SuccessBanner({ message }: { message: string }) {
           I'll get back to you within 24 hours.
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -127,16 +109,11 @@ function Field({ id, label, required, error, children }: FieldProps) {
         {label}{required && ' *'}
       </label>
       {children}
-      <AnimatePresence>
-        {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="mt-1.5 text-xs text-danger"
-          >
+      {error && (
+          <p className="mt-1.5 text-xs text-danger">
             {error}
-          </motion.p>
+          </p>
         )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -148,14 +125,9 @@ function CharBar({ count, max }: { count: number; max: number }) {
   return (
     <div className="mt-2 flex items-center justify-between gap-3">
       <div className="flex-1 h-0.5 rounded-full overflow-hidden bg-subtle">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.2 }}
-        />
+        <div className="h-full rounded-full" style={{ backgroundColor: color }}/>
       </div>
-      <span className="text-[10px] font-mono shrink-0 text-muted">
+      <span className="text-label font-mono shrink-0 text-muted">
         {count}/{max}
       </span>
     </div>
@@ -172,7 +144,7 @@ function InfoItem({ icon, label, value, href }: { icon: ReactNode; label: string
         {icon}
       </div>
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</p>
+        <p className="text-label font-semibold uppercase tracking-wider text-muted">{label}</p>
         <p className="text-sm text-secondary">{value}</p>
       </div>
     </div>
@@ -269,19 +241,12 @@ export default function Contact() {
 
             {/* ── Left: Form (3/5) ── */}
             <div className="lg:col-span-3">
-              <AnimatePresence>
-                {status === 'success' && <SuccessBanner message={successMsg} />}
+              {status === 'success' && <SuccessBanner message={successMsg} />}
                 {status === 'error' && submitErr && (
-                  <motion.div
-                    key="err"
-                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className="p-4 rounded-xl text-sm mb-5 hue-pill"
-                    style={hueStyle('danger')}
-                  >
+                  <div key="err" className="p-4 rounded-xl text-sm mb-5 hue-pill" style={hueStyle('danger')}>
                     {submitErr}
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
 
               <form onSubmit={onSubmit} noValidate id="contact-form" className="space-y-5">
                 {/* Honeypot - off-screen, not in the tab order, ignored by assistive tech. */}
@@ -407,7 +372,7 @@ export default function Contact() {
                     <div key={item.label} className="enter flex items-center justify-between" style={enterAt(250 + i * 60)}>
                       <span className="text-sm text-secondary">{item.label}</span>
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold hue-chip"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label font-semibold hue-chip"
                         style={hueStyle(item.available ? 'success' : 'danger')}
                       >
                         <span className="w-1.5 h-1.5 rounded-full animate-pulse hue-dot [--dot-glow:0px]" />

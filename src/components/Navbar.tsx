@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNavLinks } from '../hooks/useNavLinks';
 import { useTheme } from '../hooks/useTheme';
 import Button from './Button';
@@ -69,10 +68,8 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
                 >
                   {link.label}
                   {active && (
-                    <motion.span
-                      layoutId="nav-line"
+                    <span
                       className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-accent"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
                 </Link>
@@ -117,7 +114,7 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span className="hidden md:inline flex-1 text-sm">Search or ask…</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-subtle text-[10px] font-mono">⌘K</kbd>
+              <kbd className="px-1.5 py-0.5 rounded bg-subtle text-label font-mono">⌘K</kbd>
             </button>
             <button
               onClick={onCommandPaletteOpen}
@@ -147,15 +144,8 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
       </div>
 
       {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="lg:hidden border-t border-line overflow-hidden bg-surface"
-          >
+      {mobileOpen && (
+        <div className="enter lg:hidden border-t border-line overflow-hidden bg-surface">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 space-y-0.5 max-h-[75vh] overflow-y-auto">
               {[...primary, ...secondary].map((link, i) => {
                 const active = link.path === '/' ? pathname === '/' : pathname.startsWith(link.path);
@@ -163,7 +153,7 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
                 return (
                   <div key={link.path}>
                     {firstSecondary && (
-                      <div className="mt-2 mb-1 border-t border-line pt-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted">
+                      <div className="mt-2 mb-1 border-t border-line pt-2 px-3 text-label font-semibold uppercase text-muted">
                         More
                       </div>
                     )}
@@ -190,9 +180,8 @@ export default function Navbar({ onCommandPaletteOpen }: { onCommandPaletteOpen:
                 Search or ask…
               </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </nav>
   );
 }

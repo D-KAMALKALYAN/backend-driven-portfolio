@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ArrowRight, Briefcase, FolderOpen, MapPin, User, Zap, type LucideIcon } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 import { Section, Container } from '../components/Layout';
@@ -17,7 +16,7 @@ import { getVal, getItems } from '../utils/siteContent';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { asStringArray } from '../utils/json';
 import { enterAt } from '../utils/enter';
-import { hueStyle, tint, type Hue } from '../lib/palette';
+import { hueStyle, type Hue } from '../lib/palette';
 import type { ActiveResume, AnalyticsDashboard, Experience } from '../types/rows';
 
 export interface LandingProps {
@@ -52,19 +51,14 @@ function AnalyticsTeaser() {
         className="group no-underline block"
         aria-label="View system analytics"
       >
-        <motion.div
-          className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 bg-card
-                     shadow-[var(--shadow-card),0_0_0_1px_var(--ring-accent-soft)]
-                     group-hover:shadow-[var(--shadow-hover),0_0_0_1px_var(--ring-accent)]"
-          whileHover={{ y: -2 }}
-        >
+        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 bg-card shadow-[var(--shadow-card),0_0_0_1px_var(--ring-accent-soft)] group-hover:shadow-[var(--shadow-hover),0_0_0_1px_var(--ring-accent)]">
           {/* Live dot */}
           <span className="flex items-center gap-1.5 shrink-0">
             <span
               className="w-2 h-2 rounded-full animate-pulse hue-dot [--dot-glow:6px]"
               style={hueStyle('success')}
             />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-success">
+            <span className="text-label font-semibold uppercase text-success">
               Live
             </span>
           </span>
@@ -85,17 +79,13 @@ function AnalyticsTeaser() {
           </div>
 
           {/* CTA arrow */}
-          <motion.span
-            className="shrink-0 flex items-center gap-1 text-xs font-semibold text-accent"
-            animate={{ x: [0, 3, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          >
+          <span className="shrink-0 flex items-center gap-1 text-xs font-semibold text-accent">
             Analytics
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
-          </motion.span>
-        </motion.div>
+          </span>
+        </div>
       </Link>
     </div>
   );
@@ -115,76 +105,6 @@ function DownloadIcon() {
 const NAV_ICON_MAP: Partial<Record<RoutePath, LucideIcon>> = { '/about': User, '/projects': FolderOpen, '/skills': Zap, '/experience': Briefcase };
 const QUICK_NAV_PATHS: RoutePath[] = ['/about', '/projects', '/skills', '/experience'];
 
-// ─── Animated gradient orbs that loosely track the cursor ────────────────────
-function GradientOrbs() {
-  const mx = useMotionValue(0.5);
-  const my = useMotionValue(0.5);
-  const sx = useSpring(mx, { stiffness: 30, damping: 20 });
-  const sy = useSpring(my, { stiffness: 30, damping: 20 });
-
-  useEffect(() => {
-    const move = (e: MouseEvent) => {
-      mx.set(e.clientX / window.innerWidth);
-      my.set(e.clientY / window.innerHeight);
-    };
-    window.addEventListener('mousemove', move);
-    return () => window.removeEventListener('mousemove', move);
-  }, [mx, my]);
-
-  return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-      {/* Left orb — accent */}
-      <motion.div
-        style={{
-          x: sx,
-          y: sy,
-          position: 'absolute',
-          top: '10%',
-          left: '-10%',
-          width: '60vw',
-          height: '60vw',
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${tint('indigo', 12)} 0%, transparent 70%)`,
-          filter: 'blur(60px)',
-          willChange: 'transform',
-          translateX: '-50%',
-          translateY: '-50%',
-        }}
-      />
-      {/* Right orb — violet */}
-      <motion.div
-        style={{
-          position: 'absolute',
-          bottom: '5%',
-          right: '-10%',
-          width: '50vw',
-          height: '50vw',
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${tint('violet', 9)} 0%, transparent 70%)`,
-          filter: 'blur(80px)',
-          willChange: 'transform',
-        }}
-        animate={{ scale: [1, 1.08, 1], opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      {/* Top-right subtle green (success) */}
-      <motion.div
-        style={{
-          position: 'absolute',
-          top: '-5%',
-          right: '20%',
-          width: '30vw',
-          height: '30vw',
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${tint('green', 5)} 0%, transparent 70%)`,
-          filter: 'blur(60px)',
-        }}
-        animate={{ scale: [1, 1.12, 1], opacity: [0.4, 0.8, 0.4] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-      />
-    </div>
-  );
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Landing({ experience, resume, children }: LandingProps) {
@@ -222,7 +142,6 @@ export default function Landing({ experience, resume, children }: LandingProps) 
 
   return (
     <PageWrapper>
-      <GradientOrbs />
 
       <Section>
         <Container className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] text-center relative">
@@ -309,14 +228,9 @@ export default function Landing({ experience, resume, children }: LandingProps) 
             <div className="enter flex flex-wrap items-center justify-center gap-4 mb-10" style={enterAt(350)}>
               <Button as={Link} href="/projects" size="lg">
                 {ctaPrimary}
-                <motion.svg
-                  className="w-4 h-4"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                  whileHover={{ x: 4 }}
-                  transition={{ type: 'spring', stiffness: 400 }}
-                >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </motion.svg>
+                </svg>
               </Button>
               {/* Resolved on the server from the same query as /resume - one
                   source of truth. Falls back to the resume page if none is active. */}
@@ -343,16 +257,9 @@ export default function Landing({ experience, resume, children }: LandingProps) 
             {/* Tech tags — staggered by CSS delay */}
             <div className="flex flex-wrap items-center justify-center gap-2 mb-14">
               {featuredTags.map((tag, i) => (
-                <motion.span
-                  key={tag}
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.15 }}
-                  className="enter px-3 py-1 rounded-full text-xs font-mono cursor-default bg-subtle text-muted shadow-card
-                             transition-[color,box-shadow] duration-150 hover:text-accent hover:shadow-[var(--shadow-card),0_0_0_1px_var(--ring-accent)]"
-                  style={enterAt(450 + i * 80)}
-                >
+                <span key={tag} className="enter px-3 py-1 rounded-full text-xs font-mono cursor-default bg-subtle text-muted shadow-card transition-[color,box-shadow] duration-150 hover:text-accent hover:shadow-[var(--shadow-card),0_0_0_1px_var(--ring-accent)]" style={enterAt(450 + i * 80)}>
                   {tag}
-                </motion.span>
+                </span>
               ))}
             </div>
           </div>
@@ -360,7 +267,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
           {/* ── Quick-nav cards ── */}
           <div className="enter grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-lg mx-auto" style={enterAt(500)}>
             {quickNav.map((link) => (
-              <motion.div key={link.path} whileHover={{ y: -4, scale: 1.02 }} transition={{ duration: 0.18 }}>
+              <div key={link.path}>
                 <Link
                   href={link.path}
                   className={`group flex flex-col items-center gap-1.5 p-4 text-center no-underline block ${CARD} ${CARD_HOVER_ACCENT}`}
@@ -370,7 +277,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
                     {link.label}
                   </span>
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -384,7 +291,7 @@ export default function Landing({ experience, resume, children }: LandingProps) 
           >
             Press{' '}
             <kbd
-              className="px-2 py-1 rounded-lg text-[10px] font-mono shadow-card bg-subtle"
+              className="px-2 py-1 rounded-lg text-label font-mono shadow-card bg-subtle"
             >
               Ctrl+K
             </kbd>

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 import { HUES, hue, tint, hueStyle, colorStyle, isHue } from '../lib/palette';
 import { ICONS, isIconName } from '../components/Icon';
 
@@ -52,6 +52,55 @@ describe('palette', () => {
     const sizes = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl', '8xl', '9xl'];
     const colours = [...css.matchAll(/--color-([a-z0-9-]+):/g)].map((m) => m[1] ?? '');
     expect(colours.filter((c) => sizes.includes(c))).toEqual([]);
+  });
+
+  it('no font-size token is also a colour name, and the two label steps exist', () => {
+    // The same trap as `text-base`, from the other side: a font size named
+    // `muted` would make `text-muted` a size instead of a colour (ADR-056).
+    // Only the @theme block defines utilities; :root's --text-primary and
+    // friends are colour values the bridge maps to --color-*.
+    const theme = css.slice(css.indexOf('@theme inline {'), css.indexOf('/* ── Dark theme'));
+    const colours = [...theme.matchAll(/--color-([a-z0-9-]+):/g)].map((m) => m[1] ?? '');
+    // `--text-label--line-height` is a modifier of a size, not a size.
+    const sizes = [...theme.matchAll(/--text-([a-z0-9-]+):/g)].map((m) => m[1] ?? '').filter((n) => !n.includes('--'));
+    expect(sizes.filter((s) => colours.includes(s))).toEqual([]);
+    // The two steps below Tailwind's text-xs that this site's labels live on.
+    expect(new Set(sizes)).toEqual(new Set(['label', 'caption']));
+  });
+
+  it('the ad-hoc type sizes are gone: a scale nobody can change is not a scale', () => {
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir)) {
+        const full = join(dir, e);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (full.endsWith('.tsx')) files.push(full);
+      }
+    };
+    walk(resolve(process.cwd(), 'src'));
+    const offenders = files.filter((f) => /text-\[\d+px\]/.test(readFileSync(f, 'utf-8')));
+    expect(offenders.map((f) => basename(f))).toEqual([]);
+  });
+
+  it('framer-motion is imported by exactly one component, and it is lazily mounted', () => {
+    // The motion budget (ADR-056): an animation library on every page cost
+    // ~45 kB for hover lifts CSS already does. The palette needs an exit
+    // animation; nothing else does, and AppShell mounts it on first open.
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir)) {
+        const full = join(dir, e);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(full)) files.push(full);
+      }
+    };
+    walk(resolve(process.cwd(), 'src'));
+    const importers = files
+      .filter((f) => !f.includes('__tests__'))
+      .filter((f) => /^import .*from 'framer-motion';$/m.test(readFileSync(f, 'utf-8')));
+    expect(importers.map((f) => basename(f))).toEqual(['CommandPalette.tsx']);
+    expect(readFileSync(resolve(process.cwd(), 'src/components/AppShell.tsx'), 'utf-8'))
+      .toMatch(/dynamic\(\(\) => import\('\.\/CommandPalette'\)/);
   });
 
   it('the theme bridge maps every semantic token a utility relies on', () => {

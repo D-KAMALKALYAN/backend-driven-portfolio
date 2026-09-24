@@ -136,7 +136,7 @@ function renderContent(section: ProjectSection): ReactNode {
           {items.map((m, i) => (
             <div key={i} className="text-center p-4 rounded-xl bg-subtle">
               <p className="text-2xl font-bold font-mono text-accent">{asString(m['value'], '—')}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mt-1 text-muted">{asString(m['label'])}</p>
+              <p className="text-label font-semibold uppercase tracking-wider mt-1 text-muted">{asString(m['label'])}</p>
             </div>
           ))}
         </div>
@@ -274,7 +274,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
               <div className="flex items-center gap-2 flex-wrap mb-3">
                 {project.status && (
                   <span
-                    className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-accent-glow2 text-accent"
+                    className="text-label font-bold uppercase px-2.5 py-1 rounded-full bg-accent-glow2 text-accent"
                   >
                     {project.status}
                   </span>
@@ -283,12 +283,12 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                     relative to the other projects, and this page holds one.
                     The absolute view count below is the honest signal. */}
                 {inProgress && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full hue-chip" style={hueStyle('amber')} title="Currently in development">
+                  <span className="inline-flex items-center gap-1 text-label font-bold px-2.5 py-1 rounded-full hue-chip" style={hueStyle('amber')} title="Currently in development">
                     <Construction size={11} aria-hidden /> In progress
                   </span>
                 )}
                 {viewLabel && (
-                  <span className="text-[10px] font-mono text-muted">
+                  <span className="text-label font-mono text-muted">
                     <Eye size={11} className="inline -mt-px" aria-hidden /> {viewLabel}
                   </span>
                 )}
@@ -321,7 +321,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                   {tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted"
+                      className="text-label font-mono px-2 py-0.5 rounded-full bg-subtle text-muted"
                     >
                       #{tag}
                     </span>
@@ -413,7 +413,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                           {(() => { const Glyph = SECTION_ICONS[iconKey] ?? Activity; return <Glyph size={14} className="text-accent shrink-0" aria-hidden />; })()}
                           <h2 className="font-semibold text-primary">{s.title}</h2>
                           {s?.type && s.type !== 'text' && (
-                            <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-subtle text-muted">
+                            <span className="ml-auto text-label font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-subtle text-muted">
                               {s.type}
                             </span>
                           )}

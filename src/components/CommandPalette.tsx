@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import AnswerText from './AnswerText';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Sparkles, X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ASK_IDLE, TRY_HINT, type AskState, type PaletteItem } from '../utils/palette';
@@ -26,8 +26,6 @@ export interface CommandPaletteProps {
   clearContext?: () => void;
   /** The mode the first character chose - "Commands", "Tag", "Ask" - or null for plain search (ADR-052). */
   mode?: string | null;
-  /** A short confirmation for the footer ("Link copied"). */
-  notice?: string | null;
   executeCommand: (item: PaletteItem) => void;
   close: () => void;
 }
@@ -52,7 +50,7 @@ function AskPanel({ ask, close }: { ask: AskState; close: () => void }) {
     <div className="px-4 py-3 border-b border-line" aria-live="polite">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles size={13} className={`text-accent ${ask.status === 'asking' || ask.status === 'streaming' ? 'animate-pulse' : ''}`} aria-hidden />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">{heading}</span>
+        <span className="text-label font-semibold uppercase text-muted">{heading}</span>
       </div>
       {ask.status === 'asking' && <p className="text-sm m-0 text-secondary">Finding the sources.</p>}
       {ask.status === 'error' && <p className="text-sm m-0 text-secondary">{ask.message}</p>}
@@ -77,7 +75,7 @@ function AskPanel({ ask, close }: { ask: AskState; close: () => void }) {
         <p className="mt-2 m-0 text-xs text-secondary">{TRUNCATED_NOTE}</p>
       )}
       {ask.status === 'done' && (
-        <p className="mt-2 m-0 text-[11px] text-muted">Written by a model from the site&apos;s own content, with the sources it used. Check the source when it matters.</p>
+        <p className="mt-2 m-0 text-caption text-muted">Written by a model from the site&apos;s own content, with the sources it used. Check the source when it matters.</p>
       )}
     </div>
   );
@@ -109,7 +107,7 @@ interface IndexedCommand {
   idx: number;
 }
 
-export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, askEnabled = false, askContext = null, clearContext, mode = null, notice = null, executeCommand, close }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, query, setQuery, items, searching, ask = ASK_IDLE, askEnabled = false, askContext = null, clearContext, mode = null, executeCommand, close }: CommandPaletteProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const listRef   = useRef<HTMLDivElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
@@ -178,6 +176,9 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
   });
 
   return (
+    // reducedMotion="user": the panel and backdrop respect the OS setting,
+    // as the CSS `.enter` animation does for everything server-rendered.
+    <MotionConfig reducedMotion="user">
     <AnimatePresence>
       {isOpen && (
         <>
@@ -209,7 +210,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 {mode && (
-                  <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-widest bg-accent-glow text-accent-hover" aria-label={`${mode} mode`}>
+                  <span className="shrink-0 px-2 py-0.5 rounded-md text-label font-semibold uppercase bg-accent-glow text-accent-hover" aria-label={`${mode} mode`}>
                     {mode}
                   </span>
                 )}
@@ -237,7 +238,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
               {/* Results */}
               <div ref={listRef} className={`max-h-80 overflow-y-auto ${grouped.size === 0 && ask.status !== 'idle' ? '' : 'py-1.5'}`} role="listbox">
                 {query === '' && ask.status === 'idle' && (
-                  <p className="px-4 pt-1 pb-2 m-0 text-[11px] font-mono text-muted" aria-hidden>{TRY_HINT}</p>
+                  <p className="px-4 pt-1 pb-2 m-0 text-caption font-mono text-muted" aria-hidden>{TRY_HINT}</p>
                 )}
                 {grouped.size === 0 ? (
                   // While an answer is on its way or on show, the panel above is the content; "Nothing found" under it would be about the wrong thing.
@@ -249,7 +250,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
                 ) : (
                   [...grouped.entries()].map(([group, items]) => (
                     <div key={group}>
-                      <p className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
+                      <p className="px-4 py-1.5 text-label font-semibold uppercase text-muted">
                         {group}
                       </p>
                       {items.map(({ cmd, idx }) => {
@@ -284,8 +285,7 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
               </div>
 
               {/* Footer hints */}
-              <div className="px-4 py-2.5 flex items-center gap-4 text-[10px] border-t border-line text-muted" aria-live="polite">
-                {notice && <span className="font-semibold text-accent-hover">{notice}</span>}
+              <div className="px-4 py-2.5 flex items-center gap-4 text-label border-t border-line text-muted">
                 <span className="flex items-center gap-1">
                   <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">↑</kbd>
                   <kbd className="px-1.5 py-0.5 rounded font-mono bg-subtle">↓</kbd>
@@ -305,5 +305,6 @@ export default function CommandPalette({ isOpen, query, setQuery, items, searchi
         </>
       )}
     </AnimatePresence>
+    </MotionConfig>
   );
 }

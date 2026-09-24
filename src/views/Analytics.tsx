@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import {
   Activity, Building2, Calendar, ChartColumn, Cog, Eye, FileText, FolderOpen, Link2, Mail, Radio, Rocket, Star,
   TriangleAlert, User, type LucideIcon,
@@ -18,6 +17,7 @@ import { useResource } from '../hooks/useResource';
 import { useRealtimeEvents, type FeedEvent } from '../hooks/useRealtimeEvents';
 import { groupEventsByVisit, formatEventTime } from '../utils/eventFeed';
 import { hue, hueStyle, tint, type Hue } from '../lib/palette';
+import { enterAt } from '../utils/enter';
 import type { AnalyticsDashboard, DailyVisit, TopProject } from '../types/rows';
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
@@ -27,17 +27,13 @@ interface StatCardProps {
   icon: LucideIcon;
   hue: Hue;
   suffix?: string;
+  /** Entrance stagger in ms, for the CSS `.enter` animation. */
   delay?: number;
 }
 
 function StatCard({ label, value, icon: Glyph, hue: h, suffix = '', delay = 0 }: StatCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="rounded-2xl p-5 flex flex-col gap-3 bg-card shadow-card"
-    >
+    <div className="enter rounded-2xl p-5 flex flex-col gap-3 bg-card shadow-card" style={enterAt(delay)}>
       <div className="flex items-center justify-between">
         <span
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 hue-chip"
@@ -45,14 +41,14 @@ function StatCard({ label, value, icon: Glyph, hue: h, suffix = '', delay = 0 }:
         >
           <Glyph size={16} aria-hidden />
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+        <span className="text-label font-semibold uppercase text-muted">
           {label}
         </span>
       </div>
       <p className="text-3xl font-extrabold font-mono text-primary">
         {value != null ? <CountUp value={Number(value)} suffix={suffix} /> : '—'}
       </p>
-    </motion.div>
+    </div>
   );
 }
 
@@ -179,19 +175,14 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
       {projects.map((p, i) => {
         const pct = ((p.view_count || 0) / maxViews) * 100;
         return (
-          <motion.div
-            key={p.id}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 + 0.2 }}
-          >
+          <div key={p.id}>
             <Link
               href={`/projects/${p.slug}`}
               className="group flex items-center gap-3 p-3 rounded-xl no-underline transition-colors bg-subtle hover:bg-card"
             >
               {/* Rank */}
               <span
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-label font-bold shrink-0"
                 style={{
                   backgroundColor: i < 3 ? 'var(--accent-glow2)' : 'var(--bg-card)',
                   color: i < 3 ? 'var(--accent)' : 'var(--text-muted)',
@@ -206,18 +197,12 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
                   {p.title}
                 </p>
                 <div className="h-1.5 rounded-full overflow-hidden bg-line">
-                  <motion.div
-                    className="h-full rounded-full"
+                  <div
+                    className="h-full rounded-full transition-[width] duration-700 ease-out"
                     style={{
-                      background: i === 0
-                        ? `linear-gradient(90deg,${hue('indigo')},${hue('violet')})`
-                        : i === 1
-                        ? `linear-gradient(90deg,${hue('violet')},${hue('purple')})`
-                        : 'var(--accent)',
+                      width: `${pct}%`,
+                      background: i === 0 ? `linear-gradient(90deg,${hue('indigo')},${hue('violet')})` : i === 1 ? `linear-gradient(90deg,${hue('violet')},${hue('purple')})` : 'var(--accent)',
                     }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ delay: i * 0.05 + 0.4, duration: 0.6, ease: 'easeOut' }}
                   />
                 </div>
               </div>
@@ -227,7 +212,7 @@ function TopProjectsPanel({ projects }: { projects: TopProject[] | null | undefi
                 {(p.view_count || 0).toLocaleString()} views
               </span>
             </Link>
-          </motion.div>
+          </div>
         );
       })}
     </div>
@@ -261,13 +246,7 @@ function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
   return (
     <ul className="space-y-2 max-h-72 overflow-y-auto pr-1 list-none m-0 p-0">
       {visits.map((v, i) => (
-        <motion.li
-          key={v.id}
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: Math.min(i, 10) * 0.03 }}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-subtle"
-        >
+        <li key={v.id} className="enter flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-subtle" style={enterAt(Math.min(i, 8) * 40)}>
           <span className="flex items-center gap-1 shrink-0">
             {v.events.map((e) => {
               const m = EVENT_META[e] ?? UNKNOWN_EVENT;
@@ -290,7 +269,7 @@ function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
               return (
                 <span
                   key={e}
-                  className="font-mono px-1.5 py-0.5 rounded text-[10px] hue-chip"
+                  className="font-mono px-1.5 py-0.5 rounded text-label hue-chip"
                   style={hueStyle(m.hue)}
                 >
                   {e}
@@ -305,7 +284,7 @@ function EventFeed({ events }: { events: FeedEvent[] | null | undefined }) {
           >
             {formatEventTime(v.at)}
           </time>
-        </motion.li>
+        </li>
       ))}
     </ul>
   );
@@ -372,7 +351,7 @@ export default function Analytics() {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
               {STATS.map((s, i) => (
-                <StatCard key={s.label} {...s} delay={i * 0.07} />
+                <StatCard key={s.label} {...s} delay={i * 70} />
               ))}
             </div>
           )}
@@ -385,10 +364,10 @@ export default function Analytics() {
                   <Sparkles size={13} className="text-accent" aria-hidden />
                   Digest
                 </p>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted">{digest.period_start}</span>
+                <span className="text-label font-mono px-2 py-0.5 rounded-full bg-subtle text-muted">{digest.period_start}</span>
               </div>
               <p className="m-0 text-sm leading-relaxed text-primary max-w-3xl">{digest.body}</p>
-              <p className="m-0 mt-3 text-[11px] text-muted">Written by a model once a day from the numbers on this page - the numbers, quoted, never estimated. Ask the palette &ldquo;what happened this week?&rdquo; for more.</p>
+              <p className="m-0 mt-3 text-caption text-muted">Written by a model once a day from the numbers on this page - the numbers, quoted, never estimated. Ask the palette &ldquo;what happened this week?&rdquo; for more.</p>
             </Card>
           )}
 
@@ -403,7 +382,7 @@ export default function Analytics() {
                     Daily Page Views — Last 30 Days
                   </p>
                   {visits && visits.length > 0 && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-subtle text-muted">
+                    <span className="text-label font-mono px-2 py-0.5 rounded-full bg-subtle text-muted">
                       {visits.length} days
                     </span>
                   )}
@@ -432,7 +411,7 @@ export default function Analytics() {
               {/* Reflects the actual socket state. Previously this was a
                   hardcoded pulsing "Live" over data fetched once on mount. */}
               <span
-                className="flex items-center gap-1.5 text-[10px] font-semibold"
+                className="flex items-center gap-1.5 text-label font-semibold"
                 style={{
                   color: liveStatus === 'live' ? 'var(--success)'
                        : liveStatus === 'offline' ? 'var(--text-muted)'
@@ -464,12 +443,7 @@ export default function Analytics() {
           </Card>
 
           {/* ─ Architecture note */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-8 rounded-xl px-4 py-3 flex items-start gap-3 bg-subtle border border-line"
-          >
+          <div className="mt-8 rounded-xl px-4 py-3 flex items-start gap-3 bg-subtle border border-line">
             <Cog size={14} className="shrink-0 mt-px text-muted" aria-hidden />
             <p className="text-xs leading-relaxed text-muted">
               <strong className="text-secondary">Architecture:</strong>{' '}
@@ -488,7 +462,7 @@ export default function Analytics() {
               connection the browser makes to the database directly; the badge shows the
               real socket state, not a decoration.
             </p>
-          </motion.div>
+          </div>
 
         </Container>
       </Section>

@@ -64,7 +64,7 @@ export default function Footer() {
 
           {/* Nav links — two columns in one cell */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5 text-muted">
+            <p className="text-label font-semibold uppercase mb-2.5 text-muted">
               {navTitle}
             </p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
@@ -82,7 +82,7 @@ export default function Footer() {
 
           {/* Quick access */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5 text-muted">
+            <p className="text-label font-semibold uppercase mb-2.5 text-muted">
               {qaTitle}
             </p>
             <div className="flex items-center gap-1.5 text-xs text-muted">
@@ -90,7 +90,7 @@ export default function Footer() {
                 <span key={i} className="flex items-center gap-1.5">
                   {i > 0 && <span>+</span>}
                   <kbd
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-subtle shadow-card"
+                    className="px-1.5 py-0.5 rounded text-label font-mono bg-subtle shadow-card"
                   >
                     {key}
                   </kbd>
@@ -108,7 +108,7 @@ export default function Footer() {
             style={{ backgroundColor: 'var(--bg-subtle)', boxShadow: 'inset 0 0 0 1px var(--border)' }}
           >
             <Cog size={14} className="shrink-0 mt-px text-muted" aria-hidden />
-            <p className="text-[11px] leading-relaxed text-muted">
+            <p className="text-caption leading-relaxed text-muted">
               {noteTitle && (
                 <strong className="text-secondary">{noteTitle}{' '}</strong>
               )}
@@ -127,7 +127,7 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div
-          className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 text-[11px] border-t border-line text-muted"
+          className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 text-caption border-t border-line text-muted"
         >
           <span>{copyright}</span>
           <span>{techStack}</span>

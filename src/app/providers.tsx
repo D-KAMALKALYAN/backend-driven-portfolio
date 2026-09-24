@@ -1,11 +1,11 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from '../hooks/useTheme';
 import { SiteContentProvider } from '../hooks/useSiteContent';
 import { SiteFeaturesProvider, type SiteFeatures } from '../hooks/useSiteFeatures';
 import { PageActionsProvider } from '../hooks/usePageActions';
+import { ToastProvider } from '../components/Toast';
 import type { SiteContent } from '../types/rows';
 
 /**
@@ -14,16 +14,15 @@ import type { SiteContent } from '../types/rows';
  * (analytics) uses hooks/useResource rather than a query library.
  */
 export function Providers({ content, features, children }: { content: SiteContent[]; features: SiteFeatures; children: ReactNode }) {
-  // reducedMotion="user" makes every motion component respect the OS setting.
   return (
-    <MotionConfig reducedMotion="user">
-      <ThemeProvider>
-        <SiteContentProvider content={content}>
-          <SiteFeaturesProvider features={features}>
-            <PageActionsProvider>{children}</PageActionsProvider>
-          </SiteFeaturesProvider>
-        </SiteContentProvider>
-      </ThemeProvider>
-    </MotionConfig>
+    <ThemeProvider>
+      <SiteContentProvider content={content}>
+        <SiteFeaturesProvider features={features}>
+          <PageActionsProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </PageActionsProvider>
+        </SiteFeaturesProvider>
+      </SiteContentProvider>
+    </ThemeProvider>
   );
 }

@@ -189,7 +189,8 @@ const content = Object.fromEntries(data.map(r => [r.key, r.value]));
 │   ├── proxy.ts               # per-request CSP nonce
 │   ├── views/                 # The page bodies (client components, data via props)
 │   ├── components/            # Pure UI; data arrives as typed props
-│   │   └── Icon.tsx           # lucide icons by name, for the places an icon name is data
+│   │   ├── Icon.tsx           # lucide icons by name, for the places an icon name is data
+│   │   └── Toast.tsx          # the one notification: a polite live region, a line, a timer
 │   ├── hooks/                 # useSiteContent (context), useResource (the one browser fetch), useRealtimeEvents, useFocusTrap, ...
 │   ├── ai/                    # The AI module (ADR-050): one file per concern, the route is wiring
 │   │   ├── provider.ts        # the model behind one interface (complete + stream); price table; error → status

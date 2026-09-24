@@ -103,7 +103,7 @@ export function DiagramBlock({ section, source = null }: BlockProps) {
         {/* Monospace, not an image: readable in both themes, zoomable, and
             the text is in the HTML for anyone who cannot see it. */}
         <pre
-          className="enter overflow-x-auto text-[11px] sm:text-xs leading-snug p-5 rounded-2xl font-mono m-0 bg-card text-primary shadow-card"
+          className="enter overflow-x-auto text-caption sm:text-xs leading-snug p-5 rounded-2xl font-mono m-0 bg-card text-primary shadow-card"
           aria-label={caption || section.heading || 'diagram'}
         >
           {ascii}
@@ -167,7 +167,7 @@ export function TableBlock({ section, source = null }: BlockProps) {
                 <th
                   key={col}
                   scope="col"
-                  className="text-left text-[11px] font-semibold uppercase tracking-widest px-4 py-3 text-muted border-b border-line"
+                  className="text-left text-caption font-semibold uppercase tracking-widest px-4 py-3 text-muted border-b border-line"
                 >
                   {col}
                 </th>

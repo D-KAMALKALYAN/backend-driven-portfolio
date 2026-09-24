@@ -1,9 +1,17 @@
 'use client';
 
 import { Suspense, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import CommandPalette from './CommandPalette';
+
+/**
+ * The palette is the only thing on the site that still uses framer-motion
+ * (ADR-056), and it is the only thing that needs an exit animation. Loading
+ * it on the first open keeps ~40 kB of animation library off every page;
+ * the chunk arrives while the panel is fading in.
+ */
+const CommandPalette = dynamic(() => import('./CommandPalette'), { ssr: false });
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { usePageTracking } from '../hooks/usePageTracking';
 import { useSiteFeatures } from '../hooks/useSiteFeatures';
@@ -19,7 +27,7 @@ function PageTracker() {
  * Pages themselves are server-rendered and arrive as `children`.
  */
 export default function AppShell({ children }: { children: ReactNode }) {
-  const { isOpen, query, setQuery, items, searching, mode, notice, ask, askContext, clearContext, executeCommand, open, close } = useCommandPalette();
+  const { isOpen, everOpened, query, setQuery, items, searching, mode, ask, askContext, clearContext, executeCommand, open, close } = useCommandPalette();
   const features = useSiteFeatures();
 
   return (
@@ -38,7 +46,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <Navbar onCommandPaletteOpen={open} />
 
-      <CommandPalette
+      {everOpened && <CommandPalette
         isOpen={isOpen}
         query={query}
         setQuery={setQuery}
@@ -49,10 +57,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
         askContext={askContext}
         clearContext={clearContext}
         mode={mode}
-        notice={notice}
         executeCommand={executeCommand}
         close={close}
-      />
+      />}
 
       <main id="main-content" className="flex-1">
         {children}

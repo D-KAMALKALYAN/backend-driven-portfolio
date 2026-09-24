@@ -38,7 +38,7 @@ export function StatusBadge({ status }: { status?: string | null }) {
   if (!status) return null;
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider hue-chip"
+      className="inline-flex items-center px-2 py-0.5 rounded-full text-label font-semibold uppercase tracking-wider hue-chip"
       style={hueStyle(STATUS_HUE[status.toLowerCase()] ?? 'accent')}
     >
       {status}
