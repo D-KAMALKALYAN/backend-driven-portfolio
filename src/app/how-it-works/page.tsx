@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import PageWrapper from '../../components/PageWrapper';
 import { Container } from '../../components/Layout';
 import SectionHeader from '../../components/SectionHeader';
+import DocNav from '../../components/DocNav';
 import PageSections from '../../lib/sections';
 import { getSiteContent } from '../../lib/content';
 import { getVal } from '../../utils/siteContent';
@@ -35,7 +36,15 @@ export default async function Page() {
           />
         </Container>
       </div>
-      <PageSections page="how_it_works" />
+      {/* The longest page on the site: its own headings, beside it (ADR-057). */}
+      <Container>
+        <div className="flex gap-10">
+          <div className="doc-flush min-w-0 flex-1">
+            <PageSections page="how_it_works" />
+          </div>
+          <DocNav />
+        </div>
+      </Container>
     </PageWrapper>
   );
 }

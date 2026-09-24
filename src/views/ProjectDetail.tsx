@@ -19,6 +19,7 @@ import { isInProgress } from '../utils/popularity';
 import { asObject, asObjectArray, asString } from '../utils/json';
 import { enterAt } from '../utils/enter';
 import { useRegisterPageActions } from '../hooks/usePageActions';
+import { anchorId } from '../components/sections/SectionBlock';
 import Explainable from '../components/Explainable';
 import type { Project, ProjectSection, ProjectStorytelling } from '../types/rows';
 
@@ -81,7 +82,7 @@ function StorytellingSection({ rows }: { rows: ProjectStorytelling[] | null | un
                   <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hue-chip-soft">
                     <meta.icon size={16} aria-hidden />
                   </span>
-                  <h3 className="text-sm font-semibold text-primary">
+                  <h3 id={anchorId(displayTitle)} className="text-sm font-semibold text-primary">
                     {displayTitle}
                   </h3>
                 </div>
@@ -411,7 +412,7 @@ export default function ProjectDetail({ project, sections, storytelling }: Proje
                       {s?.title && (
                         <div className="flex items-center gap-2 mb-4">
                           {(() => { const Glyph = SECTION_ICONS[iconKey] ?? Activity; return <Glyph size={14} className="text-accent shrink-0" aria-hidden />; })()}
-                          <h2 className="font-semibold text-primary">{s.title}</h2>
+                          <h2 id={anchorId(s.title)} className="font-semibold text-primary">{s.title}</h2>
                           {s?.type && s.type !== 'text' && (
                             <span className="ml-auto text-label font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-subtle text-muted">
                               {s.type}

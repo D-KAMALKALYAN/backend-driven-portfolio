@@ -8,6 +8,12 @@ import Explainable, { type ExplainSourceRef } from '../Explainable';
  * description from the page_sections row, then whatever the section is.
  * Headings are h2 - the page already has its h1.
  */
+/** A stable anchor from a heading: what DocNav links to (ADR-057). */
+export function anchorId(heading: string | null | undefined): string | undefined {
+  const slug = (heading ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return slug || undefined;
+}
+
 export default function SectionBlock({
   heading,
   description,
@@ -28,7 +34,7 @@ export default function SectionBlock({
       <Container>
         {(heading || aside) && (
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-            {heading && <SectionHeader as="h2" size="section" title={heading} description={description ?? undefined} />}
+            {heading && <SectionHeader as="h2" size="section" id={anchorId(heading)} title={heading} description={description ?? undefined} />}
             {aside && (
               <p className="text-xs font-mono mb-5 text-muted">
                 {aside}

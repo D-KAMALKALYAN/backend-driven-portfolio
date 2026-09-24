@@ -16,11 +16,13 @@ export interface SectionHeaderProps {
   title?: ReactNode;
   description?: ReactNode;
   as?: 'h1' | 'h2' | 'h3';
+  /** An anchor for the heading: what DocNav links to, and what a shared link lands on. */
+  id?: string;
   /** `section`: smaller title and tighter margin, for blocks within a page. */
   size?: 'page' | 'section';
 }
 
-export default function SectionHeader({ label, title, description, as: Heading = 'h1', size = 'page' }: SectionHeaderProps) {
+export default function SectionHeader({ label, title, description, as: Heading = 'h1', size = 'page', id }: SectionHeaderProps) {
   const compact = size === 'section';
   return (
     <div className={compact ? 'mb-5' : 'mb-10 md:mb-12'}>
@@ -30,7 +32,7 @@ export default function SectionHeader({ label, title, description, as: Heading =
         </span>
       )}
       {title && (
-        <Heading className={`${compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'} font-bold text-primary leading-tight tracking-tight`}>
+        <Heading id={id} className={`${compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'} font-bold text-primary leading-tight tracking-tight`}>
           {title}
         </Heading>
       )}
